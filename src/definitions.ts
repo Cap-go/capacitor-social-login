@@ -102,7 +102,7 @@ export interface LoginOptions {
    * Payload
    * @description payload to login with
    */
-  payload: FacebookLoginOptions | GoogleLoginOptions;
+  payload: FacebookLoginOptions | GoogleLoginOptions | AppleLoginOptions;
 }
 
 export interface LoginResult {
@@ -159,7 +159,7 @@ export interface SocialLoginPlugin {
    * Login with the selected provider
    * @description login with the selected provider
    */
-  login(options: LoginOptions): Promise<void>;
+  login(options: LoginOptions): Promise<LoginResult>;
   /**
    * Logout
    * @description logout the user
