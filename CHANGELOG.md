@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.4](https://github.com/Cap-go/capacitor-social-login/compare/0.0.3...0.0.4) (2024-09-12)
+
+
+### Bug Fixes
+
+* implement base of each provider ([0e51109](https://github.com/Cap-go/capacitor-social-login/commit/0e511098b44988bbfa461cd2ba873c62623ae27e))
+
 ### [0.0.3](https://github.com/Cap-go/capacitor-social-login/compare/0.0.2...0.0.3) (2024-09-04)
 
 
