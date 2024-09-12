@@ -14,16 +14,11 @@ import com.google.android.gms.common.api.CommonStatusCodes;
 public class GoogleProvider {
   private SignInClient oneTapClient;
   private BeginSignInRequest signInRequest;
+  private String googleClientId;
 
   public void initialize(String googleClientId) {
+    this.googleClientId = googleClientId;
     oneTapClient = Identity.getSignInClient(getActivity());
-    signInRequest = BeginSignInRequest.builder()
-        .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-            .setSupported(true)
-            .setServerClientId(googleClientId)
-            .setFilterByAuthorizedAccounts(false)
-            .build())
-        .build();
   }
 
   public void login(PluginCall call, JSObject payload) {
@@ -45,10 +40,16 @@ public class GoogleProvider {
     oneTapClient.beginSignIn(signInRequest)
         .addOnSuccessListener(result -> {
           // Handle successful sign-in
-          String googleIdToken = result.getGoogleIdToken();
+          SignInCredential credential = result.getCredential();
+          String idToken = credential.getGoogleIdToken();
+          String accessToken = credential.getGoogleAccessToken();
+          String serverAuthCode = credential.getServerAuthCode();
+          
           // Resolve the plugin call with the token and other relevant data
           JSObject response = new JSObject();
-          response.put("accessToken", googleIdToken);
+          response.put("idToken", idToken);
+          response.put("accessToken", accessToken);
+          response.put("serverAuthCode", serverAuthCode);
           call.resolve(response);
         })
         .addOnFailureListener(exception -> {
@@ -86,13 +87,17 @@ public class GoogleProvider {
 
   public void getCurrentUser(PluginCall call) {
     // Retrieve the currently logged-in user information
-    // ...
-
-    if (currentUser != null) {
+    SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(getActivity().getIntent());
+    
+    if (credential != null) {
+      String idToken = credential.getGoogleIdToken();
+      String accessToken = credential.getGoogleAccessToken();
+      String serverAuthCode = credential.getServerAuthCode();
+      
       JSObject response = new JSObject();
-      response.put("accessToken", currentUser.getAccessToken());
-      response.put("idToken", currentUser.getIdToken());
-      response.put("serverAuthCode", currentUser.getServerAuthCode());
+      response.put("idToken", idToken);
+      response.put("accessToken", accessToken);
+      response.put("serverAuthCode", serverAuthCode);
       call.resolve(response);
     } else {
       call.reject("No user currently logged in.");
@@ -100,19 +105,18 @@ public class GoogleProvider {
   }
 
   public void refresh(PluginCall call) {
-    // Perform token refresh logic for Google Sign-In
-    // ...
-
+    // Perform token refresh using silent sign-in
     oneTapClient.silentSignIn()
         .addOnSuccessListener(result -> {
           // Handle successful silent sign-in
-          String accessToken = result.getAccessToken();
-          String idToken = result.getIdToken();
-          String serverAuthCode = result.getServerAuthCode();
+          SignInCredential credential = result.getCredential();
+          String idToken = credential.getGoogleIdToken();
+          String accessToken = credential.getGoogleAccessToken();
+          String serverAuthCode = credential.getServerAuthCode();
 
           JSObject response = new JSObject();
-          response.put("accessToken", accessToken);
           response.put("idToken", idToken);
+          response.put("accessToken", accessToken);
           response.put("serverAuthCode", serverAuthCode);
           call.resolve(response);
         })
