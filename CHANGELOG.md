@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.5](https://github.com/Cap-go/capacitor-social-login/compare/0.0.4...0.0.5) (2024-09-12)
+
+
+### Bug Fixes
+
+* google use oneTap ([33e956f](https://github.com/Cap-go/capacitor-social-login/commit/33e956fe75aa0fd6c585777b842de16cd4c84223))
+
 ### [0.0.4](https://github.com/Cap-go/capacitor-social-login/compare/0.0.3...0.0.4) (2024-09-12)
 
 
