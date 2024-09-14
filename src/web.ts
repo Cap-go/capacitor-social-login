@@ -1,8 +1,12 @@
 import { WebPlugin } from "@capacitor/core";
 
-import type { SocialLoginPlugin, InitializeOptions, LoginOptions } from "./definitions";
+import type { SocialLoginPlugin, InitializeOptions, LoginOptions, LoginResult, CurrentUserResponse } from "./definitions";
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
+  getCurrentUser(): Promise<CurrentUserResponse> {
+    console.log("getCurrentUser");
+    return null as any;
+  }
   async echo(options: { value: string }): Promise<{ value: string }> {
     console.log("ECHO", options);
     return options;
@@ -10,8 +14,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   async initialize(options: InitializeOptions): Promise<void> {
     console.log("INITIALIZE", options);
   }
-  async login(options: LoginOptions): Promise<void> {
+  async login(options: LoginOptions): Promise<LoginResult> {
     console.log("LOGIN", options);
+    return null as any;
   }
   async logout(options: LoginOptions): Promise<void> {
     console.log("LOGOUT", options);

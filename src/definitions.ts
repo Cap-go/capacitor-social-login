@@ -23,6 +23,13 @@ export interface InitializeOptions {
    * Twitter Client Secret, provided by Twitter
    */
   twitterClientSecret?: string;
+
+  apple: {
+    android: {
+      clientId: String,
+      redirectUrl: String,
+    }
+  }
 }
 
 export interface FacebookLoginOptions {
@@ -99,10 +106,10 @@ export interface LoginOptions {
    */
   provider: "facebook" | "google" | "apple" | "twitter";
   /**
-   * Payload
+   * Options
    * @description payload to login with
    */
-  payload: FacebookLoginOptions | GoogleLoginOptions | AppleLoginOptions;
+  options: FacebookLoginOptions | GoogleLoginOptions | AppleLoginOptions;
 }
 
 export interface LoginResult {
