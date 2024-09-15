@@ -1,9 +1,9 @@
 import { WebPlugin } from "@capacitor/core";
 
-import type { SocialLoginPlugin, InitializeOptions, LoginOptions, LoginResult, CurrentUserResponse } from "./definitions";
+import type { SocialLoginPlugin, InitializeOptions, LoginOptions, LoginResult, AuthorizationCode } from "./definitions";
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
-  getCurrentUser(): Promise<CurrentUserResponse> {
+  getAuthorizationCode(): Promise<AuthorizationCode> {
     console.log("getCurrentUser");
     return null as any;
   }

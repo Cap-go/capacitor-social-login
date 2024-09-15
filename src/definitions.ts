@@ -1,3 +1,5 @@
+import type { PluginListenerHandle } from "@capacitor/core";
+
 export interface InitializeOptions {
   /**
    * Facebook App ID, provided by Facebook
@@ -143,17 +145,33 @@ export interface FacebookLoginResponse {
   }
 }
 
-export interface CurrentUserResponse {
+export interface AuthorizationCode {
+  /**
+   * Jwt
+   * @description A JSON web token
+   */
+  jwt: String;
+}
+
+export interface AuthorizationCodeOptions {
   /**
    * Provider
-   * @description select provider to login with
+   * @description Provider for the authorization code
    */
-  provider: "facebook" | "google" | "apple" | "twitter";
-  /**
-   * Payload
-   * @description payload to login with
+  provider: 'apple'
+}
+
+export interface LoginListenerEvent {
+    /**
+   * Provider
+   * @description The provider sending this event
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleLoginResponse;
+    provider: "apple";
+    /**
+   * status
+   * @description The status of the login
+   */
+    status: String
 }
 
 export interface SocialLoginPlugin {
@@ -176,10 +194,15 @@ export interface SocialLoginPlugin {
    * Get the current access token
    * @description get the current access token
    */
-  getCurrentUser(): Promise<CurrentUserResponse>;
+  getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode>;
   /**
    * Refresh the access token
    * @description refresh the access token
    */
   refresh(options: LoginOptions): Promise<void>;
+
+  addListener(
+    eventName: "loginResult",
+    listenerFunc: (result: LoginListenerEvent) => void,
+  ): Promise<PluginListenerHandle>;
 }

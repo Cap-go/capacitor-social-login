@@ -17,8 +17,9 @@ npx cap sync
 * [`initialize(...)`](#initialize)
 * [`login(...)`](#login)
 * [`logout(...)`](#logout)
-* [`getCurrentUser()`](#getcurrentuser)
+* [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
+* [`addListener('loginResult', ...)`](#addlistenerloginresult-)
 * [Interfaces](#interfaces)
 
 </docgen-index>
@@ -73,15 +74,19 @@ Logout
 --------------------
 
 
-### getCurrentUser()
+### getAuthorizationCode(...)
 
 ```typescript
-getCurrentUser() => Promise<CurrentUserResponse>
+getAuthorizationCode(options: AuthorizationCodeOptions) => Promise<AuthorizationCode>
 ```
 
 Get the current access token
 
-**Returns:** <code>Promise&lt;<a href="#currentuserresponse">CurrentUserResponse</a>&gt;</code>
+| Param         | Type                                                                          |
+| ------------- | ----------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#authorizationcodeoptions">AuthorizationCodeOptions</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#authorizationcode">AuthorizationCode</a>&gt;</code>
 
 --------------------
 
@@ -97,6 +102,22 @@ Refresh the access token
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+
+--------------------
+
+
+### addListener('loginResult', ...)
+
+```typescript
+addListener(eventName: "loginResult", listenerFunc: (result: LoginListenerEvent) => void) => Promise<PluginListenerHandle>
+```
+
+| Param              | Type                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>'loginResult'</code>                                                             |
+| **`listenerFunc`** | <code>(result: <a href="#loginlistenerevent">LoginListenerEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
 --------------------
 
@@ -265,11 +286,32 @@ Allows manipulation and formatting of text strings and determination and locatio
 | **`state`**       | <code>string</code>   | State        |
 
 
-#### CurrentUserResponse
+#### AuthorizationCode
 
-| Prop           | Type                                                                                                                                                                                      | Description |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **`provider`** | <code>'facebook' \| 'google' \| 'apple' \| 'twitter'</code>                                                                                                                               | Provider    |
-| **`result`**   | <code><a href="#facebookloginresponse">FacebookLoginResponse</a> \| <a href="#googleloginresponse">GoogleLoginResponse</a> \| <a href="#appleloginresponse">AppleLoginResponse</a></code> | Payload     |
+| Prop      | Type                                      | Description |
+| --------- | ----------------------------------------- | ----------- |
+| **`jwt`** | <code><a href="#string">String</a></code> | Jwt         |
+
+
+#### AuthorizationCodeOptions
+
+| Prop           | Type                 | Description |
+| -------------- | -------------------- | ----------- |
+| **`provider`** | <code>'apple'</code> | Provider    |
+
+
+#### PluginListenerHandle
+
+| Prop         | Type                                      |
+| ------------ | ----------------------------------------- |
+| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
+
+
+#### LoginListenerEvent
+
+| Prop           | Type                                      | Description |
+| -------------- | ----------------------------------------- | ----------- |
+| **`provider`** | <code>'apple'</code>                      | Provider    |
+| **`status`**   | <code><a href="#string">String</a></code> | status      |
 
 </docgen-api>

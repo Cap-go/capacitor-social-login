@@ -1,4 +1,4 @@
-package ee.forgr.capacitor.social.login;
+package ee.forgr.capacitor.social.login.helpers;
 
 import org.json.JSONObject;
 

@@ -1,4 +1,4 @@
-package ee.forgr.capacitor.social.login;
+package ee.forgr.capacitor.social.login.helpers;
 
 import android.os.Build;
 
@@ -8,20 +8,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class FunctionResult<SUCCESS, ERROR> {
-
-    public static class ThrowableFunctionResult<SUCCESS> extends FunctionResult<SUCCESS, Throwable> {
-        public ThrowableFunctionResult(SUCCESS success, Throwable error) {
-            super(success, error);
-        }
-
-        public FunctionResult<SUCCESS, String> convertThrowableToString() {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            this.error.printStackTrace(pw);
-            return ThrowableFunctionResult.error(sw.toString());
-        }
-    }
-
     protected SUCCESS success;
     protected ERROR error;
 
@@ -42,7 +28,7 @@ public class FunctionResult<SUCCESS, ERROR> {
     }
 
     public FunctionResult<SUCCESS, ERROR> onError(Consumer<ERROR> consumer) {
-        if (consumer != null) {
+        if (error != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 consumer.accept(error);
                 return this;
@@ -51,6 +37,21 @@ public class FunctionResult<SUCCESS, ERROR> {
             }
         }
         return this;
+    }
+
+    public boolean isError() {
+        return this.error != null;
+    }
+
+    public boolean isSuccess() {
+        return this.success != null;
+    }
+
+    public <NEW_SUCCESS> FunctionResult<NEW_SUCCESS, ERROR> disregardSuccess() {
+        if (!this.isError()) {
+            throw new RuntimeException("Cannot disregard success, function is successful");
+        }
+        return new FunctionResult<NEW_SUCCESS, ERROR>(null, this.error);
     }
 
 //    public FunctionResult<SUCCESS, String> convertThrowableToString() {

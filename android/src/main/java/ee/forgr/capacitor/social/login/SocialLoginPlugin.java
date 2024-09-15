@@ -16,12 +16,19 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import org.json.JSONObject;
 
 import java.util.HashMap;
-import java.util.concurrent.Semaphore;
+import java.util.Map;
+
+import ee.forgr.capacitor.social.login.helpers.FunctionResult;
+import ee.forgr.capacitor.social.login.helpers.JsonHelper;
+import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
+import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import ee.forgr.capacitor.social.login.helpers.ThrowableFunctionResult;
 
 @CapacitorPlugin(name = "SocialLogin")
 public class SocialLoginPlugin extends Plugin {
 
   public static String LOG_TAG = "CapgoSocialLogin";
+  private static String SHARED_PREFERENCE_NAME = "d4e8c13e-ae60-4993-8ae1-0c7c12cabe2a-social-login-capgo";
   private boolean isInitialized = false;
 
   private HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
@@ -37,28 +44,41 @@ public class SocialLoginPlugin extends Plugin {
     }
 
     @Override
-    public FunctionResult.ThrowableFunctionResult<Void> runOnUiThreadBlocking(Runnable runnable) {
+    public void runOnUiThread(Runnable runnable) {
       if (Looper.myLooper() == Looper.getMainLooper()) {
         // This code is running on the UI thread
         runnable.run();
-        return new FunctionResult.ThrowableFunctionResult<>(null, null);
       } else {
         // This code is running on a background thread
-        // it will block the current background thread
+        this.activity.runOnUiThread(runnable::run);
+      }
+    }
 
-        Semaphore semaphore = new Semaphore(0);
-        this.activity.runOnUiThread(() -> {
-          runnable.run();
-          semaphore.release();
-        });
-          try {
-            semaphore.acquire();
-            return new FunctionResult.ThrowableFunctionResult<>(null, null);
-          } catch (InterruptedException e) {
-            return new FunctionResult.ThrowableFunctionResult<>(null, e);
-          }
+    @Override
+    public FunctionResult<Object, String> notifyListener(String name, Map<String, Object> data) {
+      ThrowableFunctionResult<JSObject> transcodeResult = JsonHelper.mapToJsonObject(data)
+              .transformSuccess(val -> JSObject.fromJSONObject(val));
+      if (transcodeResult.isError()) {
+        return transcodeResult.convertThrowableToString().disregardSuccess();
       }
 
+      transcodeResult.onSuccess(val -> SocialLoginPlugin.this.notifyListeners(name, val));
+      return FunctionResult.success(null);
+    }
+
+    @Override
+    public void putSharedPreferencePrivate(String key, String value) {
+      this.activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+              .edit()
+              .putString(key, value)
+              .apply();
+    }
+
+    @Override
+    @Nullable
+    public String getSharedPreferencePrivate(String key) {
+      return this.activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+              .getString(key, "");
     }
 
     @Nullable
@@ -111,6 +131,7 @@ public class SocialLoginPlugin extends Plugin {
       }
 
       AppleLogin appleLogin = new AppleLogin(androidAppleRedirect, androidAppleClientId);
+      appleLogin.initialize(this.helper);
       this.socialProviderHashMap.put("apple", appleLogin);
     }
 
@@ -128,20 +149,6 @@ public class SocialLoginPlugin extends Plugin {
 
     JSONObject options = call.getObject("options", new JSObject());
 
-//    JSObject payload = call.getObject("payload");
-//
-//    if (provider.equals("facebook")) {
-//      facebookProvider.login(call, payload);
-//    } else if (provider.equals("google")) {
-//      googleProvider.login(call, payload);
-//    } else if (provider.equals("twitter")) {
-//      twitterProvider.login(call, payload);
-//    } else if (provider.equals("apple")) {
-//      appleProvider.login(call, payload);
-//    } else {
-//      call.reject("Unsupported social login provider: " + provider);
-//    }
-
     SocialProvider provider = this.socialProviderHashMap.get(providerStr);
     if (provider == null) {
       call.reject(String.format("Cannot find provider '%s'", providerStr));
@@ -156,35 +163,30 @@ public class SocialLoginPlugin extends Plugin {
   @PluginMethod
   public void logout(PluginCall call) {
     String provider = call.getString("provider");
-//
-//    if (provider.equals("facebook")) {
-//      facebookProvider.logout(call);
-//    } else if (provider.equals("google")) {
-//      googleProvider.logout(call);
-//    } else if (provider.equals("twitter")) {
-//      twitterProvider.logout(call);
-//    } else if (provider.equals("apple")) {
-//      appleProvider.logout(call);
-//    } else {
-//      call.reject("Unsupported social login provider: " + provider);
-//    }
   }
 
   @PluginMethod
-  public void getCurrentUser(PluginCall call) {
-    String provider = call.getString("provider");
-//
-//    if (provider.equals("facebook")) {
-//      facebookProvider.getCurrentUser(call);
-//    } else if (provider.equals("google")) {
-//      googleProvider.getCurrentUser(call);
-//    } else if (provider.equals("twitter")) {
-//      twitterProvider.getCurrentUser(call);
-//    } else if (provider.equals("apple")) {
-//      appleProvider.getCurrentUser(call);
-//    } else {
-//      call.reject("Unsupported social login provider: " + provider);
-//    }
+  public void getAuthorizationCode(PluginCall call) {
+    String providerStr = call.getString("provider", "");
+    if (providerStr == null || providerStr.isEmpty()) {
+      call.reject("provider not provided");
+    }
+
+    JSONObject options = call.getObject("options", new JSObject());
+
+    SocialProvider provider = this.socialProviderHashMap.get(providerStr);
+    if (provider == null) {
+      call.reject(String.format("Cannot find provider '%s'", providerStr));
+      return;
+    }
+
+    provider.getAuthorizationCode()
+            .onError(call::reject)
+            .onSuccess(value -> {
+              JSObject ret = new JSObject();
+              ret.put("jwt", value);
+              call.resolve(ret);
+            });
   }
 
   @PluginMethod

@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.util.ArrayMap;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Window;
@@ -15,6 +16,9 @@ import android.webkit.WebViewClient;
 
 import androidx.annotation.NonNull;
 
+import com.getcapacitor.PluginCall;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -23,6 +27,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import ee.forgr.capacitor.social.login.helpers.FunctionResult;
+import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
+import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
@@ -34,22 +41,53 @@ public class AppleLogin implements SocialProvider {
     private static String SCOPE = "name%20email";
     private static String AUTHURL = "https://appleid.apple.com/auth/authorize";
     private static String TOKENURL = "https://appleid.apple.com/auth/token";
+    private static String SHARED_PREFERENCE_NAME = "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
 
     private String appleAuthURLFull;
     private Dialog appledialog;
-    private String appleAuthCode;
-    private String appleClientSecret;
 
-    private String clientId;
-    private String redirectUrl;
+    private String idToken;
+    private String refreshToken;
+    private String accessToken;
+    private String clientSecret;
+
+    private final String clientId;
+    private final String redirectUrl;
 
     public AppleLogin(String redirectUrl, String clientId) {
         this.redirectUrl = redirectUrl;
         this.clientId = clientId;
     }
 
+    public void initialize(PluginHelpers helpers) {
+        String data = helpers.getSharedPreferencePrivate(AppleLogin.SHARED_PREFERENCE_NAME);
+        if (data == null || data.isEmpty()) {
+            Log.i(SocialLoginPlugin.LOG_TAG, "No data to restore for apple login");
+        }
+
+        try {
+            JSONObject object = new JSONObject(data);
+            String idToken = object.optString("idToken", null);
+            String refreshToken = object.optString("refreshToken", null);
+            String accessToken = object.optString("accessToken", null);
+
+            AppleLogin.this.idToken = idToken;
+            AppleLogin.this.refreshToken = refreshToken;
+            AppleLogin.this.accessToken = accessToken;
+            Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple restoreState: %s", object));
+        } catch (JSONException e) {
+            Log.e(SocialLoginPlugin.LOG_TAG, "Apple restoreState: Failed to parse JSON", e);
+        }
+    }
+
     @Override
     public FunctionResult<Void, String> login(PluginHelpers helpers, JSONObject config) {
+
+//        FunctionResult<Object, String> res = helpers.notifyListener("test", new ArrayMap<>());
+//        if (res.isError()) {
+//            return res.disregardSuccess();
+//        }
+
         String state = UUID.randomUUID().toString();
         this.appleAuthURLFull =
                 AUTHURL + "?client_id=" + this.clientId + "&redirect_uri=" + this.redirectUrl + "&response_type=code&scope=" + SCOPE + "&response_mode=form_post&state=" + state;
@@ -65,8 +103,8 @@ public class AppleLogin implements SocialProvider {
             return FunctionResult.error("PluginHelpers.activity is null");
         }
 
-        helpers.runOnUiThreadBlocking(() -> {
-            setupWebview(context, activity, appleAuthURLFull);
+        helpers.runOnUiThread(() -> {
+            setupWebview(context, activity, helpers, appleAuthURLFull);
         });
         return FunctionResult.success(null);
     }
@@ -78,7 +116,10 @@ public class AppleLogin implements SocialProvider {
 
     @Override
     public FunctionResult<String, String> getAuthorizationCode() {
-        return FunctionResult.error("Not implemented");
+        if (this.idToken != null && !this.idToken.isEmpty()) {
+            return FunctionResult.success(this.idToken);
+        }
+        return FunctionResult.error("Apple-login not logged in!");
     }
 
     @Override
@@ -96,11 +137,13 @@ public class AppleLogin implements SocialProvider {
         private Activity activity;
         private String clientId;
         private String redirectUrl;
+        private PluginHelpers helpers;
 
-        public AppleWebViewClient(Activity activity, String redirectUrl, String clientId) {
+        public AppleWebViewClient(Activity activity, PluginHelpers helpers, String redirectUrl, String clientId) {
             this.activity = activity;
             this.redirectUrl = redirectUrl;
             this.clientId = clientId;
+            this.helpers = helpers;
         }
 
         @Override
@@ -133,27 +176,35 @@ public class AppleLogin implements SocialProvider {
             Uri uri = Uri.parse(url);
             String success = uri.getQueryParameter("success");
             if (Objects.equals(success, "true")) {
+                // handle update to access_token
+                String accessToken = uri.getQueryParameter("access_token");
+                if (accessToken != null) {
+                    String refreshToken = uri.getQueryParameter("access_token");
+                    String idToken = uri.getQueryParameter("id_token");
+
+                    ArrayMap<String, Object> notifyMap = new ArrayMap<>();
+                    notifyMap.put("provider", "apple");
+                    notifyMap.put("status", "success");
+                    try {
+                        persistState(idToken, refreshToken, accessToken);
+                    } catch (JSONException jsonException) {
+                        Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", jsonException);
+                        return;
+                    }
+
+                    AppleWebViewClient.this.helpers.notifyListener("loginResult", notifyMap);
+
+                    return;
+                }
+
+
                 // Get the Authorization Code from the URL
-                appleAuthCode = uri.getQueryParameter("code");
+                String appleAuthCode = uri.getQueryParameter("code");
                 Log.i("Apple Code: ", appleAuthCode);
                 // Get the Client Secret from the URL
-                appleClientSecret = uri.getQueryParameter("client_secret");
+                String appleClientSecret = uri.getQueryParameter("client_secret");
                 Log.i("Apple Client Secret: ", appleClientSecret);
-                //Check if user gave access to the app for the first time by checking if the url contains their email
-                if (url.contains("email")) {
-                    //Get user's First Name
-                    String firstName = uri.getQueryParameter("first_name");
-                    Log.i("Apple User First Name: ", firstName);
-                    //Get user's Middle Name
-                    String middleName = uri.getQueryParameter("middle_name");
-                    Log.i("Apple User Middle Name: ", middleName);
-                    //Get user's Last Name
-                    String lastName = uri.getQueryParameter("last_name");
-                    Log.i("Apple User Last Name: ", lastName);
-                    //Get user's email
-                    String email = uri.getQueryParameter("email");
-                    Log.i("Apple User Email: ", email);
-                }
+
                 // Exchange the Auth Code for Access Token
                 requestForAccessToken(appleAuthCode, appleClientSecret);
             } else if (Objects.equals(success, "false")) {
@@ -212,6 +263,12 @@ public class AppleLogin implements SocialProvider {
                         // Get User's ID
                         String userId = userDataJsonObject.getString("sub");
                         Log.i("Apple User ID :", userId);
+
+                        ArrayMap<String, Object> notifyMap = new ArrayMap<>();
+                        notifyMap.put("provider", "apple");
+                        notifyMap.put("status", "success");
+                        persistState(idToken, refreshToken, accessToken);
+                        AppleWebViewClient.this.helpers.notifyListener("loginResult", notifyMap);
                     } catch (Exception e) {
                         Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token (success error)", e);
                     } finally {
@@ -220,17 +277,31 @@ public class AppleLogin implements SocialProvider {
                 }
             });
         }
+
+        private void persistState(String idToken, String refreshToken, String accessToken) throws JSONException {
+            JSONObject object = new JSONObject();
+            object.put("idToken", idToken);
+            object.put("refreshToken", refreshToken);
+            object.put("accessToken", accessToken);
+
+            AppleLogin.this.idToken = idToken;
+            AppleLogin.this.refreshToken = refreshToken;
+            AppleLogin.this.accessToken = accessToken;
+
+            Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple persistState: %s", object));
+            this.helpers.putSharedPreferencePrivate(AppleLogin.SHARED_PREFERENCE_NAME, object.toString());
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private void setupWebview(Context context, Activity activity, String url) {
+    private void setupWebview(Context context, Activity activity, PluginHelpers helpers, String url) {
         this.appledialog = new Dialog(context);
         WebView webView = new WebView(context);
 
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
 
-        webView.setWebViewClient(new AppleWebViewClient(activity, this.redirectUrl, this.clientId));
+        webView.setWebViewClient(new AppleWebViewClient(activity, helpers, this.redirectUrl, this.clientId));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.loadUrl(url);
         appledialog.setContentView(webView);
