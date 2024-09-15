@@ -26,4 +26,6 @@ REDIRECT_URI=https://example.com/login/callback
 
 You can run the backend with `bun --env-file=.env run example_backend.ts `
 
+When calling `SocialLogin.initialize` `clientId.android.clientId` is equivalent to `SERVICE_ID` from the env file.
+
 An example of the plugin usage can be found [here](https://github.com/Cap-go/demo-app/blob/f96b8bc92f5c99a27bcb7fcd3acc885ed4501b0a/src/views/plugins/Auth.vue)
