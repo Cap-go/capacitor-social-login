@@ -172,8 +172,6 @@ public class SocialLoginPlugin extends Plugin {
       call.reject("provider not provided");
     }
 
-    JSONObject options = call.getObject("options", new JSObject());
-
     SocialProvider provider = this.socialProviderHashMap.get(providerStr);
     if (provider == null) {
       call.reject(String.format("Cannot find provider '%s'", providerStr));
@@ -185,6 +183,28 @@ public class SocialLoginPlugin extends Plugin {
             .onSuccess(value -> {
               JSObject ret = new JSObject();
               ret.put("jwt", value);
+              call.resolve(ret);
+            });
+  }
+
+  @PluginMethod
+  public void isLoggedIn(PluginCall call) {
+    String providerStr = call.getString("provider", "");
+    if (providerStr == null || providerStr.isEmpty()) {
+      call.reject("provider not provided");
+    }
+
+    SocialProvider provider = this.socialProviderHashMap.get(providerStr);
+    if (provider == null) {
+      call.reject(String.format("Cannot find provider '%s'", providerStr));
+      return;
+    }
+
+    provider.isLoggedIn()
+            .onError(call::reject)
+            .onSuccess(value -> {
+              JSObject ret = new JSObject();
+              ret.put("isLoggedIn", value);
               call.resolve(ret);
             });
   }

@@ -24,4 +24,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   async refresh(options: LoginOptions): Promise<void> {
     console.log("REFRESH", options);
   }
+  async isLoggedIn(options: any): Promise<{ isLoggedIn: boolean }> {
+    console.log('isLoggedIn', options)
+    return { isLoggedIn: false }
+  }
 }

@@ -123,6 +123,13 @@ public class AppleLogin implements SocialProvider {
     }
 
     @Override
+    public FunctionResult<Boolean, String> isLoggedIn() {
+        // todo: verify that the token isn't expired
+
+        return FunctionResult.success(this.idToken != null && !this.idToken.isEmpty());
+    }
+
+    @Override
     public FunctionResult<Map<String, Object>, String> getCurrentUser() {
         return FunctionResult.error("Not implemented");
     }

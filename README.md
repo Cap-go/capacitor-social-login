@@ -17,6 +17,7 @@ npx cap sync
 * [`initialize(...)`](#initialize)
 * [`login(...)`](#login)
 * [`logout(...)`](#logout)
+* [`isLoggedIn(...)`](#isloggedin)
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
 * [`addListener('loginResult', ...)`](#addlistenerloginresult-)
@@ -70,6 +71,23 @@ Logout
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+
+--------------------
+
+
+### isLoggedIn(...)
+
+```typescript
+isLoggedIn(options: isLoggedInOptions) => Promise<{ isLoggedIn: boolean; }>
+```
+
+IsLoggedIn
+
+| Param         | Type                                                            |
+| ------------- | --------------------------------------------------------------- |
+| **`options`** | <code><a href="#isloggedinoptions">isLoggedInOptions</a></code> |
+
+**Returns:** <code>Promise&lt;{ isLoggedIn: boolean; }&gt;</code>
 
 --------------------
 
@@ -284,6 +302,13 @@ Allows manipulation and formatting of text strings and determination and locatio
 | **`redirectURI`** | <code>string</code>   | Redirect URI |
 | **`nonce`**       | <code>string</code>   | Nonce        |
 | **`state`**       | <code>string</code>   | State        |
+
+
+#### isLoggedInOptions
+
+| Prop           | Type                 | Description |
+| -------------- | -------------------- | ----------- |
+| **`provider`** | <code>'apple'</code> | Provider    |
 
 
 #### AuthorizationCode

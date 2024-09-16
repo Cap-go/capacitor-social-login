@@ -161,6 +161,14 @@ export interface AuthorizationCodeOptions {
   provider: 'apple'
 }
 
+export interface isLoggedInOptions {
+   /**
+   * Provider
+   * @description Provider for the isLoggedIn 
+   */
+    provider: 'apple'
+}
+
 export interface LoginListenerEvent {
     /**
    * Provider
@@ -190,6 +198,12 @@ export interface SocialLoginPlugin {
    * @description logout the user
    */
   logout(options: LoginOptions): Promise<void>;
+  /**
+   * IsLoggedIn
+   * @description logout the user
+   */
+  isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }>;
+
   /**
    * Get the current access token
    * @description get the current access token
