@@ -37,7 +37,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class AppleLogin implements SocialProvider {
+public class AppleProvider implements SocialProvider {
     private static String SCOPE = "name%20email";
     private static String AUTHURL = "https://appleid.apple.com/auth/authorize";
     private static String TOKENURL = "https://appleid.apple.com/auth/token";
@@ -54,13 +54,13 @@ public class AppleLogin implements SocialProvider {
     private final String clientId;
     private final String redirectUrl;
 
-    public AppleLogin(String redirectUrl, String clientId) {
+    public AppleProvider(String redirectUrl, String clientId) {
         this.redirectUrl = redirectUrl;
         this.clientId = clientId;
     }
 
     public void initialize(PluginHelpers helpers) {
-        String data = helpers.getSharedPreferencePrivate(AppleLogin.SHARED_PREFERENCE_NAME);
+        String data = helpers.getSharedPreferencePrivate(AppleProvider.SHARED_PREFERENCE_NAME);
         if (data == null || data.isEmpty()) {
             Log.i(SocialLoginPlugin.LOG_TAG, "No data to restore for apple login");
         }
@@ -71,9 +71,9 @@ public class AppleLogin implements SocialProvider {
             String refreshToken = object.optString("refreshToken", null);
             String accessToken = object.optString("accessToken", null);
 
-            AppleLogin.this.idToken = idToken;
-            AppleLogin.this.refreshToken = refreshToken;
-            AppleLogin.this.accessToken = accessToken;
+            AppleProvider.this.idToken = idToken;
+            AppleProvider.this.refreshToken = refreshToken;
+            AppleProvider.this.accessToken = accessToken;
             Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple restoreState: %s", object));
         } catch (JSONException e) {
             Log.e(SocialLoginPlugin.LOG_TAG, "Apple restoreState: Failed to parse JSON", e);
@@ -291,12 +291,12 @@ public class AppleLogin implements SocialProvider {
             object.put("refreshToken", refreshToken);
             object.put("accessToken", accessToken);
 
-            AppleLogin.this.idToken = idToken;
-            AppleLogin.this.refreshToken = refreshToken;
-            AppleLogin.this.accessToken = accessToken;
+            AppleProvider.this.idToken = idToken;
+            AppleProvider.this.refreshToken = refreshToken;
+            AppleProvider.this.accessToken = accessToken;
 
             Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple persistState: %s", object));
-            this.helpers.putSharedPreferencePrivate(AppleLogin.SHARED_PREFERENCE_NAME, object.toString());
+            this.helpers.putSharedPreferencePrivate(AppleProvider.SHARED_PREFERENCE_NAME, object.toString());
         }
     }
 

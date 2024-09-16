@@ -3,13 +3,13 @@ import AuthenticationServices
 
 class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private var clientId: String?
-    private var completion: ((Result<AppleLoginResponse, Error>) -> Void)?
+    private var completion: ((Result<AppleProviderResponse, Error>) -> Void)?
     
     func initialize(clientId: String) {
         self.clientId = clientId
     }
     
-    func login(payload: [String: Any], completion: @escaping (Result<AppleLoginResponse, Error>) -> Void) {
+    func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
         guard let clientId = clientId else {
             completion(.failure(NSError(domain: "AppleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Client ID not set"])))
             return
@@ -32,7 +32,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         completion(.success(()))
     }
     
-    func getCurrentUser(completion: @escaping (Result<AppleLoginResponse?, Error>) -> Void) {
+    func getCurrentUser(completion: @escaping (Result<AppleProviderResponse?, Error>) -> Void) {
         let appleIDProvider = ASAuthorizationAppleIDProvider()
         appleIDProvider.getCredentialState(forUserID: "currentUserIdentifier") { (credentialState, error) in
             if let error = error {
@@ -65,7 +65,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             let fullName = appleIDCredential.fullName
             let email = appleIDCredential.email
             
-            let response = AppleLoginResponse(
+            let response = AppleProviderResponse(
                 user: userIdentifier,
                 email: email,
                 givenName: fullName?.givenName,

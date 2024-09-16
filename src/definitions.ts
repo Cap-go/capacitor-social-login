@@ -28,8 +28,8 @@ export interface InitializeOptions {
 
   apple: {
     android: {
-      clientId: String,
-      redirectUrl: String,
+      clientId: string,
+      redirectUrl: string,
     }
   }
 }
@@ -69,7 +69,7 @@ export interface GoogleLoginResponse {
   }
 }
 
-export interface AppleLoginOptions {
+export interface AppleProviderOptions {
   /**
    * Scopes
    * @description select scopes to login with
@@ -92,7 +92,7 @@ export interface AppleLoginOptions {
   state?: string;
 }
 
-export interface AppleLoginResponse {
+export interface AppleProviderResponse {
   user: string | null;
   email: string | null;
   givenName: string | null;
@@ -111,7 +111,7 @@ export interface LoginOptions {
    * Options
    * @description payload to login with
    */
-  options: FacebookLoginOptions | GoogleLoginOptions | AppleLoginOptions;
+  options: FacebookLoginOptions | GoogleLoginOptions | AppleProviderOptions;
 }
 
 export interface LoginResult {
@@ -124,7 +124,7 @@ export interface LoginResult {
    * Payload
    * @description payload to login with
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleLoginResponse;
+  result: FacebookLoginResponse | GoogleLoginResponse | AppleProviderResponse;
 }
 
 export interface AccessToken {
@@ -150,7 +150,7 @@ export interface AuthorizationCode {
    * Jwt
    * @description A JSON web token
    */
-  jwt: String;
+  jwt: string;
 }
 
 export interface AuthorizationCodeOptions {
@@ -179,7 +179,7 @@ export interface LoginListenerEvent {
    * status
    * @description The status of the login
    */
-    status: String
+    status: string
 }
 
 export interface SocialLoginPlugin {

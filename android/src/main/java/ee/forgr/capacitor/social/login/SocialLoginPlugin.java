@@ -130,9 +130,9 @@ public class SocialLoginPlugin extends Plugin {
         return;
       }
 
-      AppleLogin appleLogin = new AppleLogin(androidAppleRedirect, androidAppleClientId);
-      appleLogin.initialize(this.helper);
-      this.socialProviderHashMap.put("apple", appleLogin);
+      AppleProvider appleProvider = new AppleProvider(androidAppleRedirect, androidAppleClientId);
+      appleProvider.initialize(this.helper);
+      this.socialProviderHashMap.put("apple", appleProvider);
     }
 
 
