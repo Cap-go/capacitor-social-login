@@ -5,7 +5,7 @@ import queryString from 'query-string';
 import { readFileSync } from 'node:fs'
 import jsonwebtoken from 'jsonwebtoken'
 import { logger } from 'hono/logger'
-import jwkToPem from 'jwk-to-pem'
+import { cors } from 'hono/cors'
 
 const app = new Hono()
 app.use(logger())
@@ -154,6 +154,7 @@ async function getApplePublicKey(kid: String) {
   return appleKeys.find(key => key.kid === kid)
 }
 
+app.use('/userdata', cors())
 app.get('/userdata', async (c) => {
   let authHeader = c.req.header('Authorization')
 

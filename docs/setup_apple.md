@@ -24,8 +24,12 @@ PORT=3000
 REDIRECT_URI=https://example.com/login/callback
 ```
 
-You can run the backend with `bun --env-file=.env run example_backend.ts `
+You can run the backend with `bun --env-file=.env run example_backend.ts`
+
+The backend should be hosted as a `HTTPS` server. In your apple developer account, configure the identifier (service id) to point to your redirect endpoint:
+
+![apple redirect config](./apple_redirect_url.png "Apple redirect url configuration")
 
 When calling `SocialLogin.initialize` `clientId.android.clientId` is equivalent to `SERVICE_ID` from the env file.
 
-An example of the plugin usage can be found [here](https://github.com/Cap-go/demo-app/blob/f96b8bc92f5c99a27bcb7fcd3acc885ed4501b0a/src/views/plugins/Auth.vue)
+An example of the plugin usage can be found [here](https://github.com/Cap-go/demo-app/blob/new_test_kill/src/views/plugins/Auth.vue)
