@@ -63,14 +63,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: LoginOptions) => Promise<void>
+logout(options: { provider: 'apple'; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                                  |
-| ------------- | ----------------------------------------------------- |
-| **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+| Param         | Type                                |
+| ------------- | ----------------------------------- |
+| **`options`** | <code>{ provider: 'apple'; }</code> |
 
 --------------------
 

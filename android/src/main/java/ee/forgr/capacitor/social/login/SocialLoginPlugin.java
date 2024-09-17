@@ -75,6 +75,14 @@ public class SocialLoginPlugin extends Plugin {
     }
 
     @Override
+    public void removeSharedPreferencePrivate(String key) {
+      this.activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+              .edit()
+              .remove(key)
+              .apply();
+    }
+
+    @Override
     @Nullable
     public String getSharedPreferencePrivate(String key) {
       return this.activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
@@ -162,7 +170,20 @@ public class SocialLoginPlugin extends Plugin {
 
   @PluginMethod
   public void logout(PluginCall call) {
-    String provider = call.getString("provider");
+    String providerStr = call.getString("provider", "");
+    if (providerStr == null || providerStr.isEmpty()) {
+      call.reject("provider not provided");
+    }
+
+    SocialProvider provider = this.socialProviderHashMap.get(providerStr);
+    if (provider == null) {
+      call.reject(String.format("Cannot find provider '%s'", providerStr));
+      return;
+    }
+
+    provider.logout(this.helper)
+            .onError(call::reject)
+            .onSuccess(unused -> call.resolve());
   }
 
   @PluginMethod

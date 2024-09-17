@@ -18,7 +18,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     console.log("LOGIN", options);
     return null as any;
   }
-  async logout(options: LoginOptions): Promise<void> {
+  async logout(options: any): Promise<void> {
     console.log("LOGOUT", options);
   }
   async refresh(options: LoginOptions): Promise<void> {

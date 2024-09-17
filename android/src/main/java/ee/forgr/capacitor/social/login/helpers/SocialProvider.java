@@ -6,7 +6,7 @@ import java.util.Map;
 
 public interface SocialProvider {
     FunctionResult<Void, String> login(PluginHelpers helpers, JSONObject config);
-    FunctionResult<Void, String> logout();
+    FunctionResult<Void, String> logout(PluginHelpers helpers);
     FunctionResult<String, String> getAuthorizationCode();
     FunctionResult<Boolean, String> isLoggedIn();
     FunctionResult<Map<String, Object>, String> getCurrentUser();

@@ -14,6 +14,8 @@ public interface PluginHelpers {
 
     void putSharedPreferencePrivate(String key, String value);
 
+    void removeSharedPreferencePrivate(String key);
+
     @Nullable
     public String getSharedPreferencePrivate(String key);
 

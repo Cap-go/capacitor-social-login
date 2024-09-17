@@ -197,7 +197,7 @@ export interface SocialLoginPlugin {
    * Logout
    * @description logout the user
    */
-  logout(options: LoginOptions): Promise<void>;
+  logout(options: { provider: 'apple' }): Promise<void>;
   /**
    * IsLoggedIn
    * @description logout the user

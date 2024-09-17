@@ -16,6 +16,7 @@ import android.webkit.WebViewClient;
 
 import androidx.annotation.NonNull;
 
+import com.auth0.android.jwt.JWT;
 import com.getcapacitor.PluginCall;
 
 import org.json.JSONException;
@@ -30,6 +31,7 @@ import java.util.UUID;
 import ee.forgr.capacitor.social.login.helpers.FunctionResult;
 import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import ee.forgr.capacitor.social.login.helpers.ThrowableFunctionResult;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
@@ -110,8 +112,17 @@ public class AppleProvider implements SocialProvider {
     }
 
     @Override
-    public FunctionResult<Void, String> logout() {
-        return FunctionResult.error("Not implemented");
+    public FunctionResult<Void, String> logout(PluginHelpers helpers) {
+        if (this.idToken == null || this.idToken.isEmpty()) {
+            return FunctionResult.error("Not logged in; Cannot logout");
+        }
+
+        helpers.removeSharedPreferencePrivate(AppleProvider.SHARED_PREFERENCE_NAME);
+        AppleProvider.this.idToken = null;
+        AppleProvider.this.refreshToken = null;
+        AppleProvider.this.accessToken = null;
+
+        return FunctionResult.success(null);
     }
 
     @Override
@@ -125,8 +136,23 @@ public class AppleProvider implements SocialProvider {
     @Override
     public FunctionResult<Boolean, String> isLoggedIn() {
         // todo: verify that the token isn't expired
+        // todo: remove this expiry code - this SHOULD be done in JS or a separate function
+        if (this.idToken != null && !this.idToken.isEmpty()) {
+            try {
+                JWT jwt = new JWT(this.idToken);
+                if (jwt.isExpired(0)) {
+                    Log.i(SocialLoginPlugin.LOG_TAG, "Apple - JWT expired. User is NOT logged in");
+                    return FunctionResult.success(false);
+                }
+                return FunctionResult.success(true);
+            } catch (Exception e) {
+                return new ThrowableFunctionResult<Boolean>(null, e)
+                        .convertThrowableToString();
+            }
 
-        return FunctionResult.success(this.idToken != null && !this.idToken.isEmpty());
+        }
+
+        return FunctionResult.success(false);
     }
 
     @Override
