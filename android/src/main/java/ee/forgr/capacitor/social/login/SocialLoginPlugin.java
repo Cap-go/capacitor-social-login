@@ -159,9 +159,14 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
+    // Pass the PluginCall to the provider
+    if (provider instanceof AppleProvider) {
+        ((AppleProvider) provider).setPluginCall(call);
+    }
+
     provider.login(this.helper, options)
-            .onError(call::reject)
-            .onSuccess(unused -> call.resolve());
+            .onError(call::reject);
+            // Remove .onSuccess() since the provider will resolve the call directly
   }
 
   @PluginMethod

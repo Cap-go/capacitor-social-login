@@ -25,6 +25,7 @@ import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 
 import com.auth0.android.jwt.JWT;
+import com.getcapacitor.PluginCall;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -63,9 +64,17 @@ public class AppleProvider implements SocialProvider {
     private final String clientId;
     private final String redirectUrl;
 
+    // Add a new field to store the PluginCall
+    private PluginCall savedCall;
+
     public AppleProvider(String redirectUrl, String clientId) {
         this.redirectUrl = redirectUrl;
         this.clientId = clientId;
+    }
+
+    // Add a new method to set the PluginCall
+    public void setPluginCall(PluginCall call) {
+        this.savedCall = call;
     }
 
     public void initialize(PluginHelpers helpers) {
@@ -227,12 +236,20 @@ public class AppleProvider implements SocialProvider {
                     notifyMap.put("status", "success");
                     try {
                         persistState(idToken, refreshToken, accessToken);
+                        
+                        // Resolve the saved PluginCall directly
+                        if (savedCall != null) {
+                            savedCall.resolve();
+                        }
                     } catch (JSONException jsonException) {
                         Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", jsonException);
+                        
+                        // Reject the saved PluginCall on error
+                        if (savedCall != null) {
+                            savedCall.reject("Cannot persist state");
+                        }
                         return;
                     }
-
-                    AppleWebViewClient.this.helpers.notifyListener("loginResult", notifyMap);
 
                     return;
                 }
@@ -249,6 +266,11 @@ public class AppleProvider implements SocialProvider {
                 requestForAccessToken(appleAuthCode, appleClientSecret);
             } else if (Objects.equals(success, "false")) {
                 Log.e("ERROR", "We couldn't get the Auth Code");
+                
+                // Reject the saved PluginCall on error
+                if (savedCall != null) {
+                    savedCall.reject("We couldn't get the Auth Code");
+                }
             }
         }
 
