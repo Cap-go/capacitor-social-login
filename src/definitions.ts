@@ -1,4 +1,3 @@
-import type { PluginListenerHandle } from "@capacitor/core";
 
 export interface InitializeOptions {
   facebook?: {
@@ -210,9 +209,4 @@ export interface SocialLoginPlugin {
    * @description refresh the access token
    */
   refresh(options: LoginOptions): Promise<void>;
-
-  addListener(
-    eventName: "loginResult",
-    listenerFunc: (result: LoginListenerEvent) => void,
-  ): Promise<PluginListenerHandle>;
 }

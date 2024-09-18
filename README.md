@@ -130,7 +130,6 @@ More information can be found here: https://developers.facebook.com/docs/faceboo
 * [`isLoggedIn(...)`](#isloggedin)
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
-* [`addListener('loginResult', ...)`](#addlistenerloginresult-)
 * [Interfaces](#interfaces)
 
 </docgen-index>
@@ -230,22 +229,6 @@ Refresh the access token
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
-
---------------------
-
-
-### addListener('loginResult', ...)
-
-```typescript
-addListener(eventName: "loginResult", listenerFunc: (result: LoginListenerEvent) => void) => Promise<PluginListenerHandle>
-```
-
-| Param              | Type                                                                                   |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| **`eventName`**    | <code>'loginResult'</code>                                                             |
-| **`listenerFunc`** | <code>(result: <a href="#loginlistenerevent">LoginListenerEvent</a>) =&gt; void</code> |
-
-**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
 
 --------------------
 
@@ -364,20 +347,5 @@ addListener(eventName: "loginResult", listenerFunc: (result: LoginListenerEvent)
 | Prop           | Type                 | Description |
 | -------------- | -------------------- | ----------- |
 | **`provider`** | <code>'apple'</code> | Provider    |
-
-
-#### PluginListenerHandle
-
-| Prop         | Type                                      |
-| ------------ | ----------------------------------------- |
-| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
-
-
-#### LoginListenerEvent
-
-| Prop           | Type                 | Description |
-| -------------- | -------------------- | ----------- |
-| **`provider`** | <code>'apple'</code> | Provider    |
-| **`status`**   | <code>string</code>  | status      |
 
 </docgen-api>
