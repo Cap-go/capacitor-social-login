@@ -9,15 +9,17 @@ import android.net.Uri;
 import android.util.ArrayMap;
 import android.util.Base64;
 import android.util.Log;
+import android.view.View;
 import android.view.Window;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 
 import com.auth0.android.jwt.JWT;
-import com.getcapacitor.PluginCall;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -286,7 +288,7 @@ public class AppleProvider implements SocialProvider {
                         String refreshToken = jsonObject.getString("refresh_token"); // The refresh token used to regenerate new access tokens. Store this token securely on your server.
                         Log.i("refresh token: ", refreshToken);
 
-                        String idToken = jsonObject.getString("id_token"); // A JSON Web Token that contains the user’s identity information.
+                        String idToken = jsonObject.getString("id_token"); // A JSON Web Token that contains the user's identity information.
                         Log.i("ID Token: ", idToken);
                         // Get encoded user id by splitting idToken and taking the 2nd piece
                         String encodedUserID = idToken.split("\\.")[1];
@@ -328,7 +330,7 @@ public class AppleProvider implements SocialProvider {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebview(Context context, Activity activity, PluginHelpers helpers, String url) {
-        this.appledialog = new Dialog(context);
+        this.appledialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
         WebView webView = new WebView(context);
 
         webView.setVerticalScrollBarEnabled(false);
@@ -337,7 +339,21 @@ public class AppleProvider implements SocialProvider {
         webView.setWebViewClient(new AppleWebViewClient(activity, helpers, this.redirectUrl, this.clientId));
         webView.getSettings().setJavaScriptEnabled(true);
         webView.loadUrl(url);
-        appledialog.setContentView(webView);
+
+        // Inflate the custom title bar layout
+        View titleBarView = activity.getLayoutInflater().inflate(R.layout.dialog_title_bar, null);
+        ImageButton closeButton = titleBarView.findViewById(R.id.close_button);
+        closeButton.setOnClickListener(v -> appledialog.dismiss());
+
+        // Create a LinearLayout to hold the title bar and the WebView
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.addView(titleBarView);
+        layout.addView(webView, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT));
+
+        appledialog.setContentView(layout);
         appledialog.show();
     }
 }
