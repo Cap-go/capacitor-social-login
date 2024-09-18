@@ -13,7 +13,8 @@ Pod::Spec.new do |s|
   s.source_files = 'ios/Sources/**/*.{swift,h,m,c,cc,mm,cpp}'
   s.ios.deployment_target  = '13.0'
   s.dependency 'Capacitor'
-  s.dependency 'FacebookLogin'
-  s.dependency 'GoogleSignIn'
+  s.dependency 'FBSDKCoreKit', '17.0.0'
+  s.dependency 'FBSDKLoginKit', '17.0.0'
+  s.dependency 'GoogleSignIn', '~> 6.2.4'
   s.swift_version = '5.1'
 end

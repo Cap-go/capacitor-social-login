@@ -145,14 +145,11 @@ addListener(eventName: "loginResult", listenerFunc: (result: LoginListenerEvent)
 
 #### InitializeOptions
 
-| Prop                      | Type                                                                  | Description                                                                                                                                      | Since |
-| ------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----- |
-| **`facebookAppId`**       | <code>string</code>                                                   | Facebook App ID, provided by Facebook                                                                                                            |       |
-| **`googleClientId`**      | <code>string</code>                                                   | The app's client ID, found and created in the Google Developers Console. Common for Android or iOS. The default is defined in the configuration. | 3.1.0 |
-| **`appleClientId`**       | <code>string</code>                                                   | Apple Client ID, provided by Apple                                                                                                               |       |
-| **`twitterClientId`**     | <code>string</code>                                                   | Twitter Client ID, provided by Twitter                                                                                                           |       |
-| **`twitterClientSecret`** | <code>string</code>                                                   | Twitter Client Secret, provided by Twitter                                                                                                       |       |
-| **`apple`**               | <code>{ android: { clientId: string; redirectUrl: string; }; }</code> |                                                                                                                                                  |       |
+| Prop           | Type                                                    |
+| -------------- | ------------------------------------------------------- |
+| **`facebook`** | <code>{ appId: string; }</code>                         |
+| **`google`**   | <code>{ clientId: string; }</code>                      |
+| **`apple`**    | <code>{ clientId: string; redirectUrl: string; }</code> |
 
 
 #### LoginResult

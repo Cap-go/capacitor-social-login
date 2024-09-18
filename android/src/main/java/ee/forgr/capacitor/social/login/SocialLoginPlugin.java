@@ -120,19 +120,14 @@ public class SocialLoginPlugin extends Plugin {
 
     JSObject apple =  call.getObject("apple");
     if (apple != null) {
-      JSObject androidApple = apple.getJSObject("android");
-      if (androidApple == null) {
-        call.reject("Cannot configure apple login, android config is null");
-        return;
-      }
 
-      String androidAppleRedirect = androidApple.getString("redirectUrl");
+      String androidAppleRedirect = apple.getString("redirectUrl");
       if (androidAppleRedirect == null || androidAppleRedirect.isEmpty()) {
         call.reject("apple.android.redirectUrl is null or empty");
         return;
       }
 
-      String androidAppleClientId = androidApple.getString("clientId");
+      String androidAppleClientId = apple.getString("clientId");
       if (androidAppleClientId == null || androidAppleClientId.isEmpty()) {
         call.reject("apple.android.clientId is null or empty");
         return;

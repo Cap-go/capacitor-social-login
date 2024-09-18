@@ -19,7 +19,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let apple = AppleProvider()
     private let facebook = FacebookProvider()
     private let google = GoogleProvider()
-    private let twitter = TwitterProvider()
 
     @objc func initialize(_ call: CAPPluginCall) {
         guard let options = call.options else {
@@ -29,24 +28,18 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         
         var initialized = false
         
-        if let facebookAppId = options["facebookAppId"] as? String {
-            facebook.initialize(appId: facebookAppId)
+        if let facebookAppId = options["facebook.appId"] as? String {
+            facebook.initialize()
             initialized = true
         }
         
-        if let googleClientId = options["googleClientId"] as? String {
+        if let googleClientId = options["google.clientId"] as? String {
             google.initialize(clientId: googleClientId)
             initialized = true
         }
         
-        if let appleClientId = options["appleClientId"] as? String {
+        if let appleClientId = options["apple.clientId"] as? String {
             apple.initialize(clientId: appleClientId)
-            initialized = true
-        }
-        
-        if let twitterClientId = options["twitterClientId"] as? String,
-           let twitterClientSecret = options["twitterClientSecret"] as? String {
-            twitter.initialize(clientId: twitterClientId, clientSecret: twitterClientSecret)
             initialized = true
         }
         
@@ -66,19 +59,15 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         
         switch provider {
         case "facebook":
-            facebook.login(payload: payload) { result in
+            facebook.login(payload: payload) { (result: Result<FacebookLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "google":
-            google.login(payload: payload) { result in
+            google.login(payload: payload) { (result: Result<GoogleLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "apple":
-            apple.login(payload: payload) { result in
-                self.handleLoginResult(result, call: call)
-            }
-        case "twitter":
-            twitter.login(payload: payload) { result in
+            apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         default:
@@ -105,10 +94,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             apple.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
-        case "twitter":
-            twitter.logout { result in
-                self.handleLogoutResult(result, call: call)
-            }
         default:
             call.reject("Invalid provider")
         }
@@ -133,10 +118,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             apple.getCurrentUser { result in
                 self.handleCurrentUserResult(result, call: call)
             }
-        case "twitter":
-            twitter.getCurrentUser { result in
-                self.handleCurrentUserResult(result, call: call)
-            }
         default:
             call.reject("Invalid provider")
         }
@@ -150,7 +131,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         
         switch provider {
         case "facebook":
-            facebook.refresh { result in
+            facebook.refresh(viewController: self.bridge?.viewController) { result in
                 self.handleRefreshResult(result, call: call)
             }
         case "google":
@@ -161,12 +142,111 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             apple.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
-        case "twitter":
-            twitter.refresh { result in
-                self.handleRefreshResult(result, call: call)
-            }
+
         default:
             call.reject("Invalid provider")
         }
     }
+
+    private func handleLogoutResult<T>(_ result: Result<T, Error>, call: CAPPluginCall) {
+        switch result {
+        case .success:
+            call.resolve()
+        case .failure(let error):
+            call.reject(error.localizedDescription)
+        }
+    }
+
+
+    private func handleRefreshResult<T>(_ result: Result<T, Error>, call: CAPPluginCall) {
+        switch result {
+        case .success(let response):
+            if let user = response as? SocialLoginUser {
+                call.resolve([
+                    "accessToken": user.accessToken,
+                    "idToken": user.idToken,
+                    "refreshToken": user.refreshToken,
+                    "expiresIn": user.expiresIn
+                ])
+            } else {
+                call.reject("Invalid refresh response")
+            }
+        case .failure(let error):
+            call.reject(error.localizedDescription)
+        }
+    }
+
+    private func handleCurrentUserResult<T>(_ result: Result<T?, Error>, call: CAPPluginCall) {
+        switch result {
+        case .success(let response):
+            if let user = response as? SocialLoginUser {
+                call.resolve([
+                    "accessToken": user.accessToken,
+                    "idToken": user.idToken ?? "",
+                    "refreshToken": user.refreshToken ?? "",
+                    "expiresIn": user.expiresIn ?? 0
+                ])
+            } else {
+                call.reject("User not logged in")
+            }
+        case .failure(let error):
+            call.reject(error.localizedDescription)
+        }
+    }
+
+    private func handleLoginResult<T>(_ result: Result<T, Error>, call: CAPPluginCall) {
+        switch result {
+        case .success(let response):
+            if let appleResponse = response as? AppleProviderResponse {
+                call.resolve([
+                    "provider": "apple",
+                    "result": [
+                        "user": appleResponse.user,
+                        "email": appleResponse.email ?? "",
+                        "givenName": appleResponse.givenName ?? "",
+                        "familyName": appleResponse.familyName ?? "",
+                        "identityToken": appleResponse.identityToken,
+                        "authorizationCode": appleResponse.authorizationCode
+                    ]
+                ])
+            } else if let googleResponse = response as? GoogleLoginResponse {
+                call.resolve([
+                    "provider": "google",
+                    "result": [
+                        "accessToken": [
+                            "token": googleResponse.authentication.accessToken,
+                            "userId": googleResponse.id ?? ""
+                        ],
+                        "profile": [
+                            "email": googleResponse.email ?? "",
+                            "familyName": googleResponse.familyName ?? "",
+                            "givenName": googleResponse.givenName ?? "",
+                            "id": googleResponse.id ?? "",
+                            "name": googleResponse.name ?? "",
+                            "imageUrl": googleResponse.imageUrl ?? ""
+                        ]
+                    ]
+                ])
+            } else if let facebookResponse = response as? FacebookLoginResponse {
+                call.resolve([
+                    "provider": "facebook",
+                    "result": [
+                        "accessToken": facebookResponse.accessToken,
+                        "profile": facebookResponse.profile
+                    ]
+                ])
+            } else {
+                call.reject("Unsupported provider response")
+            }
+        case .failure(let error):
+            call.reject(error.localizedDescription)
+        }
+    }
+}
+
+struct SocialLoginUser {
+    let accessToken: String
+    let idToken: String?
+    let refreshToken: String?
+    let expiresIn: Int?
 }

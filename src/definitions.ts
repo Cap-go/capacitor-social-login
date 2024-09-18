@@ -1,10 +1,14 @@
 import type { PluginListenerHandle } from "@capacitor/core";
 
 export interface InitializeOptions {
-  /**
-   * Facebook App ID, provided by Facebook
-   */
-  facebookAppId?: string;
+  facebook: {
+    /**
+     * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
+     */
+    appId: string,
+  }
+
+  google: {
   /**
    * The app's client ID, found and created in the Google Developers Console.
    * Common for Android or iOS.
@@ -12,25 +16,17 @@ export interface InitializeOptions {
    * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
    * @since 3.1.0
    */
-  googleClientId?: string;
-  /**
-   * Apple Client ID, provided by Apple
-   */
-  appleClientId?: string;
-  /**
-   * Twitter Client ID, provided by Twitter
-   */
-  twitterClientId?: string;
-  /**
-   * Twitter Client Secret, provided by Twitter
-   */
-  twitterClientSecret?: string;
-
+    clientId: string,
+  }
   apple: {
-    android: {
-      clientId: string,
-      redirectUrl: string,
-    }
+    /**
+     * Apple Client ID, provided by Apple
+     */
+    clientId: string,
+    /**
+     * Apple Redirect URL, should be your backend url that is configured in your apple app, only for android
+     */
+    redirectUrl: string,
   }
 }
 
