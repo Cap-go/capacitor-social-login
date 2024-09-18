@@ -1,6 +1,15 @@
 import Foundation
 import AuthenticationServices
 
+struct AppleProviderResponse {
+    let user: String
+    let email: String?
+    let givenName: String?
+    let familyName: String?
+    let identityToken: String
+    let authorizationCode: String
+}
+
 class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private var clientId: String?
     private var completion: ((Result<AppleProviderResponse, Error>) -> Void)?
@@ -88,3 +97,4 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         return UIApplication.shared.windows.first!
     }
 }
+

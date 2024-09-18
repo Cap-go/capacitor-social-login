@@ -4,18 +4,25 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.util.ArrayMap;
 import android.util.Base64;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 
@@ -330,30 +337,50 @@ public class AppleProvider implements SocialProvider {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebview(Context context, Activity activity, PluginHelpers helpers, String url) {
-        this.appledialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-        WebView webView = new WebView(context);
+        this.appledialog = new Dialog(context, R.style.CustomDialogTheme);
+
+        // Set the dialog window to match the screen width and height
+        Window window = appledialog.getWindow();
+        if (window != null) {
+            window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+            window.setGravity(Gravity.TOP);
+            window.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+            window.setDimAmount(0.0f);
+        }
+
+        // Inflate the custom layout
+        View customView = activity.getLayoutInflater().inflate(R.layout.dialog_custom_layout, null);
+
+        // Find the WebView and progress bar in the custom layout
+        WebView webView = customView.findViewById(R.id.webview);
+        ProgressBar progressBar = customView.findViewById(R.id.progress_bar);
 
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
 
-        webView.setWebViewClient(new AppleWebViewClient(activity, helpers, this.redirectUrl, this.clientId));
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                progressBar.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                progressBar.setVisibility(View.GONE);
+            }
+        });
+
         webView.getSettings().setJavaScriptEnabled(true);
         webView.loadUrl(url);
 
-        // Inflate the custom title bar layout
-        View titleBarView = activity.getLayoutInflater().inflate(R.layout.dialog_title_bar, null);
-        ImageButton closeButton = titleBarView.findViewById(R.id.close_button);
+        // Find the close button in the custom layout and set click listener
+        ImageButton closeButton = customView.findViewById(R.id.close_button);
         closeButton.setOnClickListener(v -> appledialog.dismiss());
 
-        // Create a LinearLayout to hold the title bar and the WebView
-        LinearLayout layout = new LinearLayout(context);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.addView(titleBarView);
-        layout.addView(webView, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT));
+        appledialog.setContentView(customView);
 
-        appledialog.setContentView(layout);
         appledialog.show();
     }
 }

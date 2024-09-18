@@ -1,6 +1,11 @@
 import Foundation
 import GoogleSignIn
 
+struct GoogleLoginResponse {
+    let accessToken: AccessToken
+    let profile: Profile
+}
+
 class GoogleProvider {
     private var clientId: String?
     

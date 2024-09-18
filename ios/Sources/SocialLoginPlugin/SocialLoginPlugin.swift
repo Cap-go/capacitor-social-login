@@ -20,7 +20,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let facebook = FacebookProvider()
     private let google = GoogleProvider()
     private let twitter = TwitterProvider()
-    private let implementation = SocialLoginImplementation()
 
     @objc func initialize(_ call: CAPPluginCall) {
         guard let options = call.options else {
