@@ -53,6 +53,7 @@ dependencies {
     implementation project(':capacitor-android')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation 'com.google.android.gms:play-services-auth:21.2.0'
+    implementation 'com.facebook.android:facebook-login:17.0.0'
     implementation 'com.squareup.okhttp3:okhttp:4.9.1'
     implementation 'com.auth0.android:jwtdecode:2.0.2'
     testImplementation "junit:junit:$junitVersion"

@@ -52,8 +52,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func login(_ call: CAPPluginCall) {
         guard let provider = call.getString("provider"),
-              let payload = call.getObject("payload") else {
-            call.reject("Missing provider or payload")
+              let payload = call.getObject("options") else {
+            call.reject("Missing provider or options")
             return
         }
         

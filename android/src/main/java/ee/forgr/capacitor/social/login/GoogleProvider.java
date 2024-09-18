@@ -1,129 +1,130 @@
-// package ee.forgr.capacitor.social.login;
+package ee.forgr.capacitor.social.login;
 
-// import android.content.Intent;
-// import androidx.activity.result.ActivityResult;
-// import com.getcapacitor.JSObject;
-// import com.getcapacitor.PluginCall;
-// import com.google.android.gms.auth.api.identity.BeginSignInRequest;
-// import com.google.android.gms.auth.api.identity.Identity;
-// import com.google.android.gms.auth.api.identity.SignInClient;
-// import com.google.android.gms.auth.api.identity.SignInCredential;
-// import com.google.android.gms.common.api.ApiException;
-// import com.google.android.gms.common.api.CommonStatusCodes;
+import android.app.Activity;
+import android.content.Intent;
+import android.util.Log;
 
-// public class GoogleProvider {
-//   private SignInClient oneTapClient;
-//   private BeginSignInRequest signInRequest;
-//   private String googleClientId;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PluginCall;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.tasks.Task;
 
-//   public void initialize(String googleClientId) {
-//     this.googleClientId = googleClientId;
-//     oneTapClient = Identity.getSignInClient(getActivity());
-//   }
+import org.json.JSONException;
+import org.json.JSONObject;
 
-//   public void login(PluginCall call, JSObject payload) {
-//     String[] scopes = payload.getArrayString("scopes");
-//     boolean grantOfflineAccess = payload.getBoolean("grantOfflineAccess", false);
+import java.util.HashMap;
+import java.util.Map;
 
-//     // Configure sign-in request with scopes and offline access
-//     signInRequest = BeginSignInRequest.builder()
-//         .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-//             .setSupported(true)
-//             .setServerClientId(googleClientId)
-//             .setFilterByAuthorizedAccounts(false)
-//             .build())
-//         .setScopes(scopes)
-//         .setGrantOfflineAccess(grantOfflineAccess)
-//         .build();
+import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
+import ee.forgr.capacitor.social.login.helpers.FunctionResult;
 
-//     // Launch Google One Tap UI
-//     oneTapClient.beginSignIn(signInRequest)
-//         .addOnSuccessListener(result -> {
-//           // Handle successful sign-in
-//           SignInCredential credential = result.getCredential();
-//           String idToken = credential.getGoogleIdToken();
-//           String accessToken = credential.getGoogleAccessToken();
-//           String serverAuthCode = credential.getServerAuthCode();
-          
-//           // Resolve the plugin call with the token and other relevant data
-//           JSObject response = new JSObject();
-//           response.put("idToken", idToken);
-//           response.put("accessToken", accessToken);
-//           response.put("serverAuthCode", serverAuthCode);
-//           call.resolve(response);
-//         })
-//         .addOnFailureListener(exception -> {
-//           // Handle sign-in failure
-//           if (exception instanceof ApiException) {
-//             ApiException apiException = (ApiException) exception;
-//             int statusCode = apiException.getStatusCode();
-//             if (statusCode == CommonStatusCodes.CANCELED) {
-//               // One Tap dialog was closed
-//               call.reject("One Tap dialog closed.");
-//             } else {
-//               // Handle other error codes
-//               call.reject("Error during sign-in: " + exception.getMessage());
-//             }
-//           } else {
-//             // Handle other exceptions
-//             call.reject("Error during sign-in: " + exception.getMessage());
-//           }
-//         });
-//   }
+public class GoogleProvider {
+    private static final String LOG_TAG = "GoogleProvider";
 
-//   public void logout(PluginCall call) {
-//     // Perform logout logic for Google Sign-In
-//     // Clear any stored user data or tokens
-//     // ...
+    private Activity activity;
+    private GoogleSignInClient googleSignInClient;
+    private PluginCall loginCall;
 
-//     oneTapClient.signOut()
-//         .addOnSuccessListener(aVoid -> {
-//           call.resolve();
-//         })
-//         .addOnFailureListener(exception -> {
-//           call.reject("Error during sign-out: " + exception.getMessage());
-//         });
-//   }
+    public GoogleProvider(Activity activity) {
+        this.activity = activity;
+    }
 
-//   public void getCurrentUser(PluginCall call) {
-//     // Retrieve the currently logged-in user information
-//     SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(getActivity().getIntent());
-    
-//     if (credential != null) {
-//       String idToken = credential.getGoogleIdToken();
-//       String accessToken = credential.getGoogleAccessToken();
-//       String serverAuthCode = credential.getServerAuthCode();
-      
-//       JSObject response = new JSObject();
-//       response.put("idToken", idToken);
-//       response.put("accessToken", accessToken);
-//       response.put("serverAuthCode", serverAuthCode);
-//       call.resolve(response);
-//     } else {
-//       call.reject("No user currently logged in.");
-//     }
-//   }
+    public void initialize(PluginHelpers helpers, JSONObject config) {
+        try {
+            String clientId = config.getString("clientId");
+            boolean forceCodeForRefreshToken = config.optBoolean("forceCodeForRefreshToken", false);
+            String scopesStr = config.optString("scopes", "");
 
-//   public void refresh(PluginCall call) {
-//     // Perform token refresh using silent sign-in
-//     oneTapClient.silentSignIn()
-//         .addOnSuccessListener(result -> {
-//           // Handle successful silent sign-in
-//           SignInCredential credential = result.getCredential();
-//           String idToken = credential.getGoogleIdToken();
-//           String accessToken = credential.getGoogleAccessToken();
-//           String serverAuthCode = credential.getServerAuthCode();
+            String replacedScopesStr = scopesStr
+                    .replaceAll("[\"\\[\\] ]", "")
+                    .replace("\\", "");
 
-//           JSObject response = new JSObject();
-//           response.put("idToken", idToken);
-//           response.put("accessToken", accessToken);
-//           response.put("serverAuthCode", serverAuthCode);
-//           call.resolve(response);
-//         })
-//         .addOnFailureListener(exception -> {
-//           // Handle silent sign-in failure
-//           call.reject("Error during token refresh: " + exception.getMessage());
-//         });
-//   }
+            String[] scopeArray = replacedScopesStr.split(",");
 
-// }
+            GoogleSignInOptions.Builder googleSignInBuilder = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestIdToken(clientId)
+                    .requestEmail();
+
+            if (forceCodeForRefreshToken) {
+                googleSignInBuilder.requestServerAuthCode(clientId, true);
+            }
+
+            Scope[] scopes = new Scope[scopeArray.length - 1];
+            Scope firstScope = new Scope(scopeArray[0]);
+            for (int i = 1; i < scopeArray.length; i++) {
+                scopes[i - 1] = new Scope(scopeArray[i]);
+            }
+            googleSignInBuilder.requestScopes(firstScope, scopes);
+
+            GoogleSignInOptions googleSignInOptions = googleSignInBuilder.build();
+            googleSignInClient = GoogleSignIn.getClient(activity, googleSignInOptions);
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, "Error initializing GoogleProvider", e);
+        }
+    }
+
+    public FunctionResult<Void, String> login(PluginHelpers helpers, JSONObject config, PluginCall call) {
+        loginCall = call;
+        if (googleSignInClient == null) {
+            call.reject("Google Sign-In not initialized");
+            return FunctionResult.error("Google Sign-In not initialized");
+        }
+        Intent signInIntent = googleSignInClient.getSignInIntent();
+        activity.startActivityForResult(signInIntent, PluginHelpers.REQUEST_CODE_GOOGLE_LOGIN);
+        return FunctionResult.success(null);
+    }
+
+    public void logout(PluginCall call) {
+        if (googleSignInClient == null) {
+            call.reject("Google Sign-In not initialized");
+            return;
+        }
+        googleSignInClient.signOut().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                call.resolve();
+            } else {
+                call.reject("Logout failed");
+            }
+        });
+    }
+
+    public FunctionResult<Void, String> refresh() {
+        return FunctionResult.error("Not implemented");
+    }
+
+    public void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PluginHelpers.REQUEST_CODE_GOOGLE_LOGIN) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                JSObject result = new JSObject();
+                result.put("provider", "google");
+                result.put("status", "success");
+                result.put("user", getUser(account));
+                loginCall.resolve(result);
+            } catch (ApiException e) {
+                Log.e(LOG_TAG, "Google Sign-In failed", e);
+                JSObject result = new JSObject();
+                result.put("provider", "google");
+                result.put("status", "error");
+                loginCall.resolve(result);
+            }
+        }
+    }
+
+    private Map<String, Object> getUser(GoogleSignInAccount account) {
+        Map<String, Object> user = new HashMap<>();
+        user.put("id", account.getId());
+        user.put("name", account.getDisplayName());
+        user.put("email", account.getEmail());
+        user.put("familyName", account.getFamilyName());
+        user.put("givenName", account.getGivenName());
+        user.put("imageUrl", account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : null);
+        return user;
+    }
+}

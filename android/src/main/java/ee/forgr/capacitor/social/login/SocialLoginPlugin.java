@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Build;
 import android.os.Looper;
+import android.content.Intent;
 
 import androidx.annotation.Nullable;
 
@@ -29,7 +30,6 @@ public class SocialLoginPlugin extends Plugin {
 
   public static String LOG_TAG = "CapgoSocialLogin";
   private static String SHARED_PREFERENCE_NAME = "d4e8c13e-ae60-4993-8ae1-0c7c12cabe2a-social-login-capgo";
-  private boolean isInitialized = false;
 
   private HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
@@ -111,10 +111,6 @@ public class SocialLoginPlugin extends Plugin {
       call.reject("Your android device is too old");
       return;
     }
-    if (isInitialized) {
-      call.reject("The plugin is already initialized");
-      return;
-    }
 
     this.helper = new SocialLoginPluginHelper(this.getContext(), this.getActivity());
 
@@ -138,8 +134,13 @@ public class SocialLoginPlugin extends Plugin {
       this.socialProviderHashMap.put("apple", appleProvider);
     }
 
+    JSObject facebook = call.getObject("facebook");
+    if (facebook != null) {
+        FacebookProvider facebookProvider = new FacebookProvider(this.getActivity());
+        facebookProvider.initialize(this.helper);
+        this.socialProviderHashMap.put("facebook", facebookProvider);
+    }
 
-    this.isInitialized = true;
     call.resolve();
   }
 

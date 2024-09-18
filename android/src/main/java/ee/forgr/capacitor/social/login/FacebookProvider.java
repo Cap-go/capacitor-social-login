@@ -1,141 +1,132 @@
-//package ee.forgr.capacitor.social.login;
-//
-//import android.content.Intent;
-//import androidx.activity.result.ActivityResult;
-//import com.facebook.AccessToken;
-//import com.facebook.CallbackManager;
-//import com.facebook.FacebookCallback;
-//import com.facebook.FacebookException;
-//import com.facebook.GraphRequest;
-//import com.facebook.login.LoginManager;
-//import com.facebook.login.LoginResult;
-//import com.getcapacitor.JSObject;
-//import com.getcapacitor.PluginCall;
-//
-//import org.json.JSONException;
-//
-//import java.util.Arrays;
-//import java.util.List;
-//
-//public class FacebookProvider {
-//  private CallbackManager callbackManager;
-//  private PluginCall savedCall;
-//
-//  public void initialize(String facebookAppId) {
-//    callbackManager = CallbackManager.Factory.create();
-//
-//    LoginManager.getInstance().registerCallback(callbackManager,
-//        new FacebookCallback<LoginResult>() {
-//          @Override
-//          public void onSuccess(LoginResult loginResult) {
-//            // Handle successful login
-//            AccessToken accessToken = loginResult.getAccessToken();
-//            GraphRequest request = GraphRequest.newMeRequest(accessToken, (object, response) -> {
-//              try {
-//                JSObject result = new JSObject();
-//                result.put("accessToken", accessToken.getToken());
-//                result.put("userId", object.getString("id"));
-//                result.put("expires", accessToken.getExpires().getTime());
-//                result.put("lastRefresh", accessToken.getLastRefresh().getTime());
-//                result.put("applicationId", accessToken.getApplicationId());
-//                result.put("declinedPermissions", accessToken.getDeclinedPermissions());
-//                result.put("permissions", accessToken.getPermissions());
-//
-//                JSObject profile = new JSObject();
-//                profile.put("fields", object.names());
-//
-//                JSObject response = new JSObject();
-//                response.put("accessToken", result);
-//                response.put("profile", profile);
-//
-//                savedCall.resolve(response);
-//              } catch (JSONException e) {
-//                savedCall.reject("Error parsing Facebook response: " + e.getMessage());
-//              }
-//            });
-//
-//            Bundle parameters = new Bundle();
-//            parameters.putString("fields", "id,name,email,picture.width(720).height(720)");
-//            request.setParameters(parameters);
-//            request.executeAsync();
-//          }
-//
-//          @Override
-//          public void onCancel() {
-//            // Handle login cancellation
-//            savedCall.reject("Facebook login cancelled.");
-//          }
-//
-//          @Override
-//          public void onError(FacebookException exception) {
-//            // Handle login error
-//            savedCall.reject("Error during Facebook login: " + exception.getMessage());
-//          }
-//        });
-//  }
-//
-//  public void login(PluginCall call, JSObject payload) {
-//    savedCall = call;
-//    List<String> permissions = Arrays.asList(payload.getArrayString("permissions"));
-//    LoginManager.getInstance().logInWithReadPermissions(getActivity(), permissions);
-//  }
-//
-//  public void logout(PluginCall call) {
-//    LoginManager.getInstance().logOut();
-//    call.resolve();
-//  }
-//
-//  public void getCurrentUser(PluginCall call) {
-//    AccessToken accessToken = AccessToken.getCurrentAccessToken();
-//    if (accessToken != null && !accessToken.isExpired()) {
-//      JSObject result = new JSObject();
-//      result.put("accessToken", accessToken.getToken());
-//      result.put("userId", accessToken.getUserId());
-//      result.put("expires", accessToken.getExpires().getTime());
-//      result.put("lastRefresh", accessToken.getLastRefresh().getTime());
-//      result.put("applicationId", accessToken.getApplicationId());
-//      result.put("declinedPermissions", accessToken.getDeclinedPermissions());
-//      result.put("permissions", accessToken.getPermissions());
-//
-//      JSObject response = new JSObject();
-//      response.put("accessToken", result);
-//      response.put("profile", new JSObject());
-//
-//      call.resolve(response);
-//    } else {
-//      call.reject("No current Facebook user.");
-//    }
-//  }
-//
-//  public void refresh(PluginCall call) {
-//    AccessToken.refreshCurrentAccessTokenAsync(new AccessToken.AccessTokenRefreshCallback() {
-//      @Override
-//      public void OnTokenRefreshed(AccessToken accessToken) {
-//        if (accessToken != null) {
-//          JSObject result = new JSObject();
-//          result.put("accessToken", accessToken.getToken());
-//          result.put("userId", accessToken.getUserId());
-//          result.put("expires", accessToken.getExpires().getTime());
-//          result.put("lastRefresh", accessToken.getLastRefresh().getTime());
-//          result.put("applicationId", accessToken.getApplicationId());
-//          result.put("declinedPermissions", accessToken.getDeclinedPermissions());
-//          result.put("permissions", accessToken.getPermissions());
-//
-//          call.resolve(result);
-//        } else {
-//          call.reject("Failed to refresh Facebook access token.");
-//        }
-//      }
-//
-//      @Override
-//      public void OnTokenRefreshFailed(FacebookException exception) {
-//        call.reject("Error refreshing Facebook access token: " + exception.getMessage());
-//      }
-//    });
-//  }
-//
-//  @Override
-//  protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-//    callbackManager.onActivityResult(requestCode, resultCode, data);
-//  }
-//}
+package ee.forgr.capacitor.social.login;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.util.Log;
+
+import com.facebook.AccessToken;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.login.LoginManager;
+import com.facebook.login.LoginResult;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Collection;
+import java.util.Map;
+
+import ee.forgr.capacitor.social.login.helpers.FunctionResult;
+import ee.forgr.capacitor.social.login.helpers.JsonHelper;
+import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
+import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+
+public class FacebookProvider implements SocialProvider {
+    private static final String LOG_TAG = "FacebookProvider";
+
+    private Activity activity;
+    private CallbackManager callbackManager;
+
+    public FacebookProvider(Activity activity) {
+        this.activity = activity;
+    }
+
+    public void initialize(PluginHelpers helpers) {
+        this.callbackManager = CallbackManager.Factory.create();
+
+        LoginManager.getInstance().registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                Log.d(LOG_TAG, "LoginManager.onSuccess");
+            }
+
+            @Override
+            public void onCancel() {
+                Log.d(LOG_TAG, "LoginManager.onCancel");
+            }
+
+            @Override
+            public void onError(FacebookException exception) {
+                Log.e(LOG_TAG, "LoginManager.onError", exception);
+            }
+        });
+    }
+
+    @Override
+    public FunctionResult<Void, String> login(PluginHelpers helpers, JSONObject config) {
+        try {
+            Collection<String> permissions = JsonHelper.jsonArrayToList(config.getJSONArray("permissions"));
+            LoginManager.getInstance().logIn(activity, permissions);
+            return FunctionResult.success(null);
+        } catch (JSONException e) {
+            return FunctionResult.error("Invalid permissions format");
+        }
+    }
+
+    @Override
+    public FunctionResult<Void, String> logout(PluginHelpers helpers) {
+        LoginManager.getInstance().logOut();
+        return FunctionResult.success(null);
+    }
+
+    @Override
+    public FunctionResult<String, String> getAuthorizationCode() {
+        AccessToken accessToken = AccessToken.getCurrentAccessToken();
+        if (accessToken != null && !accessToken.isExpired()) {
+            return FunctionResult.success(accessToken.getToken());
+        } else {
+            return FunctionResult.error("No valid access token found");
+        }
+    }
+
+    @Override
+    public FunctionResult<Boolean, String> isLoggedIn() {
+        AccessToken accessToken = AccessToken.getCurrentAccessToken();
+        return FunctionResult.success(accessToken != null && !accessToken.isExpired());
+    }
+
+    @Override
+    public FunctionResult<Map<String, Object>, String> getCurrentUser() {
+        AccessToken accessToken = AccessToken.getCurrentAccessToken();
+        if (accessToken == null) {
+            return FunctionResult.error("You're not logged in. Call FacebookLogin.login() first to obtain an access token.");
+        }
+
+        if (accessToken.isExpired()) {
+            return FunctionResult.error("AccessToken is expired.");
+        }
+
+        GraphRequest graphRequest = GraphRequest.newMeRequest(accessToken, new GraphRequest.GraphJSONObjectCallback() {
+            @Override
+            public void onCompleted(JSONObject object, GraphResponse response) {
+                if (response.getError() != null) {
+                    // Handle error
+                } else {
+                    // Return user profile data
+                    FunctionResult.success(object);
+                }
+            }
+        });
+
+        Bundle parameters = new Bundle();
+        parameters.putString("fields", "id,name,email");
+        graphRequest.setParameters(parameters);
+        graphRequest.executeAsync();
+
+        return FunctionResult.success(null);
+    }
+
+    @Override
+    public FunctionResult<Void, String> refresh() {
+        // Not implemented for Facebook
+        return FunctionResult.error("Not implemented");
+    }
+
+    public boolean handleOnActivityResult(int requestCode, int resultCode, Intent data) {
+        return callbackManager.onActivityResult(requestCode, resultCode, data);
+    }
+}

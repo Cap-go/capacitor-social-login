@@ -1,14 +1,14 @@
 import type { PluginListenerHandle } from "@capacitor/core";
 
 export interface InitializeOptions {
-  facebook: {
+  facebook?: {
     /**
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
      */
     appId: string,
   }
 
-  google: {
+  google?: {
   /**
    * The app's client ID, found and created in the Google Developers Console.
    * Common for Android or iOS.
@@ -18,7 +18,7 @@ export interface InitializeOptions {
    */
     clientId: string,
   }
-  apple: {
+  apple?: {
     /**
      * Apple Client ID, provided by Apple
      */

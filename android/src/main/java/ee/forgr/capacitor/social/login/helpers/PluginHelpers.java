@@ -9,6 +9,7 @@ import java.util.Map;
 
 public interface PluginHelpers {
     void runOnUiThread(Runnable runnable);
+    public static final int REQUEST_CODE_GOOGLE_LOGIN = 1001;
 
     FunctionResult<Object, String> notifyListener(String name, Map<String, Object> data);
 

@@ -1,7 +1,11 @@
 package ee.forgr.capacitor.social.login.helpers;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class JsonHelper {
@@ -22,6 +26,12 @@ public class JsonHelper {
         } catch (Throwable t) {
             return new ThrowableFunctionResult<>(null, t);
         }
-
+    }
+    public static List<String> jsonArrayToList(JSONArray jsonArray) throws JSONException {
+        List<String> list = new ArrayList<>();
+        for (int i = 0; i < jsonArray.length(); i++) {
+            list.add(jsonArray.getString(i));
+        }
+        return list;
     }
 }
