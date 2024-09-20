@@ -378,7 +378,7 @@ public class AppleProvider implements SocialProvider {
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
 
-        webView.setWebViewClient(new WebViewClient() {
+        AppleWebViewClient view = new AppleWebViewClient(activity, helpers, this.redirectUrl, this.clientId) {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
@@ -390,7 +390,10 @@ public class AppleProvider implements SocialProvider {
                 super.onPageFinished(view, url);
                 progressBar.setVisibility(View.GONE);
             }
-        });
+        };
+
+
+        webView.setWebViewClient(view);
 
         webView.getSettings().setJavaScriptEnabled(true);
         webView.loadUrl(url);
