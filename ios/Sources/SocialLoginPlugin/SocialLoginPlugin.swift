@@ -248,7 +248,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve([
                     "provider": "apple",
                     "result": [
-                        "user": appleResponse.user
+                        "identityToken": appleResponse.identityToken
                     ]
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {
