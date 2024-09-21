@@ -12,9 +12,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "login", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "logout", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "isAuthenticated", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getAccessToken", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getUserInfo", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "isLoggedIn", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getAuthorizationCode", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getUserInfo", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise)
     ]
     private let apple = AppleProvider()
     private let facebook = FacebookProvider()
@@ -38,15 +39,61 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             initialized = true
         }
         
-        if let appleClientId = options["apple.clientId"] as? String {
-            apple.initialize(clientId: appleClientId)
-            initialized = true
+        if let appleSettings = call.getObject("apple") {
+            if let appleClientId = appleSettings["clientId"] as? String {
+                apple.initialize(clientId: appleClientId)
+                initialized = true
+            }
         }
         
         if initialized {
             call.resolve()
         } else {
             call.reject("No provider was initialized")
+        }
+    }
+    
+    @objc func getAuthorizationCode(_ call: CAPPluginCall) {
+        guard let provider = call.getString("provider") else {
+            call.reject("Missing provider or options")
+            return
+        }
+        
+        switch provider {
+            case "apple":
+            if let idToken = apple.idToken {
+                if (!idToken.isEmpty) {
+                    call.resolve([ "jwt": idToken ])
+                } else {
+                    call.reject("IdToken is empty")
+                }
+            } else {
+                call.reject("IdToken is nil")
+            }
+        default:
+            call.reject("Invalid provider")
+        }
+    }
+    
+    @objc func isLoggedIn(_ call: CAPPluginCall) {
+        guard let provider = call.getString("provider") else {
+            call.reject("Missing provider or options")
+            return
+        }
+        
+        switch provider {
+            case "apple":
+            if let idToken = apple.idToken {
+                if (!idToken.isEmpty) {
+                    call.resolve([ "isLoggedIn": true ])
+                } else {
+                    call.resolve([ "isLoggedIn": false ])
+                }
+            } else {
+                call.resolve([ "isLoggedIn": false ])
+            }
+        default:
+            call.reject("Invalid provider")
         }
     }
 
@@ -201,12 +248,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve([
                     "provider": "apple",
                     "result": [
-                        "user": appleResponse.user,
-                        "email": appleResponse.email ?? "",
-                        "givenName": appleResponse.givenName ?? "",
-                        "familyName": appleResponse.familyName ?? "",
-                        "identityToken": appleResponse.identityToken,
-                        "authorizationCode": appleResponse.authorizationCode
+                        "user": appleResponse.user
                     ]
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {
