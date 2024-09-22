@@ -86,9 +86,11 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     
     private let TOKEN_URL = "https://appleid.apple.com/auth/token"
     private let SHARED_PREFERENCE_NAME = "AppleProviderSharedPrefs_0eda2642"
+    private var redirectUrl = "";
     
-    func initialize(clientId: String) {
+    func initialize(clientId: String, redirectUrl: String) {
         self.clientId = clientId
+        self.redirectUrl = redirectUrl
         
         do {
             try retrieveState()
@@ -180,7 +182,8 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     }
     
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
-        if (self.idToken == nil || ((self.idToken?.isEmpty) == true) || self.refreshToken == nil || ((self.refreshToken?.isEmpty) == true) || self.accessToken == nil || self.accessToken == nil || ((self.accessToken?.isEmpty) == true)) {
+        // we check only idtoken, because with apple, refresh token MIGHT not be set    
+        if (self.idToken == nil || ((self.idToken?.isEmpty) == true)) {
             
             completion(.failure(NSError(domain: "AppleProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Not logged in; Cannot logout"])))
             return;
@@ -249,15 +252,27 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             
             let authorizationCode = String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
             let identityToken = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
-            let firstName = fullName?.givenName ?? "Jhon"
-            let lastName = fullName?.familyName ?? "Doe"
-            
-            if let _ = fullName?.givenName {
-                sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: false)
+
+            if (!self.redirectUrl.isEmpty) {
+                let firstName = fullName?.givenName ?? "Jhon"
+                let lastName = fullName?.familyName ?? "Doe"
+                
+                if let _ = fullName?.givenName {
+                    sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: false)
+                } else {
+                    sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: true)
+                }
             } else {
-                sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: true)
+                do {
+                    try self.persistState(idToken: identityToken, refreshToken: "", accessToken: "")
+                    let appleResponse = AppleProviderResponse(identityToken: identityToken)
+                    completion?(.success(appleResponse))
+                    return
+                } catch {
+                    completion?(.failure(AppleProviderError.specificJsonWritingError(error)))
+                    return
+                }
             }
-            
             // completion?(.success(response))
         }
     }
@@ -272,9 +287,6 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         completion: @escaping ((Result<AppleProviderResponse, AppleProviderError>) -> Void),
         skipUser: Bool
     ) {
-        let url = "https://appleloginvps.wcaleniewolny.me/login/callback"
-        
-        
         // Prepare the parameters
         var parameters: [String: String] = [
             "code": code,
@@ -301,7 +313,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
         // Send the POST request
         AF.request(
-            url,
+            self.redirectUrl,
             method: .post,
             parameters: parameters,
             encoding: URLEncoding.default,
@@ -366,8 +378,15 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                 if (pathComponents.filter { $0.name == "ios_no_code" }).first != nil {
                                     // identityToken provided by apple
                                     let appleResponse = AppleProviderResponse(identityToken: identityToken)
-                                    completion(.success(appleResponse))
-                                    return
+                                    
+                                    do {
+                                        try self.persistState(idToken: identityToken, refreshToken: "", accessToken: "")
+                                        completion(.success(appleResponse))
+                                        return
+                                    } catch {
+                                        completion(.failure(AppleProviderError.specificJsonWritingError(error)))
+                                        return
+                                    }
                                 }
                                 
                                 

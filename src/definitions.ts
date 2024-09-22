@@ -92,7 +92,7 @@ export interface AppleProviderResponse {
   email: string | null;
   givenName: string | null;
   familyName: string | null;
-  identityToken: string;
+  identityToken: string | null;
   authorizationCode: string;
 }
 

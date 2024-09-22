@@ -40,8 +40,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         if let appleSettings = call.getObject("apple") {
-            if let appleClientId = appleSettings["clientId"] as? String {
-                apple.initialize(clientId: appleClientId)
+            if let appleClientId = appleSettings["clientId"] as? String,
+               let redirectUrl = appleSettings["redirectUrl"] as? String {
+                apple.initialize(clientId: appleClientId, redirectUrl: redirectUrl)
                 initialized = true
             }
         }
