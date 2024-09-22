@@ -172,14 +172,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple'; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google'; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                |
-| ------------- | ----------------------------------- |
-| **`options`** | <code>{ provider: 'apple'; }</code> |
+| Param         | Type                                            |
+| ------------- | ----------------------------------------------- |
+| **`options`** | <code>{ provider: 'google' \| 'apple'; }</code> |
 
 --------------------
 
@@ -277,10 +277,11 @@ Refresh the access token
 
 #### GoogleLoginResponse
 
-| Prop              | Type                                                        |
-| ----------------- | ----------------------------------------------------------- |
-| **`accessToken`** | <code><a href="#accesstoken">AccessToken</a> \| null</code> |
-| **`profile`**     | <code>{ fields: readonly string[]; }</code>                 |
+| Prop              | Type                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`accessToken`** | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                                                                        |
+| **`idToken`**     | <code>string \| null</code>                                                                                                                                        |
+| **`profile`**     | <code>{ email: string \| null; familyName: string \| null; givenName: string \| null; id: string \| null; name: string \| null; imageUrl: string \| null; }</code> |
 
 
 #### AppleProviderResponse
@@ -291,7 +292,7 @@ Refresh the access token
 | **`email`**             | <code>string \| null</code> |
 | **`givenName`**         | <code>string \| null</code> |
 | **`familyName`**        | <code>string \| null</code> |
-| **`identityToken`**     | <code>string</code>         |
+| **`identityToken`**     | <code>string \| null</code> |
 | **`authorizationCode`** | <code>string</code>         |
 
 
@@ -330,9 +331,9 @@ Refresh the access token
 
 #### isLoggedInOptions
 
-| Prop           | Type                 | Description |
-| -------------- | -------------------- | ----------- |
-| **`provider`** | <code>'apple'</code> | Provider    |
+| Prop           | Type                             | Description |
+| -------------- | -------------------------------- | ----------- |
+| **`provider`** | <code>'google' \| 'apple'</code> | Provider    |
 
 
 #### AuthorizationCode
@@ -344,8 +345,8 @@ Refresh the access token
 
 #### AuthorizationCodeOptions
 
-| Prop           | Type                 | Description |
-| -------------- | -------------------- | ----------- |
-| **`provider`** | <code>'apple'</code> | Provider    |
+| Prop           | Type                             | Description |
+| -------------- | -------------------------------- | ----------- |
+| **`provider`** | <code>'google' \| 'apple'</code> | Provider    |
 
 </docgen-api>

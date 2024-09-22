@@ -54,6 +54,48 @@ class GoogleProvider {
             completion(.success(()))
         }
     }
+    
+    func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
+        DispatchQueue.main.async {
+            if (self.googleSignIn != nil && self.googleSignIn.currentUser != nil) {
+                completion(.success(true))
+                return
+            }
+            if self.googleSignIn != nil && self.googleSignIn.hasPreviousSignIn() {
+                self.googleSignIn.restorePreviousSignIn { user, error in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
+                    completion(.success(true))
+                    return
+                }
+            }
+            completion(.success(false))
+        }
+    }
+    
+    func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
+        DispatchQueue.main.async {
+            if (self.googleSignIn != nil && self.googleSignIn.currentUser != nil && self.googleSignIn.currentUser?.authentication.idToken != nil) {
+                completion(.success(self.googleSignIn.currentUser?.authentication.idToken ?? ""))
+                return
+            }
+            if self.googleSignIn != nil && self.googleSignIn.hasPreviousSignIn() {
+                self.googleSignIn.restorePreviousSignIn { user, error in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
+                    if let user = user {
+                        completion(.success(user.authentication.idToken ?? ""))
+                        return
+                    }
+                }
+            }
+            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+        }
+    }
 
     func getCurrentUser(completion: @escaping (Result<GoogleLoginResponse?, Error>) -> Void) {
         if let user = googleSignIn.currentUser {

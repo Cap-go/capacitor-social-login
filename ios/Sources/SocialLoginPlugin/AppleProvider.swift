@@ -182,7 +182,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     }
     
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
-        // we check only idtoken, because with apple, refresh token MIGHT not be set    
+        // we check only idtoken, because with apple, refresh token MIGHT not be set
         if (self.idToken == nil || ((self.idToken?.isEmpty) == true)) {
             
             completion(.failure(NSError(domain: "AppleProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Not logged in; Cannot logout"])))

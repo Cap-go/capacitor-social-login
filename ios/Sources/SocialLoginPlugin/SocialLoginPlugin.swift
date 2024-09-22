@@ -34,9 +34,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             initialized = true
         }
         
-        if let googleClientId = options["google.clientId"] as? String {
-            google.initialize(clientId: googleClientId)
-            initialized = true
+        if let googleSettings = call.getObject("google") {
+            if let googleClientId = googleSettings["clientId"] as? String {
+                google.initialize(clientId: googleClientId)
+                initialized = true
+            }
         }
         
         if let appleSettings = call.getObject("apple") {
@@ -61,18 +63,29 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         switch provider {
-            case "apple":
-            if let idToken = apple.idToken {
-                if (!idToken.isEmpty) {
-                    call.resolve([ "jwt": idToken ])
+            case "apple": do {
+                if let idToken = apple.idToken {
+                    if (!idToken.isEmpty) {
+                        call.resolve([ "jwt": idToken ])
+                    } else {
+                        call.reject("IdToken is empty")
+                    }
                 } else {
-                    call.reject("IdToken is empty")
+                    call.reject("IdToken is nil")
                 }
-            } else {
-                call.reject("IdToken is nil")
             }
-        default:
-            call.reject("Invalid provider")
+            case "google": do {
+                self.google.getAuthorizationCode { res in
+                    do {
+                        let authorizationCode = try res.get()
+                        call.resolve([ "jwt": authorizationCode ])
+                    } catch {
+                        call.reject(error.localizedDescription)
+                    }
+                }
+            }
+            default:
+                call.reject("Invalid provider")
         }
     }
     
@@ -83,7 +96,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         
         switch provider {
-            case "apple":
+        case "apple": do {
             if let idToken = apple.idToken {
                 if (!idToken.isEmpty) {
                     call.resolve([ "isLoggedIn": true ])
@@ -93,6 +106,17 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             } else {
                 call.resolve([ "isLoggedIn": false ])
             }
+        }
+        case "google": do {
+            self.google.isLoggedIn { res in
+                do {
+                    let isLogged = try res.get()
+                    call.resolve([ "isLoggedIn": isLogged ])
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -260,6 +284,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                             "token": googleResponse.authentication.accessToken,
                             "userId": googleResponse.id ?? ""
                         ],
+                        "idToken": googleResponse.authentication.idToken ?? "",
+                        //      ""
                         "profile": [
                             "email": googleResponse.email ?? "",
                             "familyName": googleResponse.familyName ?? "",

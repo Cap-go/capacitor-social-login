@@ -59,8 +59,14 @@ export interface GoogleLoginOptions {
 
 export interface GoogleLoginResponse {
   accessToken: AccessToken | null;
+  idToken: string | null
   profile: {
-    fields: readonly string[];
+    email: string | null,
+    familyName: string | null
+    givenName: string | null
+    id: string | null
+    name: string | null
+    imageUrl: string | null
   }
 }
 
@@ -153,7 +159,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple'
+  provider: 'apple' | 'google'
 }
 
 export interface isLoggedInOptions {
@@ -161,7 +167,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn 
    */
-    provider: 'apple'
+    provider: 'apple' | 'google'
 }
 
 export interface LoginListenerEvent {
@@ -192,7 +198,7 @@ export interface SocialLoginPlugin {
    * Logout
    * @description logout the user
    */
-  logout(options: { provider: 'apple' }): Promise<void>;
+  logout(options: { provider: 'apple' | 'google' }): Promise<void>;
   /**
    * IsLoggedIn
    * @description logout the user
