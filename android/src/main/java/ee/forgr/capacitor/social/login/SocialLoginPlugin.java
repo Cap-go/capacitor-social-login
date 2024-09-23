@@ -134,12 +134,19 @@ public class SocialLoginPlugin extends Plugin {
       this.socialProviderHashMap.put("apple", appleProvider);
     }
 
-    JSObject facebook = call.getObject("facebook");
-    if (facebook != null) {
-        FacebookProvider facebookProvider = new FacebookProvider(this.getActivity());
-        facebookProvider.initialize(this.helper);
-        this.socialProviderHashMap.put("facebook", facebookProvider);
+    JSObject google =  call.getObject("google");
+    if (google != null) {
+      GoogleProvider googleProvider = new GoogleProvider(this.getActivity());
+      googleProvider.initialize(this.helper, new JSONObject());
+      this.socialProviderHashMap.put("google", googleProvider);
     }
+
+//    JSObject facebook = call.getObject("facebook");
+//    if (facebook != null) {
+//        FacebookProvider facebookProvider = new FacebookProvider(this.getActivity());
+//        facebookProvider.initialize(this.helper);
+//        this.socialProviderHashMap.put("facebook", facebookProvider);
+//    }
 
     call.resolve();
   }
@@ -159,14 +166,9 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
-    // Pass the PluginCall to the provider
-    if (provider instanceof AppleProvider) {
-        ((AppleProvider) provider).setPluginCall(call);
-    }
-
     provider.login(this.helper, options)
-            .onError(call::reject);
-            // Remove .onSuccess() since the provider will resolve the call directly
+            .onError(call::reject)
+            .onSuccess(unused -> { call.resolve(); });
   }
 
   @PluginMethod

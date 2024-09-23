@@ -7,7 +7,7 @@ import org.json.JSONObject;
 import java.util.Map;
 
 public interface SocialProvider {
-    FunctionResult<Void, String> login(PluginHelpers helpers, JSONObject config);
+    FutureFunctionResult<JSONObject, String> login(PluginHelpers helpers, JSONObject config);
     FunctionResult<Void, String> logout(PluginHelpers helpers);
     FunctionResult<String, String> getAuthorizationCode();
     FunctionResult<Boolean, String> isLoggedIn();

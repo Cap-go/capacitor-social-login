@@ -25,7 +25,6 @@ import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 
 import com.auth0.android.jwt.JWT;
-import com.getcapacitor.PluginCall;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,6 +36,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import ee.forgr.capacitor.social.login.helpers.FunctionResult;
+import ee.forgr.capacitor.social.login.helpers.FutureFunctionResult;
 import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import ee.forgr.capacitor.social.login.helpers.ThrowableFunctionResult;
@@ -64,17 +64,9 @@ public class AppleProvider implements SocialProvider {
     private final String clientId;
     private final String redirectUrl;
 
-    // Add a new field to store the PluginCall
-    private PluginCall savedCall;
-
     public AppleProvider(String redirectUrl, String clientId) {
         this.redirectUrl = redirectUrl;
         this.clientId = clientId;
-    }
-
-    // Add a new method to set the PluginCall
-    public void setPluginCall(PluginCall call) {
-        this.savedCall = call;
     }
 
     public void initialize(PluginHelpers helpers) {
@@ -99,7 +91,8 @@ public class AppleProvider implements SocialProvider {
     }
 
     @Override
-    public FunctionResult<Void, String> login(PluginHelpers helpers, JSONObject config) {
+    public FutureFunctionResult<JSONObject, String> login(PluginHelpers helpers, JSONObject config) {
+        FutureFunctionResult<JSONObject, String> result = new FutureFunctionResult();
 
 //        FunctionResult<Object, String> res = helpers.notifyListener("test", new ArrayMap<>());
 //        if (res.isError()) {
@@ -114,17 +107,18 @@ public class AppleProvider implements SocialProvider {
         Activity activity = helpers.getActivity();
 
         if (context == null) {
-            return FunctionResult.error("PluginHelpers.Context is null");
+            return FutureFunctionResult.error("PluginHelpers.Context is null");
         }
 
         if (activity == null) {
-            return FunctionResult.error("PluginHelpers.activity is null");
+            return FutureFunctionResult.error("PluginHelpers.activity is null");
         }
 
         helpers.runOnUiThread(() -> {
-            setupWebview(context, activity, helpers, appleAuthURLFull);
+            setupWebview(context, activity, helpers, result, appleAuthURLFull);
         });
-        return FunctionResult.success(null);
+
+        return result;
     }
 
     @Override
@@ -187,12 +181,14 @@ public class AppleProvider implements SocialProvider {
         private String clientId;
         private String redirectUrl;
         private PluginHelpers helpers;
+        private FutureFunctionResult<JSONObject, String> result;
 
-        public AppleWebViewClient(Activity activity, PluginHelpers helpers, String redirectUrl, String clientId) {
+        public AppleWebViewClient(Activity activity, PluginHelpers helpers, FutureFunctionResult<JSONObject, String> result, String redirectUrl, String clientId) {
             this.activity = activity;
             this.redirectUrl = redirectUrl;
             this.clientId = clientId;
             this.helpers = helpers;
+            this.result = result;
         }
 
         @Override
@@ -236,18 +232,13 @@ public class AppleProvider implements SocialProvider {
                     notifyMap.put("status", "success");
                     try {
                         persistState(idToken, refreshToken, accessToken);
-                        
-                        // Resolve the saved PluginCall directly
-                        if (savedCall != null) {
-                            savedCall.resolve();
-                        }
+
+                        this.result.resolveSuccess(null);
                     } catch (JSONException jsonException) {
                         Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", jsonException);
                         
                         // Reject the saved PluginCall on error
-                        if (savedCall != null) {
-                            savedCall.reject("Cannot persist state");
-                        }
+                        result.resolveError("Cannot persist state");
                         return;
                     }
 
@@ -268,9 +259,7 @@ public class AppleProvider implements SocialProvider {
                 Log.e("ERROR", "We couldn't get the Auth Code");
                 
                 // Reject the saved PluginCall on error
-                if (savedCall != null) {
-                    savedCall.reject("We couldn't get the Auth Code");
-                }
+                result.resolveError("We couldn't get the Auth Code");
             }
         }
 
@@ -330,7 +319,7 @@ public class AppleProvider implements SocialProvider {
                         notifyMap.put("provider", "apple");
                         notifyMap.put("status", "success");
                         persistState(idToken, refreshToken, accessToken);
-                        AppleWebViewClient.this.helpers.notifyListener("loginResult", notifyMap);
+                        AppleWebViewClient.this.result.resolveSuccess(null);
                     } catch (Exception e) {
                         Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token (success error)", e);
                     } finally {
@@ -356,7 +345,7 @@ public class AppleProvider implements SocialProvider {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private void setupWebview(Context context, Activity activity, PluginHelpers helpers, String url) {
+    private void setupWebview(Context context, Activity activity, PluginHelpers helpers, FutureFunctionResult<JSONObject, String> result, String url) {
         this.appledialog = new Dialog(context, R.style.CustomDialogTheme);
 
         // Set the dialog window to match the screen width and height
@@ -378,7 +367,7 @@ public class AppleProvider implements SocialProvider {
         webView.setVerticalScrollBarEnabled(false);
         webView.setHorizontalScrollBarEnabled(false);
 
-        AppleWebViewClient view = new AppleWebViewClient(activity, helpers, this.redirectUrl, this.clientId) {
+        AppleWebViewClient view = new AppleWebViewClient(activity, helpers, result, this.redirectUrl, this.clientId) {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
