@@ -6,14 +6,12 @@ import android.os.Build;
 import android.os.Looper;
 import android.content.Intent;
 
-import androidx.activity.result.ActivityResult;
 import androidx.annotation.Nullable;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
-import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import org.json.JSONObject;
@@ -159,7 +157,7 @@ public class SocialLoginPlugin extends Plugin {
 
     JSObject google =  call.getObject("google");
     if (google != null) {
-      GoogleProvider googleProvider = new GoogleProvider(this.getActivity());
+      GoogleProvider googleProvider = new GoogleProvider(this.getActivity(), this.getContext());
       googleProvider.initialize(this.helper, new JSONObject());
       this.socialProviderHashMap.put("google", googleProvider);
     }
@@ -172,19 +170,6 @@ public class SocialLoginPlugin extends Plugin {
 //    }
 
     call.resolve();
-  }
-
-  @ActivityCallback
-  protected void googleSignInResult(PluginCall call, ActivityResult result) {
-    if (call == null) return;
-
-    SocialProvider provider = this.socialProviderHashMap.get("google");
-    if (!(provider instanceof GoogleProvider provider1)) {
-      call.reject("Cannot find google provide, this should never happen");
-      return;
-    }
-
-    provider1.handleOnActivityResult(result);
   }
 
   @PluginMethod
