@@ -6,12 +6,14 @@ import android.os.Build;
 import android.os.Looper;
 import android.content.Intent;
 
+import androidx.activity.result.ActivityResult;
 import androidx.annotation.Nullable;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 import org.json.JSONObject;
@@ -83,6 +85,11 @@ public class SocialLoginPlugin extends Plugin {
     }
 
     @Override
+    public FunctionResult<Void, String> startNamedActivityForResult(Intent intent, String name) {
+      return FunctionResult.error("Not implemented for global helpers");
+    }
+
+    @Override
     @Nullable
     public String getSharedPreferencePrivate(String key) {
       return this.activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
@@ -99,6 +106,22 @@ public class SocialLoginPlugin extends Plugin {
     @Override
     public Context getContext() {
       return context;
+    }
+  }
+
+  private class SocialLoginPluginWithCallHelper extends SocialLoginPluginHelper {
+
+    PluginCall call;
+
+    public SocialLoginPluginWithCallHelper(SocialLoginPluginHelper helper, PluginCall call) {
+      super(helper.context, helper.activity);
+      this.call = call;
+    }
+
+    @Override
+    public FunctionResult<Void, String> startNamedActivityForResult(Intent intent, String name) {
+      startActivityForResult(this.call, intent, name);
+      return FunctionResult.success(null);
     }
   }
 
@@ -151,6 +174,19 @@ public class SocialLoginPlugin extends Plugin {
     call.resolve();
   }
 
+  @ActivityCallback
+  protected void googleSignInResult(PluginCall call, ActivityResult result) {
+    if (call == null) return;
+
+    SocialProvider provider = this.socialProviderHashMap.get("google");
+    if (!(provider instanceof GoogleProvider provider1)) {
+      call.reject("Cannot find google provide, this should never happen");
+      return;
+    }
+
+    provider1.handleOnActivityResult(result);
+  }
+
   @PluginMethod
   public void login(PluginCall call) {
     String providerStr = call.getString("provider", "");
@@ -166,7 +202,7 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
-    provider.login(this.helper, options)
+    provider.login(new SocialLoginPluginWithCallHelper(this.helper, call), options)
             .onError(call::reject)
             .onSuccess(unused -> { call.resolve(); });
   }

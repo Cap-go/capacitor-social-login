@@ -67,5 +67,19 @@ public class FunctionResult<SUCCESS, ERROR> {
     public static <SUCCESS, ERROR> FunctionResult<SUCCESS, ERROR> error(ERROR error) {
         return new FunctionResult<>(null, error);
     }
+
+    public SUCCESS getSuccess() {
+        if (!this.isSuccess()) {
+            throw new RuntimeException("Cannot get success, function errored");
+        }
+        return success;
+    }
+
+    public ERROR getError() {
+        if (!this.isError()) {
+            throw new RuntimeException("Cannot get error, function is successful");
+        }
+        return error;
+    }
 }
 

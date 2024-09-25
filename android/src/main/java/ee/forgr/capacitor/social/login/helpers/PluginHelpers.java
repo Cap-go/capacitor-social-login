@@ -2,6 +2,7 @@ package ee.forgr.capacitor.social.login.helpers;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 
 import androidx.annotation.Nullable;
 
@@ -16,6 +17,8 @@ public interface PluginHelpers {
     void putSharedPreferencePrivate(String key, String value);
 
     void removeSharedPreferencePrivate(String key);
+
+    FunctionResult<Void, String> startNamedActivityForResult(Intent intent, String name);
 
     @Nullable
     public String getSharedPreferencePrivate(String key);

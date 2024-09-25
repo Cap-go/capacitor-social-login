@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.util.Log;
 
+import androidx.activity.result.ActivityResult;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -46,7 +48,7 @@ public class GoogleProvider implements SocialProvider {
                 .replaceAll("[\"\\[\\] ]", "")
                 .replace("\\", "");
 
-        String[] scopeArray = replacedScopesStr.split(",");
+        String[] scopeArray = new String[]{"profile", "email"}; //replacedScopesStr.split(",");
 
         GoogleSignInOptions.Builder googleSignInBuilder = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(clientId)
@@ -81,39 +83,37 @@ public class GoogleProvider implements SocialProvider {
         });
     }
 
-    public void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == PluginHelpers.REQUEST_CODE_GOOGLE_LOGIN) {
-            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+    public void handleOnActivityResult(ActivityResult data) {
+        Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data.getData());
+        try {
+            GoogleSignInAccount account = task.getResult(ApiException.class);
+            JSONObject result = new JSONObject();
             try {
-                GoogleSignInAccount account = task.getResult(ApiException.class);
-                JSONObject result = new JSONObject();
-                try {
-                    result.put("provider", "google");
-                    result.put("status", "success");
-                    result.put("user", getUser(account));
-                } catch (JSONException e) {
-                    new ThrowableFunctionResult<JSONObject>(null, e)
-                            .convertThrowableToString()
-                            .onError(err -> loginResult.resolveError(err));
-                    return;
-                }
+                result.put("provider", "google");
+                result.put("status", "success");
+                result.put("user", getUser(account));
+            } catch (JSONException e) {
+                new ThrowableFunctionResult<JSONObject>(null, e)
+                        .convertThrowableToString()
+                        .onError(err -> loginResult.resolveError(err));
+                return;
+            }
+
+            loginResult.resolveSuccess(result);
+            return;
+        } catch (ApiException e) {
+            Log.e(LOG_TAG, "Google Sign-In failed", e);
+            JSONObject result = new JSObject();
+            try {
+                result.put("provider", "google");
+                result.put("status", "error");
 
                 loginResult.resolveSuccess(result);
+            } catch (JSONException ex) {
+                new ThrowableFunctionResult<JSONObject>(null, e)
+                        .convertThrowableToString()
+                        .onError(err -> loginResult.resolveError(err));
                 return;
-            } catch (ApiException e) {
-                Log.e(LOG_TAG, "Google Sign-In failed", e);
-                JSONObject result = new JSObject();
-                try {
-                    result.put("provider", "google");
-                    result.put("status", "error");
-
-                    loginResult.resolveSuccess(result);
-                } catch (JSONException ex) {
-                    new ThrowableFunctionResult<JSONObject>(null, e)
-                            .convertThrowableToString()
-                            .onError(err -> loginResult.resolveError(err));
-                    return;
-                }
             }
         }
     }
@@ -136,7 +136,12 @@ public class GoogleProvider implements SocialProvider {
             return FutureFunctionResult.error("Google Sign-In not initialized");
         }
         Intent signInIntent = googleSignInClient.getSignInIntent();
-        activity.startActivityForResult(signInIntent, PluginHelpers.REQUEST_CODE_GOOGLE_LOGIN);
+
+        FunctionResult<Void, String> startIntentResult = helpers.startNamedActivityForResult(signInIntent, "googleSignInResult");
+        if (startIntentResult.isError()) {
+            return FutureFunctionResult.error(String.format("Cannot invoke startNamedActivityForResult: %s", startIntentResult.getError()));
+        };
+
         this.loginResult = new FutureFunctionResult<>();
         return this.loginResult;
     }
