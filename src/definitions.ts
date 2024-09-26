@@ -159,7 +159,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google'
+  provider: 'apple' | 'google' | 'facebook'
 }
 
 export interface isLoggedInOptions {
@@ -167,20 +167,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn 
    */
-    provider: 'apple' | 'google'
-}
-
-export interface LoginListenerEvent {
-    /**
-   * Provider
-   * @description The provider sending this event
-   */
-    provider: "apple";
-    /**
-   * status
-   * @description The status of the login
-   */
-    status: string
+    provider: 'apple' | 'google' | 'facebook'
 }
 
 export interface SocialLoginPlugin {
@@ -198,7 +185,7 @@ export interface SocialLoginPlugin {
    * Logout
    * @description logout the user
    */
-  logout(options: { provider: 'apple' | 'google' }): Promise<void>;
+  logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void>;
   /**
    * IsLoggedIn
    * @description logout the user

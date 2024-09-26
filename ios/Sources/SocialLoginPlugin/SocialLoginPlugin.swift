@@ -29,9 +29,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         
         var initialized = false
         
-        if let facebookAppId = options["facebook.appId"] as? String {
-            facebook.initialize()
-            initialized = true
+        if let facebookSettings = call.getObject("facebook") {
+            if let facebookAppId = facebookSettings["appId"] as? String {
+                facebook.initialize()
+                initialized = true
+            }
         }
         
         if let googleSettings = call.getObject("google") {

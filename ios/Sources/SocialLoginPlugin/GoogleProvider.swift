@@ -2,16 +2,13 @@ import Foundation
 import GoogleSignIn
 
 class GoogleProvider {
-    var googleSignIn: GIDSignIn!
-    var googleSignInConfiguration: GIDConfiguration!
+    var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
 
     func initialize(clientId: String) {
-        googleSignIn = GIDSignIn.sharedInstance
-        
         let serverClientId = getServerClientIdValue()
-        googleSignInConfiguration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
+        configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
         
         let defaultGrantedScopes = ["email", "profile", "openid"]
         additionalScopes = []
@@ -20,85 +17,91 @@ class GoogleProvider {
     }
 
     func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
-        DispatchQueue.main.async {
-            if self.googleSignIn.hasPreviousSignIn() && !self.forceAuthCode {
-                self.googleSignIn.restorePreviousSignIn { user, error in
-                    if let error = error {
-                        completion(.failure(error))
-                        return
-                    }
-                    completion(.success(self.createLoginResponse(user: user!)))
-                }
-            } else {
-                guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
-                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
+        if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
+            GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                if let error = error {
+                    completion(.failure(error))
                     return
                 }
-                
-                self.googleSignIn.signIn(with: self.googleSignInConfiguration, presenting: presentingVc, hint: nil, additionalScopes: self.additionalScopes) { user, error in
-                    if let error = error {
-                        completion(.failure(error))
-                        return
-                    }
-                    completion(.success(self.createLoginResponse(user: user!)))
+                completion(.success(self.createLoginResponse(user: user!)))
+            }
+        } else {
+            guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
+                return
+            }
+            
+            GIDSignIn.sharedInstance.signIn(
+                withPresenting: presentingVc,
+                hint: nil,
+                additionalScopes: self.additionalScopes
+            ) { result, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
                 }
+                guard let result = result else {
+                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
+                    return
+                }
+                completion(.success(self.createLoginResponse(user: result.user)))
             }
         }
     }
 
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.main.async {
-            if self.googleSignIn != nil {
-                self.googleSignIn.signOut()
-            }
+            GIDSignIn.sharedInstance.signOut()
             completion(.success(()))
         }
     }
     
     func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
         DispatchQueue.main.async {
-            if (self.googleSignIn != nil && self.googleSignIn.currentUser != nil) {
+            if GIDSignIn.sharedInstance.currentUser != nil {
                 completion(.success(true))
                 return
             }
-            if self.googleSignIn != nil && self.googleSignIn.hasPreviousSignIn() {
-                self.googleSignIn.restorePreviousSignIn { user, error in
+            if GIDSignIn.sharedInstance.hasPreviousSignIn() {
+                GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                     if let error = error {
                         completion(.failure(error))
                         return
                     }
-                    completion(.success(true))
-                    return
+                    completion(.success(user != nil))
                 }
+            } else {
+                completion(.success(false))
             }
-            completion(.success(false))
         }
     }
     
     func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
         DispatchQueue.main.async {
-            if (self.googleSignIn != nil && self.googleSignIn.currentUser != nil && self.googleSignIn.currentUser?.authentication.idToken != nil) {
-                completion(.success(self.googleSignIn.currentUser?.authentication.idToken ?? ""))
+            if let currentUser = GIDSignIn.sharedInstance.currentUser, let idToken = currentUser.idToken?.tokenString {
+                completion(.success(idToken))
                 return
             }
-            if self.googleSignIn != nil && self.googleSignIn.hasPreviousSignIn() {
-                self.googleSignIn.restorePreviousSignIn { user, error in
+            if GIDSignIn.sharedInstance.hasPreviousSignIn() {
+                GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                     if let error = error {
                         completion(.failure(error))
                         return
                     }
-                    if let user = user {
-                        completion(.success(user.authentication.idToken ?? ""))
+                    if let user = user, let idToken = user.idToken?.tokenString {
+                        completion(.success(idToken))
                         return
                     }
+                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
                 }
+            } else {
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
             }
-            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
         }
     }
 
     func getCurrentUser(completion: @escaping (Result<GoogleLoginResponse?, Error>) -> Void) {
-        if let user = googleSignIn.currentUser {
+        if let user = GIDSignIn.sharedInstance.currentUser {
             completion(.success(createLoginResponse(user: user)))
         } else {
             completion(.success(nil))
@@ -107,11 +110,11 @@ class GoogleProvider {
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.main.async {
-            if self.googleSignIn.currentUser == nil {
+            guard let currentUser = GIDSignIn.sharedInstance.currentUser else {
                 completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])))
                 return
             }
-            self.googleSignIn.currentUser!.authentication.do { authentication, error in
+            currentUser.refreshTokensIfNeeded { user, error in
                 if let error = error {
                     completion(.failure(error))
                     return
@@ -129,11 +132,10 @@ class GoogleProvider {
     private func createLoginResponse(user: GIDGoogleUser) -> GoogleLoginResponse {
         return GoogleLoginResponse(
             authentication: GoogleLoginResponse.Authentication(
-                accessToken: user.authentication.accessToken,
-                idToken: user.authentication.idToken,
-                refreshToken: user.authentication.refreshToken
+                accessToken: user.accessToken.tokenString,
+                idToken: user.idToken?.tokenString,
+                refreshToken: user.refreshToken.tokenString
             ),
-            serverAuthCode: user.serverAuthCode,
             email: user.profile?.email,
             familyName: user.profile?.familyName,
             givenName: user.profile?.givenName,
@@ -146,7 +148,6 @@ class GoogleProvider {
 
 struct GoogleLoginResponse {
     let authentication: Authentication
-    let serverAuthCode: String?
     let email: String?
     let familyName: String?
     let givenName: String?

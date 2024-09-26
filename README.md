@@ -281,14 +281,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google'; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google' | 'facebook'; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                            |
-| ------------- | ----------------------------------------------- |
-| **`options`** | <code>{ provider: 'google' \| 'apple'; }</code> |
+| Param         | Type                                                          |
+| ------------- | ------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'facebook' \| 'google' \| 'apple'; }</code> |
 
 --------------------
 
@@ -440,9 +440,9 @@ Refresh the access token
 
 #### isLoggedInOptions
 
-| Prop           | Type                             | Description |
-| -------------- | -------------------------------- | ----------- |
-| **`provider`** | <code>'google' \| 'apple'</code> | Provider    |
+| Prop           | Type                                           | Description |
+| -------------- | ---------------------------------------------- | ----------- |
+| **`provider`** | <code>'facebook' \| 'google' \| 'apple'</code> | Provider    |
 
 
 #### AuthorizationCode
@@ -454,8 +454,8 @@ Refresh the access token
 
 #### AuthorizationCodeOptions
 
-| Prop           | Type                             | Description |
-| -------------- | -------------------------------- | ----------- |
-| **`provider`** | <code>'google' \| 'apple'</code> | Provider    |
+| Prop           | Type                                           | Description |
+| -------------- | ---------------------------------------------- | ----------- |
+| **`provider`** | <code>'facebook' \| 'google' \| 'apple'</code> | Provider    |
 
 </docgen-api>

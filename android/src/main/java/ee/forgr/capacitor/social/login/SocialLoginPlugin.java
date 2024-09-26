@@ -162,12 +162,12 @@ public class SocialLoginPlugin extends Plugin {
       this.socialProviderHashMap.put("google", googleProvider);
     }
 
-//    JSObject facebook = call.getObject("facebook");
-//    if (facebook != null) {
-//        FacebookProvider facebookProvider = new FacebookProvider(this.getActivity());
-//        facebookProvider.initialize(this.helper);
-//        this.socialProviderHashMap.put("facebook", facebookProvider);
-//    }
+    JSObject facebook = call.getObject("facebook");
+    if (facebook != null) {
+        FacebookProvider facebookProvider = new FacebookProvider(this.getActivity());
+        facebookProvider.initialize(this.helper);
+        this.socialProviderHashMap.put("facebook", facebookProvider);
+    }
 
     call.resolve();
   }
