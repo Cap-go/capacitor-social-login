@@ -9,10 +9,10 @@ class GoogleProvider {
     func initialize(clientId: String) {
         let serverClientId = getServerClientIdValue()
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
-        
+
         let defaultGrantedScopes = ["email", "profile", "openid"]
         additionalScopes = []
-        
+
         forceAuthCode = false
     }
 
@@ -30,7 +30,7 @@ class GoogleProvider {
                 completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                 return
             }
-            
+
             GIDSignIn.sharedInstance.signIn(
                 withPresenting: presentingVc,
                 hint: nil,
@@ -55,7 +55,7 @@ class GoogleProvider {
             completion(.success(()))
         }
     }
-    
+
     func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
         DispatchQueue.main.async {
             if GIDSignIn.sharedInstance.currentUser != nil {
@@ -75,7 +75,7 @@ class GoogleProvider {
             }
         }
     }
-    
+
     func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
         DispatchQueue.main.async {
             if let currentUser = GIDSignIn.sharedInstance.currentUser, let idToken = currentUser.idToken?.tokenString {
@@ -114,7 +114,7 @@ class GoogleProvider {
                 completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])))
                 return
             }
-            currentUser.refreshTokensIfNeeded { user, error in
+            currentUser.refreshTokensIfNeeded { _, error in
                 if let error = error {
                     completion(.failure(error))
                     return

@@ -3,7 +3,7 @@ import AuthenticationServices
 import Alamofire
 
 struct AppleProviderResponse {
-//    let user: String
+    //    let user: String
     let identityToken: String
 }
 
@@ -78,27 +78,27 @@ extension AppleProviderError: LocalizedError {
 class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private var clientId: String?
     private var completion: ((Result<AppleProviderResponse, Error>) -> Void)?
-    
+
     // Instance variables
     var idToken: String?
     var refreshToken: String?
     var accessToken: String?
-    
+
     private let TOKEN_URL = "https://appleid.apple.com/auth/token"
     private let SHARED_PREFERENCE_NAME = "AppleProviderSharedPrefs_0eda2642"
-    private var redirectUrl = "";
-    
+    private var redirectUrl = ""
+
     func initialize(clientId: String, redirectUrl: String) {
         self.clientId = clientId
         self.redirectUrl = redirectUrl
-        
+
         do {
             try retrieveState()
         } catch {
             print("retrieveState error: \(error)")
         }
     }
-    
+
     func persistState(idToken: String, refreshToken: String, accessToken: String) throws {
         // Create a dictionary to represent the JSON object
         let object: [String: String] = [
@@ -126,7 +126,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             print("Error converting JSON data to String")
         }
     }
-    
+
     func retrieveState() throws {
         // Retrieve the JSON string from persistent storage
         guard let jsonString = UserDefaults.standard.string(forKey: SHARED_PREFERENCE_NAME) else {
@@ -162,42 +162,42 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         // Log the retrieved object
         print("Apple retrieveState: \(object)")
     }
-    
+
     func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
         guard let clientId = clientId else {
             completion(.failure(NSError(domain: "AppleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Client ID not set"])))
             return
         }
-        
+
         self.completion = completion
-        
+
         let appleIDProvider = ASAuthorizationAppleIDProvider()
         let request = appleIDProvider.createRequest()
         request.requestedScopes = [.fullName, .email]
-        
+
         let authorizationController = ASAuthorizationController(authorizationRequests: [request])
         authorizationController.delegate = self
         authorizationController.presentationContextProvider = self
         authorizationController.performRequests()
     }
-    
+
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
         // we check only idtoken, because with apple, refresh token MIGHT not be set
-        if (self.idToken == nil || ((self.idToken?.isEmpty) == true)) {
-            
+        if self.idToken == nil || ((self.idToken?.isEmpty) == true) {
+
             completion(.failure(NSError(domain: "AppleProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "Not logged in; Cannot logout"])))
-            return;
+            return
         }
-        
+
         self.idToken = nil
         self.refreshToken = nil
         self.accessToken = nil
-        
+
         UserDefaults.standard.removeObject(forKey: SHARED_PREFERENCE_NAME)
         completion(.success(()))
         return
     }
-    
+
     func getCurrentUser(completion: @escaping (Result<AppleProviderResponse?, Error>) -> Void) {
         let appleIDProvider = ASAuthorizationAppleIDProvider()
         appleIDProvider.getCredentialState(forUserID: "currentUserIdentifier") { (credentialState, error) in
@@ -205,7 +205,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                 completion(.failure(error))
                 return
             }
-            
+
             switch credentialState {
             case .authorized:
                 // User is authorized, you might want to fetch more details here
@@ -217,30 +217,29 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             }
         }
     }
-    
+
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         // Apple doesn't provide a refresh method
         completion(.success(()))
     }
-    
+
     // MARK: - ASAuthorizationControllerDelegate
-    
+
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
             let userIdentifier = appleIDCredential.user
             let fullName = appleIDCredential.fullName
             let email = appleIDCredential.email
-            
-            
-//            let response = AppleProviderResponse(
-//                user: userIdentifier,
-//                email: email,
-//                givenName: fullName?.givenName,
-//                familyName: fullName?.familyName,
-//                identityToken: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
-//                authorizationCode: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
-//            )
-            
+
+            //            let response = AppleProviderResponse(
+            //                user: userIdentifier,
+            //                email: email,
+            //                givenName: fullName?.givenName,
+            //                familyName: fullName?.familyName,
+            //                identityToken: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
+            //                authorizationCode: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
+            //            )
+
             let errorCompletion: ((Result<AppleProviderResponse, AppleProviderError>) -> Void) = { result in
                 do {
                     let finalResult = try result.get()
@@ -249,14 +248,14 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                     self.completion?(.failure(error))
                 }
             }
-            
+
             let authorizationCode = String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
             let identityToken = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
 
-            if (!self.redirectUrl.isEmpty) {
+            if !self.redirectUrl.isEmpty {
                 let firstName = fullName?.givenName ?? "Jhon"
                 let lastName = fullName?.familyName ?? "Doe"
-                
+
                 if let _ = fullName?.givenName {
                     sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: false)
                 } else {
@@ -276,7 +275,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             // completion?(.success(response))
         }
     }
-    
+
     // identityToken is the JWT generated by apple
     func sendRequest(
         code: String,
@@ -289,10 +288,10 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     ) {
         // Prepare the parameters
         var parameters: [String: String] = [
-            "code": code,
+            "code": code
         ]
-        
-        if (!skipUser) {
+
+        if !skipUser {
             let user: [String: Any] = [
                 "email": email,
                 "name": [
@@ -307,7 +306,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                 print("Error converting user data to JSON string")
                 return
             }
-            
+
             parameters["user"] = userJSONString
         }
 
@@ -319,114 +318,113 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             encoding: URLEncoding.default,
             headers: [ "ios-plugin-version": "0.0.0" ]
         )
-            .redirect(using: Redirector(behavior: .doNotFollow))
-            .response { response in
-                // Access the HTTPURLResponse
-                if let httpResponse = response.response {
-                    print("Status Code: \(httpResponse.statusCode)")
-                    
-                    // Check if the response is a redirect
-                    if (300...399).contains(httpResponse.statusCode) {
-                        if let location = httpResponse.headers.value(for: "Location") {
-                            print("Redirect Location: \(location)")
-                            
-                            // Parse the redirect URL
-                            if let redirectURL = URL(string: location),
-                               let urlComponents = URLComponents(url: redirectURL, resolvingAgainstBaseURL: false),
-                               let pathComponents = urlComponents.queryItems {
-                                
-                                print("Query items: \(String(describing: urlComponents.queryItems))")
-                                
-                                // there are 4 main ways this can go:
-                                // 1. it provides the "code" and we fetch apple servers in order to get the JWT (yuck)
-                                // 2. It doesn't provide the code but it provides access_token, refresh_token, id_token
-                                // 3. It doesn't provide a thing, reuse the JWT returned by internal apple login
-                                // 4. it returns a fail
-                                
-                                guard let success = (pathComponents.filter { $0.name == "success" }.first?.value) else {
-                                    completion(.failure(.successPathComponentNotProvided))
-                                    return
-                                }
-                                
-                                if (success != "true") {
-                                    completion(.failure(.backendDidNotReturnSuccess(successValue: success)))
-                                    return
-                                }
-                                
-                                if let code = (pathComponents.filter { $0.name == "code" }.first?.value),
-                                   let clientSecret = (pathComponents.filter { $0.name == "client_secret" }.first?.value) {
-                                    
-                                    self.exchangeCodeForTokens(clientSecret: clientSecret, code: code, completion: completion)
-                                    return
-                                }
-                                
-                                if let accessToken = (pathComponents.filter { $0.name == "access_token" }.first?.value),
-                                   let refreshToken = (pathComponents.filter { $0.name == "refresh_token" }.first?.value),
-                                   let idToken = (pathComponents.filter { $0.name == "id_token" }.first?.value) {
-                                    
-                                    do {
-                                        try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
-                                        let appleResponse = AppleProviderResponse(identityToken: idToken)
-                                        completion(.success(appleResponse))
-                                        return
-                                    } catch {
-                                        completion(.failure(.specificJsonWritingError(error)))
-                                        return
-                                    }
-                                }
-                                
-                                if (pathComponents.filter { $0.name == "ios_no_code" }).first != nil {
-                                    // identityToken provided by apple
-                                    let appleResponse = AppleProviderResponse(identityToken: identityToken)
-                                    
-                                    do {
-                                        try self.persistState(idToken: identityToken, refreshToken: "", accessToken: "")
-                                        completion(.success(appleResponse))
-                                        return
-                                    } catch {
-                                        completion(.failure(AppleProviderError.specificJsonWritingError(error)))
-                                        return
-                                    }
-                                }
-                                
-                                
-                            } else {
-                                completion(.failure(.pathComponentsNotFound))
-                                print("Path components not found")
+        .redirect(using: Redirector(behavior: .doNotFollow))
+        .response { response in
+            // Access the HTTPURLResponse
+            if let httpResponse = response.response {
+                print("Status Code: \(httpResponse.statusCode)")
+
+                // Check if the response is a redirect
+                if (300...399).contains(httpResponse.statusCode) {
+                    if let location = httpResponse.headers.value(for: "Location") {
+                        print("Redirect Location: \(location)")
+
+                        // Parse the redirect URL
+                        if let redirectURL = URL(string: location),
+                           let urlComponents = URLComponents(url: redirectURL, resolvingAgainstBaseURL: false),
+                           let pathComponents = urlComponents.queryItems {
+
+                            print("Query items: \(String(describing: urlComponents.queryItems))")
+
+                            // there are 4 main ways this can go:
+                            // 1. it provides the "code" and we fetch apple servers in order to get the JWT (yuck)
+                            // 2. It doesn't provide the code but it provides access_token, refresh_token, id_token
+                            // 3. It doesn't provide a thing, reuse the JWT returned by internal apple login
+                            // 4. it returns a fail
+
+                            guard let success = (pathComponents.filter { $0.name == "success" }.first?.value) else {
+                                completion(.failure(.successPathComponentNotProvided))
                                 return
                             }
+
+                            if success != "true" {
+                                completion(.failure(.backendDidNotReturnSuccess(successValue: success)))
+                                return
+                            }
+
+                            if let code = (pathComponents.filter { $0.name == "code" }.first?.value),
+                               let clientSecret = (pathComponents.filter { $0.name == "client_secret" }.first?.value) {
+
+                                self.exchangeCodeForTokens(clientSecret: clientSecret, code: code, completion: completion)
+                                return
+                            }
+
+                            if let accessToken = (pathComponents.filter { $0.name == "access_token" }.first?.value),
+                               let refreshToken = (pathComponents.filter { $0.name == "refresh_token" }.first?.value),
+                               let idToken = (pathComponents.filter { $0.name == "id_token" }.first?.value) {
+
+                                do {
+                                    try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
+                                    let appleResponse = AppleProviderResponse(identityToken: idToken)
+                                    completion(.success(appleResponse))
+                                    return
+                                } catch {
+                                    completion(.failure(.specificJsonWritingError(error)))
+                                    return
+                                }
+                            }
+
+                            if (pathComponents.filter { $0.name == "ios_no_code" }).first != nil {
+                                // identityToken provided by apple
+                                let appleResponse = AppleProviderResponse(identityToken: identityToken)
+
+                                do {
+                                    try self.persistState(idToken: identityToken, refreshToken: "", accessToken: "")
+                                    completion(.success(appleResponse))
+                                    return
+                                } catch {
+                                    completion(.failure(AppleProviderError.specificJsonWritingError(error)))
+                                    return
+                                }
+                            }
+
                         } else {
-                            completion(.failure(.noLocationHeader))
-                            print("No Location header found in the redirect response")
+                            completion(.failure(.pathComponentsNotFound))
+                            print("Path components not found")
                             return
                         }
                     } else {
-                        // Handle non-redirect responses
-                        if let data = response.data,
-                           let responseString = String(data: data, encoding: .utf8) {
-                            print("Response: \(responseString)")
-                        } else {
-                            print("No response data received")
-                        }
-                        
-                        completion(.failure(.invalidResponseCode(statusCode: httpResponse.statusCode)))
+                        completion(.failure(.noLocationHeader))
+                        print("No Location header found in the redirect response")
+                        return
                     }
-                } else if let error = response.error {
-                    completion(.failure(.responseError(error)))
-                    print("Error: \(error)")
+                } else {
+                    // Handle non-redirect responses
+                    if let data = response.data,
+                       let responseString = String(data: data, encoding: .utf8) {
+                        print("Response: \(responseString)")
+                    } else {
+                        print("No response data received")
+                    }
+
+                    completion(.failure(.invalidResponseCode(statusCode: httpResponse.statusCode)))
                 }
+            } else if let error = response.error {
+                completion(.failure(.responseError(error)))
+                print("Error: \(error)")
             }
+        }
     }
-    
+
     func exchangeCodeForTokens(clientSecret: String, code: String, completion: @escaping ((Result<AppleProviderResponse, AppleProviderError>) -> Void)) {
         // Prepare the parameters
         let parameters: [String: String] = [
-            "client_id": Bundle.main.bundleIdentifier ?? "", //TODO: implement better handling when client_id = null
+            "client_id": Bundle.main.bundleIdentifier ?? "", // TODO: implement better handling when client_id = null
             "client_secret": clientSecret, // Implement this function to generate the client secret
             "code": code,
             "grant_type": "authorization_code"
         ]
-        
+
         AF.request(
             TOKEN_URL,
             method: .post,
@@ -480,7 +478,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                         print("Refresh token: \(refreshToken)")
                         print("ID Token: \(idToken)")
                         print("Apple User ID: \(userId)")
-                        
+
                         do {
                             try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
                         } catch {
@@ -505,15 +503,14 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             }
         }
     }
-    
+
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         completion?(.failure(error))
     }
-    
+
     // MARK: - ASAuthorizationControllerPresentationContextProviding
-    
+
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         return UIApplication.shared.windows.first!
     }
 }
-

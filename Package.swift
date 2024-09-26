@@ -13,7 +13,7 @@ let package = Package(
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", branch: "main"),
         // FBSDKCoreKit and FBSDKLoginKit
         .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "9.3.0")),
-         // Add Google Sign-In dependency
+        // Add Google Sign-In dependency
         .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "8.0.0")),
         // Alamofire
         .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.9.1"))

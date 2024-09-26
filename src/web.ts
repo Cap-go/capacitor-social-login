@@ -1,6 +1,12 @@
 import { WebPlugin } from "@capacitor/core";
 
-import type { SocialLoginPlugin, InitializeOptions, LoginOptions, LoginResult, AuthorizationCode } from "./definitions";
+import type {
+  SocialLoginPlugin,
+  InitializeOptions,
+  LoginOptions,
+  LoginResult,
+  AuthorizationCode,
+} from "./definitions";
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   getAuthorizationCode(): Promise<AuthorizationCode> {
@@ -25,7 +31,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     console.log("REFRESH", options);
   }
   async isLoggedIn(options: any): Promise<{ isLoggedIn: boolean }> {
-    console.log('isLoggedIn', options)
-    return { isLoggedIn: false }
+    console.log("isLoggedIn", options);
+    return { isLoggedIn: false };
   }
 }

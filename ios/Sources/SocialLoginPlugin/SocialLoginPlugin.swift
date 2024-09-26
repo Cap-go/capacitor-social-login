@@ -26,23 +26,23 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing options")
             return
         }
-        
+
         var initialized = false
-        
+
         if let facebookSettings = call.getObject("facebook") {
             if let facebookAppId = facebookSettings["appId"] as? String {
                 facebook.initialize()
                 initialized = true
             }
         }
-        
+
         if let googleSettings = call.getObject("google") {
             if let googleClientId = googleSettings["clientId"] as? String {
                 google.initialize(clientId: googleClientId)
                 initialized = true
             }
         }
-        
+
         if let appleSettings = call.getObject("apple") {
             if let appleClientId = appleSettings["clientId"] as? String,
                let redirectUrl = appleSettings["redirectUrl"] as? String {
@@ -50,57 +50,57 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 initialized = true
             }
         }
-        
+
         if initialized {
             call.resolve()
         } else {
             call.reject("No provider was initialized")
         }
     }
-    
+
     @objc func getAuthorizationCode(_ call: CAPPluginCall) {
         guard let provider = call.getString("provider") else {
             call.reject("Missing provider or options")
             return
         }
-        
+
         switch provider {
-            case "apple": do {
-                if let idToken = apple.idToken {
-                    if (!idToken.isEmpty) {
-                        call.resolve([ "jwt": idToken ])
-                    } else {
-                        call.reject("IdToken is empty")
-                    }
+        case "apple": do {
+            if let idToken = apple.idToken {
+                if !idToken.isEmpty {
+                    call.resolve([ "jwt": idToken ])
                 } else {
-                    call.reject("IdToken is nil")
+                    call.reject("IdToken is empty")
+                }
+            } else {
+                call.reject("IdToken is nil")
+            }
+        }
+        case "google": do {
+            self.google.getAuthorizationCode { res in
+                do {
+                    let authorizationCode = try res.get()
+                    call.resolve([ "jwt": authorizationCode ])
+                } catch {
+                    call.reject(error.localizedDescription)
                 }
             }
-            case "google": do {
-                self.google.getAuthorizationCode { res in
-                    do {
-                        let authorizationCode = try res.get()
-                        call.resolve([ "jwt": authorizationCode ])
-                    } catch {
-                        call.reject(error.localizedDescription)
-                    }
-                }
-            }
-            default:
-                call.reject("Invalid provider")
+        }
+        default:
+            call.reject("Invalid provider")
         }
     }
-    
+
     @objc func isLoggedIn(_ call: CAPPluginCall) {
         guard let provider = call.getString("provider") else {
             call.reject("Missing provider or options")
             return
         }
-        
+
         switch provider {
         case "apple": do {
             if let idToken = apple.idToken {
-                if (!idToken.isEmpty) {
+                if !idToken.isEmpty {
                     call.resolve([ "isLoggedIn": true ])
                 } else {
                     call.resolve([ "isLoggedIn": false ])
@@ -130,7 +130,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing provider or options")
             return
         }
-        
+
         switch provider {
         case "facebook":
             facebook.login(payload: payload) { (result: Result<FacebookLoginResponse, Error>) in
@@ -154,7 +154,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing provider")
             return
         }
-        
+
         switch provider {
         case "facebook":
             facebook.logout { result in
@@ -178,7 +178,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing provider")
             return
         }
-        
+
         switch provider {
         case "facebook":
             facebook.getCurrentUser { result in
@@ -202,7 +202,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing provider")
             return
         }
-        
+
         switch provider {
         case "facebook":
             facebook.refresh(viewController: self.bridge?.viewController) { result in
@@ -230,7 +230,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject(error.localizedDescription)
         }
     }
-
 
     private func handleRefreshResult<T>(_ result: Result<T, Error>, call: CAPPluginCall) {
         switch result {

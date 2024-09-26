@@ -1,32 +1,31 @@
-
 export interface InitializeOptions {
   facebook?: {
     /**
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
      */
-    appId: string,
-  }
+    appId: string;
+  };
 
   google?: {
-  /**
-   * The app's client ID, found and created in the Google Developers Console.
-   * Common for Android or iOS.
-   * The default is defined in the configuration.
-   * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
-   * @since 3.1.0
-   */
-    clientId: string,
-  }
+    /**
+     * The app's client ID, found and created in the Google Developers Console.
+     * Common for Android or iOS.
+     * The default is defined in the configuration.
+     * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+     * @since 3.1.0
+     */
+    clientId: string;
+  };
   apple?: {
     /**
      * Apple Client ID, provided by Apple
      */
-    clientId: string,
+    clientId: string;
     /**
      * Apple Redirect URL, should be your backend url that is configured in your apple app, only for android
      */
-    redirectUrl: string,
-  }
+    redirectUrl: string;
+  };
 }
 
 export interface FacebookLoginOptions {
@@ -38,7 +37,6 @@ export interface FacebookLoginOptions {
 }
 
 export interface GoogleLoginOptions {
-
   /**
    * Specifies the scopes required for accessing Google APIs
    * The default is defined in the configuration.
@@ -59,15 +57,15 @@ export interface GoogleLoginOptions {
 
 export interface GoogleLoginResponse {
   accessToken: AccessToken | null;
-  idToken: string | null
+  idToken: string | null;
   profile: {
-    email: string | null,
-    familyName: string | null
-    givenName: string | null
-    id: string | null
-    name: string | null
-    imageUrl: string | null
-  }
+    email: string | null;
+    familyName: string | null;
+    givenName: string | null;
+    id: string | null;
+    name: string | null;
+    imageUrl: string | null;
+  };
 }
 
 export interface AppleProviderOptions {
@@ -143,7 +141,7 @@ export interface FacebookLoginResponse {
   accessToken: AccessToken | null;
   profile: {
     fields: readonly string[];
-  }
+  };
 }
 
 export interface AuthorizationCode {
@@ -159,15 +157,15 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook'
+  provider: "apple" | "google" | "facebook";
 }
 
 export interface isLoggedInOptions {
-   /**
+  /**
    * Provider
-   * @description Provider for the isLoggedIn 
+   * @description Provider for the isLoggedIn
    */
-    provider: 'apple' | 'google' | 'facebook'
+  provider: "apple" | "google" | "facebook";
 }
 
 export interface SocialLoginPlugin {
@@ -185,7 +183,7 @@ export interface SocialLoginPlugin {
    * Logout
    * @description logout the user
    */
-  logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void>;
+  logout(options: { provider: "apple" | "google" | "facebook" }): Promise<void>;
   /**
    * IsLoggedIn
    * @description logout the user
@@ -196,7 +194,9 @@ export interface SocialLoginPlugin {
    * Get the current access token
    * @description get the current access token
    */
-  getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode>;
+  getAuthorizationCode(
+    options: AuthorizationCodeOptions,
+  ): Promise<AuthorizationCode>;
   /**
    * Refresh the access token
    * @description refresh the access token
