@@ -90,7 +90,6 @@ public class GoogleProvider implements SocialProvider {
     GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
         .setFilterByAuthorizedAccounts(false)
         .setServerClientId(this.clientId)
-        .setAutoSelectEnabled(true)
         .build();
     GetCredentialRequest request = new GetCredentialRequest.Builder()
         .addCredentialOption(googleIdOption)
