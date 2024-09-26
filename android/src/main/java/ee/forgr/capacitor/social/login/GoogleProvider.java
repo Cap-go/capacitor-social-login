@@ -47,52 +47,96 @@ public class GoogleProvider implements SocialProvider {
   @Override
   public void login(PluginCall call, JSONObject config) {
     if (this.clientId == null || this.clientId.isEmpty()) {
-      call.reject("Google Sign-In failed: Client ID is not set");
-      return;
+        call.reject("Google Sign-In failed: Client ID is not set");
+        return;
     }
 
-    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-      .setFilterByAuthorizedAccounts(false)
-      .setServerClientId(this.clientId)
-      .setAutoSelectEnabled(true)
-      .build();
-    GetCredentialRequest googleSignRequest = new GetCredentialRequest.Builder()
-      .addCredentialOption(googleIdOption)
-      .build();
+    // First attempt with setFilterByAuthorizedAccounts(true)
+    GetGoogleIdOption googleIdOptionFiltered = new GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(true)
+        .setServerClientId(this.clientId)
+        .setAutoSelectEnabled(true)
+        .build();
+    GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOptionFiltered)
+        .build();
 
     Executor executor = Executors.newSingleThreadExecutor();
     credentialManager.getCredentialAsync(
-      context,
-      googleSignRequest,
-      null,
-      executor,
-      new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-        @Override
-        public void onResult(GetCredentialResponse result) {
-          try {
-            JSObject user = handleSignInResult(result);
-            JSObject response = new JSObject();
-            response.put("provider", "google");
-            response.put("status", "success");
-            response.put("user", user);
-            Log.d(LOG_TAG, "Google Sign-In success: " + response.toString());
-            call.resolve(response);
-          } catch (JSONException e) {
-            call.reject("Error creating success response: " + e.getMessage());
-          }
-        }
+        context,
+        filteredRequest,
+        null,
+        executor,
+        new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+            @Override
+            public void onResult(GetCredentialResponse result) {
+                handleSignInResult(result, call);
+            }
 
-        @Override
-        public void onError(GetCredentialException e) {
-          Log.e(LOG_TAG, "Google Sign-In failed", e);
-          if (e instanceof NoCredentialException) {
-            call.reject("No Google accounts available. Please add a Google account to your device and try again.");
-          } else {
-            call.reject("Google Sign-In failed: " + e.getMessage());
-          }
+            @Override
+            public void onError(GetCredentialException e) {
+                // If no authorized accounts, try again without filtering
+                if (e instanceof NoCredentialException) {
+                    retryWithoutFiltering(call);
+                } else {
+                    handleSignInError(e, call);
+                }
+            }
         }
-      }
     );
+  }
+
+  private void retryWithoutFiltering(PluginCall call) {
+    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
+        .setServerClientId(this.clientId)
+        .setAutoSelectEnabled(true)
+        .build();
+    GetCredentialRequest request = new GetCredentialRequest.Builder()
+        .addCredentialOption(googleIdOption)
+        .build();
+
+    Executor executor = Executors.newSingleThreadExecutor();
+    credentialManager.getCredentialAsync(
+        context,
+        request,
+        null,
+        executor,
+        new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+            @Override
+            public void onResult(GetCredentialResponse result) {
+                handleSignInResult(result, call);
+            }
+
+            @Override
+            public void onError(GetCredentialException e) {
+                handleSignInError(e, call);
+            }
+        }
+    );
+  }
+
+  private void handleSignInResult(GetCredentialResponse result, PluginCall call) {
+    try {
+        JSObject user = handleSignInResult(result);
+        JSObject response = new JSObject();
+        response.put("provider", "google");
+        response.put("status", "success");
+        response.put("user", user);
+        Log.d(LOG_TAG, "Google Sign-In success: " + response.toString());
+        call.resolve(response);
+    } catch (JSONException e) {
+        call.reject("Error creating success response: " + e.getMessage());
+    }
+  }
+
+  private void handleSignInError(GetCredentialException e, PluginCall call) {
+    Log.e(LOG_TAG, "Google Sign-In failed", e);
+    if (e instanceof NoCredentialException) {
+        call.reject("No Google accounts available. Please add a Google account to your device and try again.");
+    } else {
+        call.reject("Google Sign-In failed: " + e.getMessage());
+    }
   }
 
   private JSObject handleSignInResult(GetCredentialResponse result) throws JSONException {
