@@ -17,34 +17,36 @@ class GoogleProvider {
     }
 
     func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
-        if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
-            GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
-                if let error = error {
-                    completion(.failure(error))
+        DispatchQueue.main.async {
+            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
+                GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
+                    completion(.success(self.createLoginResponse(user: user!)))
+                }
+            } else {
+                guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
+                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                     return
                 }
-                completion(.success(self.createLoginResponse(user: user!)))
-            }
-        } else {
-            guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
-                return
-            }
 
-            GIDSignIn.sharedInstance.signIn(
-                withPresenting: presentingVc,
-                hint: nil,
-                additionalScopes: self.additionalScopes
-            ) { result, error in
-                if let error = error {
-                    completion(.failure(error))
-                    return
+                GIDSignIn.sharedInstance.signIn(
+                    withPresenting: presentingVc,
+                    hint: nil,
+                    additionalScopes: self.additionalScopes
+                ) { result, error in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
+                    guard let result = result else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
+                        return
+                    }
+                    completion(.success(self.createLoginResponse(user: result.user)))
                 }
-                guard let result = result else {
-                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
-                    return
-                }
-                completion(.success(self.createLoginResponse(user: result.user)))
             }
         }
     }
