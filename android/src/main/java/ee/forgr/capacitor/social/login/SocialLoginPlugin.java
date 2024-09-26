@@ -189,7 +189,14 @@ public class SocialLoginPlugin extends Plugin {
 
     provider.login(new SocialLoginPluginWithCallHelper(this.helper, call), options)
             .onError(call::reject)
-            .onSuccess(unused -> { call.resolve(); });
+            .onSuccess(response -> {
+                try {
+                    JSObject jsResponse = JSObject.fromJSONObject(response);
+                    call.resolve(jsResponse);
+                } catch (Exception e) {
+                    call.reject("Error converting response to JSObject", e);
+                }
+            });
   }
 
   @PluginMethod
