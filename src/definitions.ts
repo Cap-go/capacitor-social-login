@@ -1,28 +1,31 @@
 export interface InitializeOptions {
-  /**
-   * Facebook App ID, provided by Facebook
-   */
-  facebookAppId?: string;
-  /**
-   * The app's client ID, found and created in the Google Developers Console.
-   * Common for Android or iOS.
-   * The default is defined in the configuration.
-   * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
-   * @since 3.1.0
-   */
-  googleClientId?: string;
-  /**
-   * Apple Client ID, provided by Apple
-   */
-  appleClientId?: string;
-  /**
-   * Twitter Client ID, provided by Twitter
-   */
-  twitterClientId?: string;
-  /**
-   * Twitter Client Secret, provided by Twitter
-   */
-  twitterClientSecret?: string;
+  facebook?: {
+    /**
+     * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
+     */
+    appId: string;
+  };
+
+  google?: {
+    /**
+     * The app's client ID, found and created in the Google Developers Console.
+     * Common for Android or iOS.
+     * The default is defined in the configuration.
+     * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+     * @since 3.1.0
+     */
+    clientId: string;
+  };
+  apple?: {
+    /**
+     * Apple Client ID, provided by Apple
+     */
+    clientId: string;
+    /**
+     * Apple Redirect URL, should be your backend url that is configured in your apple app, only for android
+     */
+    redirectUrl: string;
+  };
 }
 
 export interface FacebookLoginOptions {
@@ -34,7 +37,6 @@ export interface FacebookLoginOptions {
 }
 
 export interface GoogleLoginOptions {
-
   /**
    * Specifies the scopes required for accessing Google APIs
    * The default is defined in the configuration.
@@ -55,12 +57,18 @@ export interface GoogleLoginOptions {
 
 export interface GoogleLoginResponse {
   accessToken: AccessToken | null;
+  idToken: string | null;
   profile: {
-    fields: readonly string[];
-  }
+    email: string | null;
+    familyName: string | null;
+    givenName: string | null;
+    id: string | null;
+    name: string | null;
+    imageUrl: string | null;
+  };
 }
 
-export interface AppleLoginOptions {
+export interface AppleProviderOptions {
   /**
    * Scopes
    * @description select scopes to login with
@@ -83,12 +91,12 @@ export interface AppleLoginOptions {
   state?: string;
 }
 
-export interface AppleLoginResponse {
+export interface AppleProviderResponse {
   user: string | null;
   email: string | null;
   givenName: string | null;
   familyName: string | null;
-  identityToken: string;
+  identityToken: string | null;
   authorizationCode: string;
 }
 
@@ -99,10 +107,10 @@ export interface LoginOptions {
    */
   provider: "facebook" | "google" | "apple" | "twitter";
   /**
-   * Payload
+   * Options
    * @description payload to login with
    */
-  payload: FacebookLoginOptions | GoogleLoginOptions | AppleLoginOptions;
+  options: FacebookLoginOptions | GoogleLoginOptions | AppleProviderOptions;
 }
 
 export interface LoginResult {
@@ -115,7 +123,7 @@ export interface LoginResult {
    * Payload
    * @description payload to login with
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleLoginResponse;
+  result: FacebookLoginResponse | GoogleLoginResponse | AppleProviderResponse;
 }
 
 export interface AccessToken {
@@ -133,20 +141,31 @@ export interface FacebookLoginResponse {
   accessToken: AccessToken | null;
   profile: {
     fields: readonly string[];
-  }
+  };
 }
 
-export interface CurrentUserResponse {
+export interface AuthorizationCode {
+  /**
+   * Jwt
+   * @description A JSON web token
+   */
+  jwt: string;
+}
+
+export interface AuthorizationCodeOptions {
   /**
    * Provider
-   * @description select provider to login with
+   * @description Provider for the authorization code
    */
-  provider: "facebook" | "google" | "apple" | "twitter";
+  provider: "apple" | "google" | "facebook";
+}
+
+export interface isLoggedInOptions {
   /**
-   * Payload
-   * @description payload to login with
+   * Provider
+   * @description Provider for the isLoggedIn
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleLoginResponse;
+  provider: "apple" | "google" | "facebook";
 }
 
 export interface SocialLoginPlugin {
@@ -164,12 +183,20 @@ export interface SocialLoginPlugin {
    * Logout
    * @description logout the user
    */
-  logout(options: LoginOptions): Promise<void>;
+  logout(options: { provider: "apple" | "google" | "facebook" }): Promise<void>;
+  /**
+   * IsLoggedIn
+   * @description logout the user
+   */
+  isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }>;
+
   /**
    * Get the current access token
    * @description get the current access token
    */
-  getCurrentUser(): Promise<CurrentUserResponse>;
+  getAuthorizationCode(
+    options: AuthorizationCodeOptions,
+  ): Promise<AuthorizationCode>;
   /**
    * Refresh the access token
    * @description refresh the access token

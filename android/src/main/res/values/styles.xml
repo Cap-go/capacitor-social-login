@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="CustomDialogTitleStyle" parent="android:Widget.TextView">
+        <item name="android:textColor">@android:color/black</item>
+    </style>
+    <style name="CustomDialogTheme" parent="android:Theme.Dialog">
+      <item name="android:windowIsFloating">false</item>
+      <item name="android:windowBackground">@android:color/white</item>
+      <item name="android:windowNoTitle">true</item>
+      <item name="android:windowFullscreen">true</item>
+      <item name="android:windowCloseOnTouchOutside">false</item>
+</style>
+</resources>

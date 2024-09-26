@@ -1,158 +1,306 @@
 package ee.forgr.capacitor.social.login;
 
-import android.content.Intent;
-import androidx.activity.result.ActivityResult;
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import androidx.annotation.NonNull;
+import com.auth0.android.jwt.JWT;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
-import net.openid.appauth.*;
+import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.UUID;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
-import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
+public class AppleProvider implements SocialProvider {
 
-public class AppleProvider {
-  private static final String APPLE_AUTHORIZATION_ENDPOINT = "https://appleid.apple.com/auth/authorize";
-  private static final String APPLE_TOKEN_ENDPOINT = "https://appleid.apple.com/auth/token";
+  private static final String SCOPE = "name%20email";
+  private static final String AUTHURL = "https://appleid.apple.com/auth/authorize";
+  private static final String TOKENURL = "https://appleid.apple.com/auth/token";
+  private static final String SHARED_PREFERENCE_NAME = "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
 
-  private AuthorizationService authService;
-  private String clientId;
-  private String redirectUri;
+  private String appleAuthURLFull;
+  private Dialog appledialog;
 
-  public void initialize(String clientId) {
+  private String idToken;
+  private String refreshToken;
+  private String accessToken;
+
+  private final String clientId;
+  private final String redirectUrl;
+  private final Activity activity;
+  private final Context context;
+
+  public AppleProvider(String redirectUrl, String clientId, Activity activity, Context context) {
+    this.redirectUrl = redirectUrl;
     this.clientId = clientId;
-    this.authService = new AuthorizationService(getActivity());
+    this.activity = activity;
+    this.context = context;
   }
 
-  public void login(PluginCall call, JSObject payload) {
-    String[] scopes = payload.getArrayString("scopes");
-    String redirectUri = payload.getString("redirectURI");
-    String nonce = payload.getString("nonce");
-    String state = payload.getString("state");
-
-    this.redirectUri = redirectUri;
-
-    AuthorizationRequest.Builder authRequestBuilder = new AuthorizationRequest.Builder(
-        new AuthorizationServiceConfiguration(
-            Uri.parse(APPLE_AUTHORIZATION_ENDPOINT),
-            Uri.parse(APPLE_TOKEN_ENDPOINT)
-        ),
-        clientId,
-        ResponseTypeValues.CODE,
-        Uri.parse(redirectUri)
-    ).setScopes(scopes);
-
-    if (nonce != null) {
-      authRequestBuilder.setNonce(nonce);
-    }
-
-    if (state != null) {
-      authRequestBuilder.setState(state);
-    }
-
-    AuthorizationRequest authRequest = authRequestBuilder.build();
-    Intent authIntent = authService.getAuthorizationRequestIntent(authRequest);
-    startActivityForResult(call, authIntent, 0);
+  public void initialize(JSONObject config) {
+      this.idToken = config.optString("idToken", null);
+      this.refreshToken = config.optString("refreshToken", null);
+      this.accessToken = config.optString("accessToken", null);
+      Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple restoreState: %s", config));
   }
 
   @Override
-  protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
-    if (requestCode == 0) {
-      AuthorizationResponse authResponse = AuthorizationResponse.fromIntent(data);
-      AuthorizationException authException = AuthorizationException.fromIntent(data);
+  public void login(PluginCall call, JSONObject config) {
+    String state = UUID.randomUUID().toString();
+    this.appleAuthURLFull = AUTHURL +
+      "?client_id=" + this.clientId +
+      "&redirect_uri=" + this.redirectUrl +
+      "&response_type=code&scope=" + SCOPE +
+      "&response_mode=form_post&state=" + state;
 
-      if (authResponse != null) {
-        // Exchange authorization code for access token
-        TokenRequest tokenRequest = new TokenRequest.Builder(
-            new AuthorizationServiceConfiguration(
-                Uri.parse(APPLE_AUTHORIZATION_ENDPOINT),
-                Uri.parse(APPLE_TOKEN_ENDPOINT)
-            ),
-            clientId
-        ).setGrantType(GrantTypeValues.AUTHORIZATION_CODE)
-            .setRedirectUri(Uri.parse(redirectUri))
-            .setAuthorizationCode(authResponse.authorizationCode)
-            .build();
-
-        authService.performTokenRequest(tokenRequest, new AuthorizationService.TokenResponseCallback() {
-          @Override
-          public void onTokenRequestCompleted(TokenResponse tokenResponse, AuthorizationException ex) {
-            if (tokenResponse != null) {
-              // Handle successful token response
-              String accessToken = tokenResponse.accessToken;
-              String idToken = tokenResponse.idToken;
-
-              // Parse ID token to get user information
-              JsonObject idTokenObject = JsonParser.parseString(new String(Base64.decode(idToken.split("\\.")[1], Base64.DEFAULT))).getAsJsonObject();
-              String userId = idTokenObject.get("sub").getAsString();
-              String email = idTokenObject.has("email") ? idTokenObject.get("email").getAsString() : null;
-              String givenName = idTokenObject.has("given_name") ? idTokenObject.get("given_name").getAsString() : null;
-              String familyName = idTokenObject.has("family_name") ? idTokenObject.get("family_name").getAsString() : null;
-
-              // Resolve the plugin call with the token and user information
-              JSObject response = new JSObject();
-              response.put("user", userId);
-              response.put("email", email);
-              response.put("givenName", givenName);
-              response.put("familyName", familyName);
-              response.put("identityToken", idToken);
-              response.put("authorizationCode", authResponse.authorizationCode);
-              savedCall.resolve(response);
-            } else {
-              // Handle token request failure
-              savedCall.reject("Error exchanging authorization code for access token: " + ex.getMessage());
-            }
-          }
-        });
-      } else if (authException != null) {
-        // Handle authorization failure
-        savedCall.reject("Error during authorization: " + authException.getMessage());
-      } else {
-        // Handle unknown error
-        savedCall.reject("Unknown error occurred.");
-      }
+    if (context == null || activity == null) {
+      call.reject("Context or Activity is null");
+      return;
     }
+
+    call.setKeepAlive(true);
+    activity.runOnUiThread(() -> setupWebview(context, activity, call, appleAuthURLFull));
   }
 
+  @Override
   public void logout(PluginCall call) {
-    // Perform logout logic for Apple Sign-In
-    // Clear any stored user data or tokens
-    // ...
+    if (this.idToken == null || this.idToken.isEmpty()) {
+      call.reject("Not logged in; Cannot logout");
+      return;
+    }
+
+    context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .edit().clear().apply();
+    this.idToken = null;
+    this.refreshToken = null;
+    this.accessToken = null;
 
     call.resolve();
   }
 
-  public void getCurrentUser(PluginCall call) {
-    // Retrieve the currently logged-in user information
-    // ...
-
-    if (currentUser != null) {
-      JSObject response = new JSObject();
-      response.put("user", currentUser.userId);
-      response.put("email", currentUser.email);
-      response.put("givenName", currentUser.givenName);
-      response.put("familyName", currentUser.familyName);
-      response.put("identityToken", currentUser.identityToken);
-      call.resolve(response);
+  @Override
+  public void getAuthorizationCode(PluginCall call) {
+    if (this.idToken != null && !this.idToken.isEmpty()) {
+      call.resolve(new JSObject().put("code", this.idToken));
     } else {
-      call.reject("No user currently logged in.");
+      call.reject("Apple-login not logged in!");
     }
   }
 
-  public void refresh(PluginCall call) {
-    // Perform token refresh logic for Apple Sign-In
-    // ...
-
-    if (refreshedToken != null) {
-      JSObject response = new JSObject();
-      response.put("accessToken", refreshedToken);
-      call.resolve(response);
+  @Override
+  public void isLoggedIn(PluginCall call) {
+    if (this.idToken != null && !this.idToken.isEmpty()) {
+      try {
+        JWT jwt = new JWT(this.idToken);
+        boolean isLoggedIn = !jwt.isExpired(0);
+        call.resolve(new JSObject().put("isLoggedIn", isLoggedIn));
+      } catch (Exception e) {
+        call.reject("Error checking login status", e);
+      }
     } else {
-      call.reject("Failed to refresh token.");
+      call.resolve(new JSObject().put("isLoggedIn", false));
     }
+  }
+
+  @Override
+  public void getCurrentUser(PluginCall call) {
+    call.reject("Not implemented");
+  }
+
+  @Override
+  public void refresh(PluginCall call) {
+    call.reject("Not implemented");
+  }
+
+  private class AppleWebViewClient extends WebViewClient {
+    private final Activity activity;
+    private final String clientId;
+    private final String redirectUrl;
+    private final PluginCall call;
+
+    public AppleWebViewClient(Activity activity, PluginCall call, String redirectUrl, String clientId) {
+      this.activity = activity;
+      this.redirectUrl = redirectUrl;
+      this.clientId = clientId;
+      this.call = call;
+    }
+
+    @Override
+    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+      String url = request.getUrl().toString();
+      if (url.startsWith(redirectUrl)) {
+        handleUrl(url);
+        if (url.contains("success=")) {
+          appledialog.dismiss();
+        }
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public void onPageFinished(WebView view, String url) {
+      super.onPageFinished(view, url);
+      Rect displayRectangle = new Rect();
+      Window window = activity.getWindow();
+      window.getDecorView().getWindowVisibleDisplayFrame(displayRectangle);
+      view.setLayoutParams(new android.view.ViewGroup.LayoutParams(
+        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+        (int) (displayRectangle.height() * 0.9f)
+      ));
+    }
+
+    private void handleUrl(String url) {
+      Uri uri = Uri.parse(url);
+      String success = uri.getQueryParameter("success");
+      if ("true".equals(success)) {
+        String accessToken = uri.getQueryParameter("access_token");
+        if (accessToken != null) {
+          String refreshToken = uri.getQueryParameter("refresh_token");
+          String idToken = uri.getQueryParameter("id_token");
+          try {
+            persistState(idToken, refreshToken, accessToken);
+            call.resolve(new JSObject().put("success", true));
+          } catch (JSONException e) {
+            Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", e);
+            call.reject("Cannot persist state", e);
+          }
+        } else {
+          String appleAuthCode = uri.getQueryParameter("code");
+          String appleClientSecret = uri.getQueryParameter("client_secret");
+          requestForAccessToken(appleAuthCode, appleClientSecret);
+        }
+      } else {
+        call.reject("We couldn't get the Auth Code");
+      }
+    }
+
+    private void requestForAccessToken(String code, String clientSecret) {
+      OkHttpClient client = new OkHttpClient();
+      FormBody formBody = new FormBody.Builder()
+        .add("grant_type", "authorization_code")
+        .add("code", code)
+        .add("redirect_uri", redirectUrl)
+        .add("client_id", clientId)
+        .add("client_secret", clientSecret)
+        .build();
+
+      Request request = new Request.Builder()
+        .url(TOKENURL)
+        .post(formBody)
+        .build();
+
+      client.newCall(request).enqueue(new Callback() {
+        @Override
+        public void onFailure(@NonNull Call call, @NonNull IOException e) {
+          AppleWebViewClient.this.call.reject("Cannot get access_token", e);
+        }
+
+        @Override
+        public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+          try {
+            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+            String responseData = Objects.requireNonNull(response.body()).string();
+            JSONObject jsonObject = (JSONObject) new JSONTokener(responseData).nextValue();
+            String accessToken = jsonObject.getString("access_token");
+            String refreshToken = jsonObject.getString("refresh_token");
+            String idToken = jsonObject.getString("id_token");
+
+            persistState(idToken, refreshToken, accessToken);
+            AppleWebViewClient.this.call.resolve(new JSObject().put("success", true));
+          } catch (Exception e) {
+            AppleWebViewClient.this.call.reject("Cannot get access_token", e);
+          } finally {
+            response.close();
+          }
+        }
+      });
+    }
+
+    private void persistState(String idToken, String refreshToken, String accessToken) throws JSONException {
+      JSONObject object = new JSONObject();
+      object.put("idToken", idToken);
+      object.put("refreshToken", refreshToken);
+      object.put("accessToken", accessToken);
+
+      AppleProvider.this.idToken = idToken;
+      AppleProvider.this.refreshToken = refreshToken;
+      AppleProvider.this.accessToken = accessToken;
+
+      activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+        .edit().putString(SHARED_PREFERENCE_NAME, object.toString()).apply();
+    }
+  }
+
+  @SuppressLint("SetJavaScriptEnabled")
+  private void setupWebview(Context context, Activity activity, PluginCall call, String url) {
+    this.appledialog = new Dialog(context, R.style.CustomDialogTheme);
+    Window window = appledialog.getWindow();
+    if (window != null) {
+      window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+      window.setGravity(Gravity.TOP);
+      window.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+      window.setDimAmount(0.0f);
+    }
+
+    View customView = activity.getLayoutInflater().inflate(R.layout.dialog_custom_layout, null);
+    WebView webView = customView.findViewById(R.id.webview);
+    ProgressBar progressBar = customView.findViewById(R.id.progress_bar);
+
+    webView.setVerticalScrollBarEnabled(false);
+    webView.setHorizontalScrollBarEnabled(false);
+
+    AppleWebViewClient webViewClient = new AppleWebViewClient(activity, call, this.redirectUrl, this.clientId) {
+      @Override
+      public void onPageStarted(WebView view, String url, Bitmap favicon) {
+        super.onPageStarted(view, url, favicon);
+        progressBar.setVisibility(View.VISIBLE);
+      }
+
+      @Override
+      public void onPageFinished(WebView view, String url) {
+        super.onPageFinished(view, url);
+        progressBar.setVisibility(View.GONE);
+      }
+    };
+
+    webView.setWebViewClient(webViewClient);
+
+    webView.getSettings().setJavaScriptEnabled(true);
+    webView.loadUrl(url);
+
+    ImageButton closeButton = customView.findViewById(R.id.close_button);
+    closeButton.setOnClickListener(v -> appledialog.dismiss());
+
+    appledialog.setContentView(customView);
+
+    appledialog.show();
   }
 }
