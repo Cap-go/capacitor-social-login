@@ -12,15 +12,14 @@ import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
-import ee.forgr.capacitor.social.login.helpers.FunctionResult;
-import ee.forgr.capacitor.social.login.helpers.FutureFunctionResult;
-import ee.forgr.capacitor.social.login.helpers.JsonHelper;
-import ee.forgr.capacitor.social.login.helpers.PluginHelpers;
-import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PluginCall;
 import java.util.Collection;
-import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import ee.forgr.capacitor.social.login.helpers.JsonHelper;
+import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 
 public class FacebookProvider implements SocialProvider {
 
@@ -33,7 +32,7 @@ public class FacebookProvider implements SocialProvider {
     this.activity = activity;
   }
 
-  public void initialize(PluginHelpers helpers) {
+  public void initialize(JSONObject _config) {
     this.callbackManager = CallbackManager.Factory.create();
 
     LoginManager.getInstance()
@@ -59,12 +58,7 @@ public class FacebookProvider implements SocialProvider {
   }
 
   @Override
-  public FutureFunctionResult<JSONObject, String> login(
-    PluginHelpers helpers,
-    JSONObject config
-  ) {
-    FutureFunctionResult<JSONObject, String> future =
-      new FutureFunctionResult<>();
+  public void login(PluginCall call, JSONObject config) {
     try {
       Collection<String> permissions = JsonHelper.jsonArrayToList(
         config.getJSONArray("permissions")
@@ -77,71 +71,64 @@ public class FacebookProvider implements SocialProvider {
             public void onSuccess(LoginResult loginResult) {
               Log.d(LOG_TAG, "LoginManager.onSuccess");
               AccessToken accessToken = loginResult.getAccessToken();
-              JSONObject result = new JSONObject();
-              try {
-                result.put("accessToken", accessToken.getToken());
-                result.put("userId", accessToken.getUserId());
-                future.resolveSuccess(result);
-              } catch (JSONException e) {
-                future.resolveError("Error creating result JSON");
-              }
+              JSObject result = new JSObject();
+              result.put("accessToken", accessToken.getToken());
+              result.put("userId", accessToken.getUserId());
+              call.resolve(result);
             }
 
             @Override
             public void onCancel() {
               Log.d(LOG_TAG, "LoginManager.onCancel");
-              future.resolveError("Login cancelled");
+              call.reject("Login cancelled");
             }
 
             @Override
             public void onError(FacebookException exception) {
               Log.e(LOG_TAG, "LoginManager.onError", exception);
-              future.resolveError(exception.getMessage());
+              call.reject(exception.getMessage());
             }
           }
         );
       LoginManager.getInstance().logIn(activity, permissions);
     } catch (JSONException e) {
-      future.resolveError("Invalid permissions format");
+      call.reject("Invalid permissions format");
     }
-    return future;
   }
 
   @Override
-  public FunctionResult<Void, String> logout(PluginHelpers helpers) {
+  public void logout(PluginCall call) {
     LoginManager.getInstance().logOut();
-    return FunctionResult.success(null);
+    call.resolve();
   }
 
   @Override
-  public FunctionResult<String, String> getAuthorizationCode() {
+  public void getAuthorizationCode(PluginCall call) {
     AccessToken accessToken = AccessToken.getCurrentAccessToken();
     if (accessToken != null && !accessToken.isExpired()) {
-      return FunctionResult.success(accessToken.getToken());
+      call.resolve(new JSObject().put("code", accessToken.getToken()));
     } else {
-      return FunctionResult.error("No valid access token found");
+      call.reject("No valid access token found");
     }
   }
 
   @Override
-  public FunctionResult<Boolean, String> isLoggedIn() {
+  public void isLoggedIn(PluginCall call) {
     AccessToken accessToken = AccessToken.getCurrentAccessToken();
-    return FunctionResult.success(
-      accessToken != null && !accessToken.isExpired()
-    );
+    call.resolve(new JSObject().put("isLoggedIn", accessToken != null && !accessToken.isExpired()));
   }
 
   @Override
-  public FunctionResult<Map<String, Object>, String> getCurrentUser() {
+  public void getCurrentUser(PluginCall call) {
     AccessToken accessToken = AccessToken.getCurrentAccessToken();
     if (accessToken == null) {
-      return FunctionResult.error(
-        "You're not logged in. Call FacebookLogin.login() first to obtain an access token."
-      );
+      call.reject("You're not logged in. Call FacebookLogin.login() first to obtain an access token.");
+      return;
     }
 
     if (accessToken.isExpired()) {
-      return FunctionResult.error("AccessToken is expired.");
+      call.reject("AccessToken is expired.");
+      return;
     }
 
     GraphRequest graphRequest = GraphRequest.newMeRequest(
@@ -150,10 +137,13 @@ public class FacebookProvider implements SocialProvider {
         @Override
         public void onCompleted(JSONObject object, GraphResponse response) {
           if (response.getError() != null) {
-            // Handle error
+            call.reject(response.getError().getErrorMessage());
           } else {
-            // Return user profile data
-            FunctionResult.success(object);
+            try {
+                call.resolve(JSObject.fromJSONObject(object));
+            } catch (JSONException e) {
+                call.reject("Error parsing user data: " + e.getMessage());
+            }
           }
         }
       }
@@ -163,14 +153,12 @@ public class FacebookProvider implements SocialProvider {
     parameters.putString("fields", "id,name,email");
     graphRequest.setParameters(parameters);
     graphRequest.executeAsync();
-
-    return FunctionResult.success(null);
   }
 
   @Override
-  public FunctionResult<Void, String> refresh() {
+  public void refresh(PluginCall call) {
     // Not implemented for Facebook
-    return FunctionResult.error("Not implemented");
+    call.reject("Not implemented");
   }
 
   public boolean handleOnActivityResult(
