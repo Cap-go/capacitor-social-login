@@ -19,10 +19,16 @@ For android you need a server to get the callback from the apple login. As we us
 Call the `initialize` method with the `apple` provider
 
 ```typescript
-CapacitorSocialLogin.initialize({
+await SocialLogin.initialize({
   apple: {
     clientId: 'your-client-id',
     redirectUrl: 'your-redirect-url',
+  },
+});
+const res = await SocialLogin.login({
+  provider: 'apple',
+  options: {
+    scopes: ['email', 'profile'],
   },
 });
 ```
@@ -32,9 +38,15 @@ CapacitorSocialLogin.initialize({
 call the `initialize` method with the `apple` provider
 
 ```typescript
-CapacitorSocialLogin.initialize({
+await SocialLogin.initialize({
   apple: {
     clientId: 'your-client-id',
+  },
+});
+const res = await SocialLogin.login({
+  provider: 'apple',
+  options: {
+    scopes: ['email', 'profile'],
   },
 });
 ```
@@ -60,6 +72,22 @@ In file `android/app/src/main/res/values/strings.xml` add the following lines :
 Don't forget to replace `[APP_ID]` and `[CLIENT_TOKEN]` by your Facebook application Id.
 
 More information can be found here: https://developers.facebook.com/docs/android/getting-started
+
+Then call the `initialize` method with the `facebook` provider
+
+```typescript
+await SocialLogin.initialize({
+  facebook: {
+    appId: 'your-app-id',
+  },
+});
+const res = await SocialLogin.login({
+  provider: 'facebook',
+  options: {
+    permissions: ['email', 'public_profile'],
+  },
+});
+```
 
 ### iOS configuration
 
@@ -102,6 +130,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
     }
 }
+
 ```
 
 Add the following in the `ios/App/App/info.plist` file inside of the outermost `<dict>`:
@@ -145,8 +174,60 @@ Add the following in the `ios/App/App/info.plist` file inside of the outermost `
 
 More information can be found here: https://developers.facebook.com/docs/facebook-login/ios
 
+
+Then call the `initialize` method with the `facebook` provider
+
+```typescript
+await SocialLogin.initialize({
+  facebook: {
+    appId: 'your-app-id',
+  },
+});
+const res = await SocialLogin.login({
+  provider: 'facebook',
+  options: {
+    permissions: ['email', 'public_profile'],
+  },
+});
+```
+
 ## Google
 
+### Android configuration
+
+Directly call the `initialize` method with the `google` provider
+
+```typescript
+await SocialLogin.initialize({
+  google: {
+    clientId: 'your-client-id', // the web client id
+  },
+});
+const res = await SocialLogin.login({
+  provider: 'google',
+  options: {
+    scopes: ['email', 'profile'],
+  },
+});
+```
+
+### iOS configuration
+
+Call the `initialize` method with the `google` provider
+
+```typescript
+await SocialLogin.initialize({
+  google: {
+    clientId: 'your-client-id', // the web client id
+  },
+});
+const res = await SocialLogin.login({
+  provider: 'google',
+  options: {
+    scopes: ['email', 'profile'],
+  },
+});
+```
 
 ## API
 
