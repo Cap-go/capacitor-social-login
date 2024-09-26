@@ -12,7 +12,32 @@ npx cap sync
 
 ## Apple
 
+### Android configuration
 
+For android you need a server to get the callback from the apple login. As we use the web SDK .
+
+Call the `initialize` method with the `apple` provider
+
+```typescript
+CapacitorSocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+    redirectUrl: 'your-redirect-url',
+  },
+});
+```
+
+### iOS configuration
+
+call the `initialize` method with the `apple` provider
+
+```typescript
+CapacitorSocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+  },
+});
+```
 
 ## Facebook
 
@@ -119,6 +144,9 @@ Add the following in the `ios/App/App/info.plist` file inside of the outermost `
 ```
 
 More information can be found here: https://developers.facebook.com/docs/facebook-login/ios
+
+## Google
+
 
 ## API
 
