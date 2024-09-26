@@ -3,6 +3,8 @@ package ee.forgr.capacitor.social.login;
 import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
+
+import androidx.credentials.ClearCredentialStateRequest;
 import androidx.credentials.Credential;
 import androidx.credentials.CredentialManager;
 import androidx.credentials.CredentialManagerCallback;
@@ -10,6 +12,8 @@ import androidx.credentials.CustomCredential;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
+import androidx.credentials.exceptions.NoCredentialException;
+import androidx.credentials.exceptions.ClearCredentialException;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
@@ -50,6 +54,7 @@ public class GoogleProvider implements SocialProvider {
     GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
       .setFilterByAuthorizedAccounts(false)
       .setServerClientId(this.clientId)
+      .setAutoSelectEnabled(true)
       .build();
     GetCredentialRequest googleSignRequest = new GetCredentialRequest.Builder()
       .addCredentialOption(googleIdOption)
@@ -80,7 +85,11 @@ public class GoogleProvider implements SocialProvider {
         @Override
         public void onError(GetCredentialException e) {
           Log.e(LOG_TAG, "Google Sign-In failed", e);
-          call.reject("Google Sign-In failed: " + e.getMessage());
+          if (e instanceof NoCredentialException) {
+            call.reject("No Google accounts available. Please add a Google account to your device and try again.");
+          } else {
+            call.reject("Google Sign-In failed: " + e.getMessage());
+          }
         }
       }
     );
@@ -109,8 +118,26 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void logout(PluginCall call) {
-    // Clear any stored credentials
-    call.resolve();
+      ClearCredentialStateRequest request = new ClearCredentialStateRequest();
+
+      Executor executor = Executors.newSingleThreadExecutor();
+      credentialManager.clearCredentialStateAsync(
+              request,
+              null,
+              executor,
+              new CredentialManagerCallback<Void, ClearCredentialException>() {
+                  @Override
+                  public void onResult(Void result) {
+                      call.resolve();
+                  }
+
+                  @Override
+                  public void onError(ClearCredentialException e) {
+                      Log.e(LOG_TAG, "Failed to clear credential state", e);
+                      call.reject("Failed to clear credential state: " + e.getMessage());
+                  }
+              }
+      );
   }
 
   @Override
