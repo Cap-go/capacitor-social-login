@@ -48,7 +48,7 @@ public class GoogleProvider implements SocialProvider {
     }
 
     GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-      .setFilterByAuthorizedAccounts(true)
+      .setFilterByAuthorizedAccounts(false)
       .setServerClientId(this.clientId)
       .build();
     GetCredentialRequest googleSignRequest = new GetCredentialRequest.Builder()
