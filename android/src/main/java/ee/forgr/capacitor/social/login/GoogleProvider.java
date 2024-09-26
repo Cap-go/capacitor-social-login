@@ -2,6 +2,8 @@ package ee.forgr.capacitor.social.login;
 
 import android.app.Activity;
 import android.content.Context;
+import android.credentials.PrepareGetCredentialResponse;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.credentials.ClearCredentialStateRequest;
@@ -231,36 +233,7 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void isLoggedIn(PluginCall call) {
-    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-        .setFilterByAuthorizedAccounts(true)
-        .setServerClientId(this.clientId)
-        .build();
-    GetCredentialRequest request = new GetCredentialRequest.Builder()
-        .addCredentialOption(googleIdOption)
-        .build();
-
-    Executor executor = Executors.newSingleThreadExecutor();
-    credentialManager.getCredentialAsync(
-        context,
-        request,
-        null,
-        executor,
-        new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
-            @Override
-            public void onResult(GetCredentialResponse result) {
-                JSObject response = new JSObject();
-                response.put("value", true);
-                call.resolve(response);
-            }
-
-            @Override
-            public void onError(GetCredentialException e) {
-                JSObject response = new JSObject();
-                response.put("value", false);
-                call.resolve(response);
-            }
-        }
-    );
+      call.resolve(new JSObject().put("isLoggedIn", true));
   }
 
   @Override
