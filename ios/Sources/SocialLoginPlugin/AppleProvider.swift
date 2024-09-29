@@ -76,7 +76,6 @@ extension AppleProviderError: LocalizedError {
 }
 
 class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private var clientId: String?
     private var completion: ((Result<AppleProviderResponse, Error>) -> Void)?
 
     // Instance variables
@@ -88,9 +87,10 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     private let SHARED_PREFERENCE_NAME = "AppleProviderSharedPrefs_0eda2642"
     private var redirectUrl = ""
 
-    func initialize(clientId: String, redirectUrl: String) {
-        self.clientId = clientId
-        self.redirectUrl = redirectUrl
+    func initialize(redirectUrl: String? = nil) {
+        if let redirectUrl = redirectUrl {
+            self.redirectUrl = redirectUrl
+        }
 
         do {
             try retrieveState()
@@ -164,11 +164,6 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     }
 
     func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
-        guard let clientId = clientId else {
-            completion(.failure(NSError(domain: "AppleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Client ID not set"])))
-            return
-        }
-
         self.completion = completion
 
         let appleIDProvider = ASAuthorizationAppleIDProvider()

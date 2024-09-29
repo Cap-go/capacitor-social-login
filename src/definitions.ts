@@ -20,11 +20,11 @@ export interface InitializeOptions {
     /**
      * Apple Client ID, provided by Apple
      */
-    clientId: string;
+    clientId?: string;
     /**
      * Apple Redirect URL, should be your backend url that is configured in your apple app, only for android
      */
-    redirectUrl: string;
+    redirectUrl?: string;
   };
 }
 
@@ -97,7 +97,7 @@ export interface AppleProviderResponse {
   givenName: string | null;
   familyName: string | null;
   identityToken: string | null;
-  authorizationCode: string;
+  authorizationCode: string | null;
 }
 
 export interface LoginOptions {
