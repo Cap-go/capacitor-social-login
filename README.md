@@ -1,7 +1,8 @@
 # @capgo/capacitor-social-login
 
 All social logins in one plugin
-WIP: it will be done soon
+
+WIP: Code is ready we ar now polishing documentation
 
 ## Install
 
