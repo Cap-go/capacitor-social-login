@@ -40,9 +40,11 @@ import org.json.JSONTokener;
 public class AppleProvider implements SocialProvider {
 
   private static final String SCOPE = "name%20email";
-  private static final String AUTHURL = "https://appleid.apple.com/auth/authorize";
+  private static final String AUTHURL =
+    "https://appleid.apple.com/auth/authorize";
   private static final String TOKENURL = "https://appleid.apple.com/auth/token";
-  private static final String SHARED_PREFERENCE_NAME = "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
+  private static final String SHARED_PREFERENCE_NAME =
+    "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
 
   private String appleAuthURLFull;
   private Dialog appledialog;
@@ -56,7 +58,12 @@ public class AppleProvider implements SocialProvider {
   private final Activity activity;
   private final Context context;
 
-  public AppleProvider(String redirectUrl, String clientId, Activity activity, Context context) {
+  public AppleProvider(
+    String redirectUrl,
+    String clientId,
+    Activity activity,
+    Context context
+  ) {
     this.redirectUrl = redirectUrl;
     this.clientId = clientId;
     this.activity = activity;
@@ -64,20 +71,27 @@ public class AppleProvider implements SocialProvider {
   }
 
   public void initialize(JSONObject config) {
-      this.idToken = config.optString("idToken", null);
-      this.refreshToken = config.optString("refreshToken", null);
-      this.accessToken = config.optString("accessToken", null);
-      Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple restoreState: %s", config));
+    this.idToken = config.optString("idToken", null);
+    this.refreshToken = config.optString("refreshToken", null);
+    this.accessToken = config.optString("accessToken", null);
+    Log.i(
+      SocialLoginPlugin.LOG_TAG,
+      String.format("Apple restoreState: %s", config)
+    );
   }
 
   @Override
   public void login(PluginCall call, JSONObject config) {
     String state = UUID.randomUUID().toString();
     this.appleAuthURLFull = AUTHURL +
-      "?client_id=" + this.clientId +
-      "&redirect_uri=" + this.redirectUrl +
-      "&response_type=code&scope=" + SCOPE +
-      "&response_mode=form_post&state=" + state;
+    "?client_id=" +
+    this.clientId +
+    "&redirect_uri=" +
+    this.redirectUrl +
+    "&response_type=code&scope=" +
+    SCOPE +
+    "&response_mode=form_post&state=" +
+    state;
 
     if (context == null || activity == null) {
       call.reject("Context or Activity is null");
@@ -85,7 +99,9 @@ public class AppleProvider implements SocialProvider {
     }
 
     call.setKeepAlive(true);
-    activity.runOnUiThread(() -> setupWebview(context, activity, call, appleAuthURLFull));
+    activity.runOnUiThread(() ->
+      setupWebview(context, activity, call, appleAuthURLFull)
+    );
   }
 
   @Override
@@ -95,8 +111,11 @@ public class AppleProvider implements SocialProvider {
       return;
     }
 
-    context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
-      .edit().clear().apply();
+    context
+      .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .clear()
+      .apply();
     this.idToken = null;
     this.refreshToken = null;
     this.accessToken = null;
@@ -139,12 +158,18 @@ public class AppleProvider implements SocialProvider {
   }
 
   private class AppleWebViewClient extends WebViewClient {
+
     private final Activity activity;
     private final String clientId;
     private final String redirectUrl;
     private final PluginCall call;
 
-    public AppleWebViewClient(Activity activity, PluginCall call, String redirectUrl, String clientId) {
+    public AppleWebViewClient(
+      Activity activity,
+      PluginCall call,
+      String redirectUrl,
+      String clientId
+    ) {
       this.activity = activity;
       this.redirectUrl = redirectUrl;
       this.clientId = clientId;
@@ -152,7 +177,10 @@ public class AppleProvider implements SocialProvider {
     }
 
     @Override
-    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+    public boolean shouldOverrideUrlLoading(
+      WebView view,
+      WebResourceRequest request
+    ) {
       String url = request.getUrl().toString();
       if (url.startsWith(redirectUrl)) {
         handleUrl(url);
@@ -170,10 +198,12 @@ public class AppleProvider implements SocialProvider {
       Rect displayRectangle = new Rect();
       Window window = activity.getWindow();
       window.getDecorView().getWindowVisibleDisplayFrame(displayRectangle);
-      view.setLayoutParams(new android.view.ViewGroup.LayoutParams(
-        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-        (int) (displayRectangle.height() * 0.9f)
-      ));
+      view.setLayoutParams(
+        new android.view.ViewGroup.LayoutParams(
+          android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+          (int) (displayRectangle.height() * 0.9f)
+        )
+      );
     }
 
     private void handleUrl(String url) {
@@ -216,35 +246,57 @@ public class AppleProvider implements SocialProvider {
         .post(formBody)
         .build();
 
-      client.newCall(request).enqueue(new Callback() {
-        @Override
-        public void onFailure(@NonNull Call call, @NonNull IOException e) {
-          AppleWebViewClient.this.call.reject("Cannot get access_token", e);
-        }
+      client
+        .newCall(request)
+        .enqueue(
+          new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+              AppleWebViewClient.this.call.reject("Cannot get access_token", e);
+            }
 
-        @Override
-        public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-          try {
-            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+            @Override
+            public void onResponse(
+              @NonNull Call call,
+              @NonNull Response response
+            ) throws IOException {
+              try {
+                if (!response.isSuccessful()) throw new IOException(
+                  "Unexpected code " + response
+                );
 
-            String responseData = Objects.requireNonNull(response.body()).string();
-            JSONObject jsonObject = (JSONObject) new JSONTokener(responseData).nextValue();
-            String accessToken = jsonObject.getString("access_token");
-            String refreshToken = jsonObject.getString("refresh_token");
-            String idToken = jsonObject.getString("id_token");
+                String responseData = Objects.requireNonNull(
+                  response.body()
+                ).string();
+                JSONObject jsonObject = (JSONObject) new JSONTokener(
+                  responseData
+                ).nextValue();
+                String accessToken = jsonObject.getString("access_token");
+                String refreshToken = jsonObject.getString("refresh_token");
+                String idToken = jsonObject.getString("id_token");
 
-            persistState(idToken, refreshToken, accessToken);
-            AppleWebViewClient.this.call.resolve(new JSObject().put("success", true));
-          } catch (Exception e) {
-            AppleWebViewClient.this.call.reject("Cannot get access_token", e);
-          } finally {
-            response.close();
+                persistState(idToken, refreshToken, accessToken);
+                AppleWebViewClient.this.call.resolve(
+                    new JSObject().put("success", true)
+                  );
+              } catch (Exception e) {
+                AppleWebViewClient.this.call.reject(
+                    "Cannot get access_token",
+                    e
+                  );
+              } finally {
+                response.close();
+              }
+            }
           }
-        }
-      });
+        );
     }
 
-    private void persistState(String idToken, String refreshToken, String accessToken) throws JSONException {
+    private void persistState(
+      String idToken,
+      String refreshToken,
+      String accessToken
+    ) throws JSONException {
       JSONObject object = new JSONObject();
       object.put("idToken", idToken);
       object.put("refreshToken", refreshToken);
@@ -254,30 +306,48 @@ public class AppleProvider implements SocialProvider {
       AppleProvider.this.refreshToken = refreshToken;
       AppleProvider.this.accessToken = accessToken;
 
-      activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
-        .edit().putString(SHARED_PREFERENCE_NAME, object.toString()).apply();
+      activity
+        .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(SHARED_PREFERENCE_NAME, object.toString())
+        .apply();
     }
   }
 
   @SuppressLint("SetJavaScriptEnabled")
-  private void setupWebview(Context context, Activity activity, PluginCall call, String url) {
+  private void setupWebview(
+    Context context,
+    Activity activity,
+    PluginCall call,
+    String url
+  ) {
     this.appledialog = new Dialog(context, R.style.CustomDialogTheme);
     Window window = appledialog.getWindow();
     if (window != null) {
-      window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+      window.setLayout(
+        WindowManager.LayoutParams.MATCH_PARENT,
+        WindowManager.LayoutParams.MATCH_PARENT
+      );
       window.setGravity(Gravity.TOP);
       window.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
       window.setDimAmount(0.0f);
     }
 
-    View customView = activity.getLayoutInflater().inflate(R.layout.dialog_custom_layout, null);
+    View customView = activity
+      .getLayoutInflater()
+      .inflate(R.layout.dialog_custom_layout, null);
     WebView webView = customView.findViewById(R.id.webview);
     ProgressBar progressBar = customView.findViewById(R.id.progress_bar);
 
     webView.setVerticalScrollBarEnabled(false);
     webView.setHorizontalScrollBarEnabled(false);
 
-    AppleWebViewClient webViewClient = new AppleWebViewClient(activity, call, this.redirectUrl, this.clientId) {
+    AppleWebViewClient webViewClient = new AppleWebViewClient(
+      activity,
+      call,
+      this.redirectUrl,
+      this.clientId
+    ) {
       @Override
       public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);

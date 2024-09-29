@@ -16,7 +16,7 @@ public class SocialLoginPlugin extends Plugin {
   public static String LOG_TAG = "CapgoSocialLogin";
 
   public HashMap<String, SocialProvider> socialProviderHashMap =
-          new HashMap<>();
+    new HashMap<>();
 
   @PluginMethod
   public void initialize(PluginCall call) {
@@ -92,8 +92,7 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
-    provider
-      .login(call, options);
+    provider.login(call, options);
   }
 
   @PluginMethod
@@ -109,8 +108,7 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
-    provider
-      .logout(call);
+    provider.logout(call);
   }
 
   @PluginMethod
@@ -126,8 +124,7 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
-    provider
-      .getAuthorizationCode(call);
+    provider.getAuthorizationCode(call);
   }
 
   @PluginMethod
@@ -143,8 +140,7 @@ public class SocialLoginPlugin extends Plugin {
       return;
     }
 
-    provider
-      .isLoggedIn(call);
+    provider.isLoggedIn(call);
   }
 
   @PluginMethod
