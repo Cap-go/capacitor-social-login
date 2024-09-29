@@ -4,6 +4,11 @@ All social logins in one plugin
 
 WIP: Code is ready we ar now polishing documentation
 
+This plugin implement social auth for:
+- Google (with credential manager)
+- Apple (with 0auth on android)
+- Facebook ( with latest SDK)
+
 ## Install
 
 ```bash
