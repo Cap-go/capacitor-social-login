@@ -75,11 +75,6 @@ export interface AppleProviderOptions {
    */
   scopes?: string[];
   /**
-   * Redirect URI
-   * @description redirect URI
-   */
-  redirectURI: string;
-  /**
    * Nonce
    * @description nonce
    */

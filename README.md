@@ -435,7 +435,6 @@ Refresh the access token
 | Prop              | Type                  | Description  |
 | ----------------- | --------------------- | ------------ |
 | **`scopes`**      | <code>string[]</code> | Scopes       |
-| **`redirectURI`** | <code>string</code>   | Redirect URI |
 | **`nonce`**       | <code>string</code>   | Nonce        |
 | **`state`**       | <code>string</code>   | State        |
 
