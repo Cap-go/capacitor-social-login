@@ -1,7 +1,19 @@
 # @capgo/capacitor-social-login
+ <a href="https://capgo.app/"><img src='https://raw.githubusercontent.com/Cap-go/capgo/main/assets/capgo_banner.png' alt='Capgo - Instant updates for capacitor'/></a>
+
+<div align="center">
+  <h2><a href="https://capgo.app/?ref=plugin"> ➡️ Get Instant updates for your App with Capgo 🚀</a></h2>
+  <h2><a href="https://capgo.app/consulting/?ref=plugin"> Fix your annoying bug now, Hire a Capacitor expert 💪</a></h2>
+</div>
 
 All social logins in one plugin
-WIP: it will be done soon
+
+WIP: Code is ready we ar now polishing documentation
+
+This plugin implement social auth for:
+- Google (with credential manager)
+- Apple (with 0auth on android)
+- Facebook ( with latest SDK)
 
 ## Install
 
@@ -155,16 +167,6 @@ Add the following in the `ios/App/App/info.plist` file inside of the outermost `
 <key>LSApplicationQueriesSchemes</key>
 <array>
     <string>fbapi</string>
-    <string>fbapi20130214</string>
-    <string>fbapi20130410</string>
-    <string>fbapi20130702</string>
-    <string>fbapi20131010</string>
-    <string>fbapi20131219</string>
-    <string>fbapi20140410</string>
-    <string>fbapi20140116</string>
-    <string>fbapi20150313</string>
-    <string>fbapi20150629</string>
-    <string>fbapi20160328</string>
     <string>fbauth</string>
     <string>fb-messenger-share-api</string>
     <string>fbauth2</string>
@@ -281,7 +283,7 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google' | 'facebook'; }) => Promise<void>
+logout(options: { provider: "apple" | "google" | "facebook"; }) => Promise<void>
 ```
 
 Logout

@@ -52,7 +52,8 @@ import org.json.JSONTokener;
 public class AppleProvider implements SocialProvider {
 
   private static final String SCOPE = "name%20email";
-  private static final String AUTHURL = "https://appleid.apple.com/auth/authorize";
+  private static final String AUTHURL =
+    "https://appleid.apple.com/auth/authorize";
   private static final String TOKENURL = "https://appleid.apple.com/auth/token";
   private static final String SHARED_PREFERENCE_NAME = "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
   private static final String APPLE_DATA_PREFERENCE = "APPLE_LOGIN_APPLE_DATA_83b2d6db-17fe-49c9-8c33-e3f5d02f9f84";
@@ -141,10 +142,14 @@ public class AppleProvider implements SocialProvider {
 
     String state = UUID.randomUUID().toString();
     this.appleAuthURLFull = AUTHURL +
-      "?client_id=" + this.clientId +
-      "&redirect_uri=" + this.redirectUrl +
-      "&response_type=code&scope=" + SCOPE +
-      "&response_mode=form_post&state=" + state;
+    "?client_id=" +
+    this.clientId +
+    "&redirect_uri=" +
+    this.redirectUrl +
+    "&response_type=code&scope=" +
+    SCOPE +
+    "&response_mode=form_post&state=" +
+    state;
 
     if (context == null || activity == null) {
       call.reject("Context or Activity is null");
@@ -153,7 +158,9 @@ public class AppleProvider implements SocialProvider {
 
     this.lastcall = call;
     call.setKeepAlive(true);
-    activity.runOnUiThread(() -> setupWebview(context, activity, call, appleAuthURLFull));
+    activity.runOnUiThread(() ->
+      setupWebview(context, activity, call, appleAuthURLFull)
+    );
   }
 
   @Override
@@ -163,8 +170,11 @@ public class AppleProvider implements SocialProvider {
       return;
     }
 
-    context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
-      .edit().clear().apply();
+    context
+      .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .clear()
+      .apply();
     this.idToken = null;
     this.refreshToken = null;
     this.accessToken = null;

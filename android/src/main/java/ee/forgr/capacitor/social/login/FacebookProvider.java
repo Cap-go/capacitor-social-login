@@ -14,12 +14,11 @@ import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import ee.forgr.capacitor.social.login.helpers.JsonHelper;
+import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.Collection;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import ee.forgr.capacitor.social.login.helpers.JsonHelper;
-import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 
 public class FacebookProvider implements SocialProvider {
 
@@ -115,14 +114,19 @@ public class FacebookProvider implements SocialProvider {
   @Override
   public void isLoggedIn(PluginCall call) {
     AccessToken accessToken = AccessToken.getCurrentAccessToken();
-    call.resolve(new JSObject().put("isLoggedIn", accessToken != null && !accessToken.isExpired()));
+    call.resolve(
+      new JSObject()
+        .put("isLoggedIn", accessToken != null && !accessToken.isExpired())
+    );
   }
 
   @Override
   public void getCurrentUser(PluginCall call) {
     AccessToken accessToken = AccessToken.getCurrentAccessToken();
     if (accessToken == null) {
-      call.reject("You're not logged in. Call FacebookLogin.login() first to obtain an access token.");
+      call.reject(
+        "You're not logged in. Call FacebookLogin.login() first to obtain an access token."
+      );
       return;
     }
 
@@ -140,9 +144,9 @@ public class FacebookProvider implements SocialProvider {
             call.reject(response.getError().getErrorMessage());
           } else {
             try {
-                call.resolve(JSObject.fromJSONObject(object));
+              call.resolve(JSObject.fromJSONObject(object));
             } catch (JSONException e) {
-                call.reject("Error parsing user data: " + e.getMessage());
+              call.reject("Error parsing user data: " + e.getMessage());
             }
           }
         }
