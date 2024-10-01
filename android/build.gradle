@@ -52,7 +52,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':capacitor-android')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
-    implementation 'com.facebook.android:facebook-login:17.0.0'
+    implementation 'com.facebook.android:facebook-login:17.0.2'
     implementation 'com.squareup.okhttp3:okhttp:4.9.1'
     implementation 'com.auth0.android:jwtdecode:2.0.2'
     implementation "androidx.credentials:credentials:1.2.2"
