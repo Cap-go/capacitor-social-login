@@ -1,4 +1,4 @@
-# Capgo social login Apple login guide
+# Capgo Social Login "Apple login" guide
 
 ### Introduction
 
@@ -258,7 +258,6 @@ As you saw in the diagram, the backend performs a step called `Redirect back to 
 
 A backend is required for Android, but configuring a backend will also imact IOS. An example backend is provided [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/main/index.ts)
 
-
 This example provides the following:
 
 - A simple JSON database
@@ -269,10 +268,7 @@ This example provides the following:
 
 I use `PM2` in order to host this example. A example `ecosystem.config.js` can be found [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/main/ecosystem.config.js.example)
 
-
-
 Given everything that I said in this tutorial, here is how the `env` section would look:
-
 
 ANDROID_SERVICE_ID = Service ID
 IOS_SERVICE_ID = App ID
