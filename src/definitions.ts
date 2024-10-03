@@ -23,11 +23,11 @@ export interface InitializeOptions {
     iOSServerClientId?: string;
     /**
      * The app's web client ID, found and created in the Google Developers Console.
-     * For Android.
+     * For Android (and web in the future).
      * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
      * @since 3.1.0
      */
-    androidClientId?: string;
+    webclientId?: string;
   };
   apple?: {
     /**

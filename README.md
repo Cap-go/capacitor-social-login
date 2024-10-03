@@ -354,11 +354,11 @@ Refresh the access token
 
 #### InitializeOptions
 
-| Prop           | Type                                                                                         |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| **`facebook`** | <code>{ appId: string; }</code>                                                              |
-| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; androidClientId?: string; }</code> |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                    |
+| Prop           | Type                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------- |
+| **`facebook`** | <code>{ appId: string; }</code>                                                          |
+| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webclientId?: string; }</code> |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                |
 
 
 #### LoginResult
