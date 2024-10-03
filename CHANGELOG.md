@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.22](https://github.com/Cap-go/capacitor-social-login/compare/0.0.21...0.0.22) (2024-10-03)
+
+
+### Bug Fixes
+
+* add better explain for SHA1 ([ccab833](https://github.com/Cap-go/capacitor-social-login/commit/ccab833c61627f5eb9c673d49fb9ef9cbe85ccd3))
+
 ### [0.0.21](https://github.com/Cap-go/capacitor-social-login/compare/0.0.20...0.0.21) (2024-10-03)
 
 
