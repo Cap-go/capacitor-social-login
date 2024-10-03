@@ -59,7 +59,7 @@ public class SocialLoginPlugin extends Plugin {
         this.getActivity(),
         this.getContext()
       );
-      String googleClientId = google.getString("clientId");
+      String googleClientId = google.getString("androidClientId");
       if (googleClientId == null || googleClientId.isEmpty()) {
         call.reject("google.clientId is null or empty");
         return;

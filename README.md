@@ -354,11 +354,11 @@ Refresh the access token
 
 #### InitializeOptions
 
-| Prop           | Type                                                      |
-| -------------- | --------------------------------------------------------- |
-| **`facebook`** | <code>{ appId: string; }</code>                           |
-| **`google`**   | <code>{ clientId: string; }</code>                        |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code> |
+| Prop           | Type                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| **`facebook`** | <code>{ appId: string; }</code>                                                              |
+| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; androidClientId?: string; }</code> |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                    |
 
 
 #### LoginResult
@@ -414,10 +414,10 @@ Refresh the access token
 
 #### LoginOptions
 
-| Prop           | Type                                                                                                                                                                                      | Description |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **`provider`** | <code>'facebook' \| 'google' \| 'apple' \| 'twitter'</code>                                                                                                                               | Provider    |
-| **`options`**  | <code><a href="#facebookloginoptions">FacebookLoginOptions</a> \| <a href="#googleloginoptions">GoogleLoginOptions</a> \| <a href="#appleprovideroptions">AppleProviderOptions</a></code> | Options     |
+| Prop           | Type                                                        | Description |
+| -------------- | ----------------------------------------------------------- | ----------- |
+| **`provider`** | <code>'facebook' \| 'google' \| 'apple' \| 'twitter'</code> | Provider    |
+| **`options`**  | <code>any</code>                                            | Options     |
 
 
 #### FacebookLoginOptions
@@ -425,14 +425,6 @@ Refresh the access token
 | Prop              | Type                  | Description |
 | ----------------- | --------------------- | ----------- |
 | **`permissions`** | <code>string[]</code> | Permissions |
-
-
-#### GoogleLoginOptions
-
-| Prop                     | Type                  | Description                                                                                                                              | Default            | Since |
-| ------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ----- |
-| **`scopes`**             | <code>string[]</code> | Specifies the scopes required for accessing Google APIs The default is defined in the configuration.                                     |                    |       |
-| **`grantOfflineAccess`** | <code>boolean</code>  | Set if your application needs to refresh access tokens when the user is not present at the browser. In response use `serverAuthCode` key | <code>false</code> | 3.1.0 |
 
 
 #### AppleProviderOptions

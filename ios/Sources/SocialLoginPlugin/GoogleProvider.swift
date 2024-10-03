@@ -5,12 +5,13 @@ class GoogleProvider {
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
+    var defaultGrantedScopes = ["email", "profile", "openid"]
 
-    func initialize(clientId: String) {
-        let serverClientId = getServerClientIdValue()
+    func initialize(clientId: String, serverClientId: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
 
-        let defaultGrantedScopes = ["email", "profile", "openid"]
+        GIDSignIn.sharedInstance.configuration = configuration
+
         additionalScopes = []
 
         forceAuthCode = false
@@ -35,7 +36,7 @@ class GoogleProvider {
                 GIDSignIn.sharedInstance.signIn(
                     withPresenting: presentingVc,
                     hint: nil,
-                    additionalScopes: self.additionalScopes
+                    additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes
                 ) { result, error in
                     if let error = error {
                         completion(.failure(error))

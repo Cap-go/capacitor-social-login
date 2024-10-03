@@ -9,12 +9,25 @@ export interface InitializeOptions {
   google?: {
     /**
      * The app's client ID, found and created in the Google Developers Console.
-     * Common for Android or iOS.
-     * The default is defined in the configuration.
+     * For iOS.
      * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
      * @since 3.1.0
      */
-    clientId: string;
+    iOSClientId?: string;
+    /**
+     * The app's server client ID, found and created in the Google Developers Console.
+     * For iOS.
+     * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+     * @since 3.1.0
+     */
+    iOSServerClientId?: string;
+    /**
+     * The app's web client ID, found and created in the Google Developers Console.
+     * For Android.
+     * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+     * @since 3.1.0
+     */
+    androidClientId?: string;
   };
   apple?: {
     /**
@@ -36,7 +49,7 @@ export interface FacebookLoginOptions {
   permissions: string[];
 }
 
-export interface GoogleLoginOptions {
+// export interface GoogleLoginOptions {
   /**
    * Specifies the scopes required for accessing Google APIs
    * The default is defined in the configuration.

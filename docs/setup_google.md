@@ -152,12 +152,6 @@ In this part, you will learn how to setup Google login in IOS
 - You want to insert the copied fragment just before it, just like this
   ![](./assets/xcode_plist_inserted.png)
 
-- Now, you need to modify this a little. First, replace the `CLIENT_ID` with `GIDClientID`
-  ![](./assets/xcode_list_replace_client_id.png)
-
-- Also, please save the text in between the `string`  tags below `GIDClientID`. This will become `clientId` later in JS/TS
-  ![](./assets/xcode_plist_client_id.png)
-
 - Now, you want to add the following code at the bottom of the plist
   
   ```xml
@@ -185,37 +179,6 @@ In this part, you will learn how to setup Google login in IOS
   ![](./assets/xcode_final_list.png)
 
 - Save the file with `Command + S`
-
-3- Modify the `AppDelegate`
-
-- Open the AppDelegate
-  ![](./assets/xcode_app_deleg.png)
-
-- Insert `import GoogleSignIn` before the first line
-  ![](./assets/xcode_app_deleg_google_sign_in.png)
-
-- Find the `func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:])` function. It should look like this
-  ![](./assets/xcode_app_deleg_app_fn.png)
-
-- Modify the function to look like this
-  
-  ```swift
-  func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-      // Called when the app was launched with a url. Feel free to add additional processing here,
-      // but if you want the App API to support tracking app url opens, make sure to keep this call
-  
-      var handled: Bool
-  
-      handled = GIDSignIn.sharedInstance.handle(url)
-      if handled {
-        return true
-      }
-  
-      return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-  }
-  ```
-  
-  ![](./assets/xcode_app_deleg_app_fn_mod.png)
 
 - Save the file with `Command + S`
 4. Now, you should be ready to setup Google login in JS.
