@@ -24,6 +24,9 @@ npx cap sync
 
 ## Apple
 
+[How to get the credentials](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_apple.md)
+[How to setup redirect url](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/apple_redirect_url.png)
+
 ### Android configuration
 
 For android you need a server to get the callback from the apple login. As we use the web SDK .
@@ -194,6 +197,8 @@ const res = await SocialLogin.login({
 ```
 
 ## Google
+
+[How to get the credentials](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_google.md)
 
 ### Android configuration
 
