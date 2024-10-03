@@ -49,7 +49,7 @@ export interface FacebookLoginOptions {
   permissions: string[];
 }
 
-// export interface GoogleLoginOptions {
+export interface GoogleLoginOptions {
   /**
    * Specifies the scopes required for accessing Google APIs
    * The default is defined in the configuration.
