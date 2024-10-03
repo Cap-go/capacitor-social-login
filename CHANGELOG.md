@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.20](https://github.com/Cap-go/capacitor-social-login/compare/0.0.19...0.0.20) (2024-10-03)
+
+
+### Bug Fixes
+
+* ios google doc and code ([c715472](https://github.com/Cap-go/capacitor-social-login/commit/c7154723264e013d1f5a07add282056546c46aa6))
+* readme ([9d14b3b](https://github.com/Cap-go/capacitor-social-login/commit/9d14b3bdd48fba9c2eeca9a9b5d0c5ada9cf62e9))
+
 ### [0.0.19](https://github.com/Cap-go/capacitor-social-login/compare/0.0.18...0.0.19) (2024-10-03)
 
 ### [0.0.18](https://github.com/Cap-go/capacitor-social-login/compare/0.0.17...0.0.18) (2024-10-03)
