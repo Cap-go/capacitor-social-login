@@ -354,11 +354,11 @@ Refresh the access token
 
 #### InitializeOptions
 
-| Prop           | Type                                                    |
-| -------------- | ------------------------------------------------------- |
-| **`facebook`** | <code>{ appId: string; }</code>                         |
-| **`google`**   | <code>{ clientId: string; }</code>                      |
-| **`apple`**    | <code>{ clientId: string; redirectUrl: string; }</code> |
+| Prop           | Type                                                      |
+| -------------- | --------------------------------------------------------- |
+| **`facebook`** | <code>{ appId: string; }</code>                           |
+| **`google`**   | <code>{ clientId: string; }</code>                        |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code> |
 
 
 #### LoginResult
@@ -409,7 +409,7 @@ Refresh the access token
 | **`givenName`**         | <code>string \| null</code> |
 | **`familyName`**        | <code>string \| null</code> |
 | **`identityToken`**     | <code>string \| null</code> |
-| **`authorizationCode`** | <code>string</code>         |
+| **`authorizationCode`** | <code>string \| null</code> |
 
 
 #### LoginOptions
@@ -437,11 +437,11 @@ Refresh the access token
 
 #### AppleProviderOptions
 
-| Prop              | Type                  | Description  |
-| ----------------- | --------------------- | ------------ |
-| **`scopes`**      | <code>string[]</code> | Scopes       |
-| **`nonce`**       | <code>string</code>   | Nonce        |
-| **`state`**       | <code>string</code>   | State        |
+| Prop         | Type                  | Description |
+| ------------ | --------------------- | ----------- |
+| **`scopes`** | <code>string[]</code> | Scopes      |
+| **`nonce`**  | <code>string</code>   | Nonce       |
+| **`state`**  | <code>string</code>   | State       |
 
 
 #### isLoggedInOptions
