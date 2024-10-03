@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.23](https://github.com/Cap-go/capacitor-social-login/compare/0.0.22...0.0.23) (2024-10-03)
+
+
+### Bug Fixes
+
+* use better naming for android ([e595f59](https://github.com/Cap-go/capacitor-social-login/commit/e595f59f22368215a34d4db9c8001404107e5812))
+
 ### [0.0.22](https://github.com/Cap-go/capacitor-social-login/compare/0.0.21...0.0.22) (2024-10-03)
 
 
