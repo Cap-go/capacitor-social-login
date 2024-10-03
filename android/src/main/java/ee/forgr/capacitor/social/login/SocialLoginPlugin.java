@@ -1,6 +1,9 @@
 package ee.forgr.capacitor.social.login;
 
+import android.content.Intent;
 import android.os.Build;
+import android.util.Log;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -46,7 +49,7 @@ public class SocialLoginPlugin extends Plugin {
         this.getContext()
       );
 
-      appleProvider.initialize(apple);
+      appleProvider.initialize();
       this.socialProviderHashMap.put("apple", appleProvider);
     }
 
@@ -157,5 +160,18 @@ public class SocialLoginPlugin extends Plugin {
     //    } else {
     //      call.reject("Unsupported social login provider: " + provider);
     //    }
+  }
+
+  public void handleAppleLoginIntent(Intent intent) {
+    try {
+      SocialProvider provider = socialProviderHashMap.get("apple");
+      if (!(provider instanceof AppleProvider)) {
+        Log.e(SocialLoginPlugin.LOG_TAG, "Provider is not an apple provider (could be null)");
+        return;
+      }
+      ((AppleProvider) provider).handleIntent(intent);
+    } catch (Throwable t) {
+      Log.e(SocialLoginPlugin.LOG_TAG, "Cannot handle apple login intent");
+    }
   }
 }
