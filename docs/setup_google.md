@@ -197,7 +197,7 @@ In this part, you will learn how to setup Google login in IOS
      onMounted(async () => {
        await SocialLogin.initialize({
          google: {
-           clientId: Capacitor.getPlatform() === 'ios' ? '673324426943-redacted.apps.googleusercontent.com' : 'TODO',
+           iOSClientId: '673324426943-redacted.apps.googleusercontent.com',
          }
        })
      })
@@ -244,24 +244,31 @@ In this part, you will learn how to setup Google login in Android
    - Now, open the terminal. Make sure that you are in the `android` folder of your app and run `./gradlew signInReport`
      ![](./assets/term_sign_report.png)
    
-   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** play around with the SHA1 certificate. You can attempt to run `keytool -keystore path-to-debug-or-production-keystore -list -v` and get the SHA1 from there. You may attempt to create multiple Android clients in the Google Console. Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
+   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from google PLAY console for production releases.
+    Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
    
+   - The SHA1 certificate fingerprint is crucial for Android app security and authentication. Google uses it to verify your app's identity when making API calls. This is why:
+
+     1. It ensures only your app can use your Google API credentials.
+     2. It prevents unauthorized use of your Google services.
+     3. It's required for certain Google APIs, including Google Sign-In.
+
    - Now, scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
    
    - Now, go back to the Google Console. Enter your `applicationId` as the `Package Name` and your SHA1 in the certificate field and click `create`
      ![](./assets/google_cons_creat_android_client.png)
 
-2- Next, you need to create a `web client`
+2. Create a web client (this is required for Android)
+
+   - Go to the "Create credentials" page in Google Console
    
-   - Once again, go into the `create credentials` page 
-   
-   - Now, set the application type to `Web`
+   - Set application type to "Web"
      ![](./assets/google_cons_app_type_web.png)
    
-   - Click `create`
+   - Click "Create"
      ![](./assets/google_cons_web_app_create.png)
    
-   - Copy the client ID, it will become the `clientId` you use in the JS/TS
+   - Copy the client ID, you'll use this as the `androidClientId` in your JS/TS code
      ![](./assets/google_cons_copy_web_client_id.png)
 
 3. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
@@ -277,11 +284,11 @@ In this part, you will learn how to setup Google login in Android
      
      ```ts
      // onMounted is Vue specific
-     // clientId is the client copied in the previous (2nd) step
+     // androidClientId is the client ID you got in the web client creation step not the android client ID.
      onMounted(async () => {
        await SocialLogin.initialize({
          google: {
-           clientId: Capacitor.getPlatform() === 'ios' ? 'not_important' : '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+           androidClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
          }
        })
      })
