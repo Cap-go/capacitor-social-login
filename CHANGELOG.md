@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.24](https://github.com/Cap-go/capacitor-social-login/compare/0.0.23...0.0.24) (2024-10-04)
+
+
+### Features
+
+* add nonce android + lint ([8aa4d91](https://github.com/Cap-go/capacitor-social-login/commit/8aa4d91464184de1e4f5edc5485037bc3200e370))
+
 ### [0.0.23](https://github.com/Cap-go/capacitor-social-login/compare/0.0.22...0.0.23) (2024-10-03)
 
 
