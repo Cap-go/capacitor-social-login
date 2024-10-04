@@ -1,5 +1,10 @@
 import Foundation
+
+#if canImport(FBSDKLoginKit)
 import FBSDKLoginKit
+#else
+import FacebookLogin
+#endif
 
 struct FacebookLoginResponse {
     let accessToken: [String: Any]

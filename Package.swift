@@ -24,8 +24,8 @@ let package = Package(
             dependencies: [
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
-                .product(name: "FBSDKCoreKit", package: "facebook-ios-sdk"),
-                .product(name: "FBSDKLoginKit", package: "facebook-ios-sdk"),
+                .product(name: "FacebookCore", package: "facebook-ios-sdk"),
+                .product(name: "FacebookLogin", package: "facebook-ios-sdk"),
                 .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),
                 .product(name: "Alamofire", package: "Alamofire")
             ],
