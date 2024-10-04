@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.33](https://github.com/Cap-go/capacitor-social-login/compare/0.0.32...0.0.33) (2024-10-04)
+
+
+### Bug Fixes
+
+* typo in token name ([c9ef53d](https://github.com/Cap-go/capacitor-social-login/commit/c9ef53d25a7513f720d8b8530fe8033cfb9ce58e))
+
 ### [0.0.32](https://github.com/Cap-go/capacitor-social-login/compare/0.0.31...0.0.32) (2024-10-04)
 
 
