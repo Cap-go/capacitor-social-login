@@ -29,12 +29,10 @@ import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.browser.customtabs.CustomTabsServiceConnection;
 import androidx.browser.customtabs.CustomTabsSession;
 import androidx.browser.trusted.TrustedWebActivityIntentBuilder;
-
 import com.auth0.android.jwt.JWT;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.androidbrowserhelper.trusted.TwaLauncher;
-
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
 import java.util.Objects;
@@ -55,8 +53,10 @@ public class AppleProvider implements SocialProvider {
   private static final String AUTHURL =
     "https://appleid.apple.com/auth/authorize";
   private static final String TOKENURL = "https://appleid.apple.com/auth/token";
-  private static final String SHARED_PREFERENCE_NAME = "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
-  private static final String APPLE_DATA_PREFERENCE = "APPLE_LOGIN_APPLE_DATA_83b2d6db-17fe-49c9-8c33-e3f5d02f9f84";
+  private static final String SHARED_PREFERENCE_NAME =
+    "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
+  private static final String APPLE_DATA_PREFERENCE =
+    "APPLE_LOGIN_APPLE_DATA_83b2d6db-17fe-49c9-8c33-e3f5d02f9f84";
 
   private PluginCall lastcall;
   private String appleAuthURLFull;
@@ -75,8 +75,8 @@ public class AppleProvider implements SocialProvider {
   CustomTabsServiceConnection connection = new CustomTabsServiceConnection() {
     @Override
     public void onCustomTabsServiceConnected(
-            @NonNull ComponentName name,
-            CustomTabsClient client
+      @NonNull ComponentName name,
+      CustomTabsClient client
     ) {
       customTabsClient = client;
       client.warmup(0);
@@ -86,7 +86,12 @@ public class AppleProvider implements SocialProvider {
     public void onServiceDisconnected(ComponentName name) {}
   };
 
-  public AppleProvider(String redirectUrl, String clientId, Activity activity, Context context) {
+  public AppleProvider(
+    String redirectUrl,
+    String clientId,
+    Activity activity,
+    Context context
+  ) {
     this.redirectUrl = redirectUrl;
     this.clientId = clientId;
     this.activity = activity;
@@ -94,7 +99,9 @@ public class AppleProvider implements SocialProvider {
   }
 
   public void initialize() {
-    String data = context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE).getString(APPLE_DATA_PREFERENCE, null);
+    String data = context
+      .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .getString(APPLE_DATA_PREFERENCE, null);
 
     if (data == null || data.isEmpty()) {
       Log.i(SocialLoginPlugin.LOG_TAG, "No data to restore for apple login");
@@ -108,9 +115,16 @@ public class AppleProvider implements SocialProvider {
       AppleProvider.this.idToken = idToken;
       AppleProvider.this.refreshToken = refreshToken;
       AppleProvider.this.accessToken = accessToken;
-      Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple restoreState: %s", object));
+      Log.i(
+        SocialLoginPlugin.LOG_TAG,
+        String.format("Apple restoreState: %s", object)
+      );
     } catch (JSONException e) {
-      Log.e(SocialLoginPlugin.LOG_TAG, "Apple restoreState: Failed to parse JSON", e);
+      Log.e(
+        SocialLoginPlugin.LOG_TAG,
+        "Apple restoreState: Failed to parse JSON",
+        e
+      );
     }
   }
 
@@ -122,16 +136,25 @@ public class AppleProvider implements SocialProvider {
     assert data != null;
 
     String scheme = data.getScheme(); // "capgo-demo-app"
-    String host = data.getHost();     // "path"
-    String path = data.getPath();     // Additional path segments
-    String query = data.getQuery();   // Query parameters
+    String host = data.getHost(); // "path"
+    String path = data.getPath(); // Additional path segments
+    String query = data.getQuery(); // Query parameters
 
-    Log.i(SocialLoginPlugin.LOG_TAG, String.format("Recieved apple login intent: %s, %s, %s, %s", scheme, host, path ,query));
+    Log.i(
+      SocialLoginPlugin.LOG_TAG,
+      String.format(
+        "Recieved apple login intent: %s, %s, %s, %s",
+        scheme,
+        host,
+        path,
+        query
+      )
+    );
 
     handleUrl(data.toString());
-//    if (data.toString().contains("success=")) {
-//      this.currentSession.
-//    }
+    //    if (data.toString().contains("success=")) {
+    //      this.currentSession.
+    //    }
   }
 
   @Override
@@ -225,12 +248,12 @@ public class AppleProvider implements SocialProvider {
         String refreshToken = uri.getQueryParameter("refresh_token");
         String idToken = uri.getQueryParameter("id_token");
         try {
-          persistState(idToken, refreshToken  , accessToken);
+          persistState(idToken, refreshToken, accessToken);
           this.lastcall.resolve(
-                  new JSObject()
-                          .put("provider", "apple")
-                          .put("result", new JSObject().put("identityToken", idToken))
-          );
+              new JSObject()
+                .put("provider", "apple")
+                .put("result", new JSObject().put("identityToken", idToken))
+            );
           this.lastcall = null;
         } catch (JSONException e) {
           Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", e);
@@ -251,54 +274,71 @@ public class AppleProvider implements SocialProvider {
   private void requestForAccessToken(String code, String clientSecret) {
     OkHttpClient client = new OkHttpClient();
     FormBody formBody = new FormBody.Builder()
-            .add("grant_type", "authorization_code")
-            .add("code", code)
-            .add("redirect_uri", redirectUrl)
-            .add("client_id", clientId)
-            .add("client_secret", clientSecret)
-            .build();
+      .add("grant_type", "authorization_code")
+      .add("code", code)
+      .add("redirect_uri", redirectUrl)
+      .add("client_id", clientId)
+      .add("client_secret", clientSecret)
+      .build();
 
     Request request = new Request.Builder()
-            .url(TOKENURL)
-            .post(formBody)
-            .build();
+      .url(TOKENURL)
+      .post(formBody)
+      .build();
 
-    client.newCall(request).enqueue(new Callback() {
-      @Override
-      public void onFailure(@NonNull Call call, @NonNull IOException e) {
-        AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-        AppleProvider.this.lastcall = null;
-      }
+    client
+      .newCall(request)
+      .enqueue(
+        new Callback() {
+          @Override
+          public void onFailure(@NonNull Call call, @NonNull IOException e) {
+            AppleProvider.this.lastcall.reject("Cannot get access_token", e);
+            AppleProvider.this.lastcall = null;
+          }
 
-      @Override
-      public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-        try {
-          if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+          @Override
+          public void onResponse(
+            @NonNull Call call,
+            @NonNull Response response
+          ) throws IOException {
+            try {
+              if (!response.isSuccessful()) throw new IOException(
+                "Unexpected code " + response
+              );
 
-          String responseData = Objects.requireNonNull(response.body()).string();
-          JSONObject jsonObject = (JSONObject) new JSONTokener(responseData).nextValue();
-          String accessToken = jsonObject.getString("access_token");
-          String refreshToken = jsonObject.getString("refresh_token");
-          String idToken = jsonObject.getString("id_token");
+              String responseData = Objects.requireNonNull(
+                response.body()
+              ).string();
+              JSONObject jsonObject = (JSONObject) new JSONTokener(
+                responseData
+              ).nextValue();
+              String accessToken = jsonObject.getString("access_token");
+              String refreshToken = jsonObject.getString("refresh_token");
+              String idToken = jsonObject.getString("id_token");
 
-          persistState(idToken, refreshToken, accessToken);
-          AppleProvider.this.lastcall.resolve(
+              persistState(idToken, refreshToken, accessToken);
+              AppleProvider.this.lastcall.resolve(
                   new JSObject()
-                          .put("provider", "apple")
-                          .put("result", new JSObject().put("identityToken", idToken))
-          );
-          AppleProvider.this.lastcall = null;
-        } catch (Exception e) {
-          AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-          AppleProvider.this.lastcall = null;
-        } finally {
-          response.close();
+                    .put("provider", "apple")
+                    .put("result", new JSObject().put("identityToken", idToken))
+                );
+              AppleProvider.this.lastcall = null;
+            } catch (Exception e) {
+              AppleProvider.this.lastcall.reject("Cannot get access_token", e);
+              AppleProvider.this.lastcall = null;
+            } finally {
+              response.close();
+            }
+          }
         }
-      }
-    });
+      );
   }
 
-  private void persistState(String idToken, String refreshToken, String accessToken) throws JSONException {
+  private void persistState(
+    String idToken,
+    String refreshToken,
+    String accessToken
+  ) throws JSONException {
     JSONObject object = new JSONObject();
     object.put("idToken", idToken);
     object.put("refreshToken", refreshToken);
@@ -308,8 +348,11 @@ public class AppleProvider implements SocialProvider {
     AppleProvider.this.refreshToken = refreshToken;
     AppleProvider.this.accessToken = accessToken;
 
-    activity.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
-            .edit().putString(APPLE_DATA_PREFERENCE, object.toString()).apply();
+    activity
+      .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .putString(APPLE_DATA_PREFERENCE, object.toString())
+      .apply();
   }
 
   public CustomTabsSession getCustomTabsSession() {
@@ -318,17 +361,21 @@ public class AppleProvider implements SocialProvider {
     }
 
     if (currentSession == null) {
-      currentSession = customTabsClient.newSession(
-              new CustomTabsCallback() {}
-      );
+      currentSession = customTabsClient.newSession(new CustomTabsCallback() {});
     }
     return currentSession;
   }
 
   @SuppressLint("SetJavaScriptEnabled")
-  private void setupWebview(Context context, Activity activity, PluginCall call, String url) {
+  private void setupWebview(
+    Context context,
+    Activity activity,
+    PluginCall call,
+    String url
+  ) {
     CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(
-            getCustomTabsSession());
+      getCustomTabsSession()
+    );
 
     builder.build().launchUrl(context, Uri.parse(url));
   }

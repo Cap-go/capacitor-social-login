@@ -3,7 +3,6 @@ package ee.forgr.capacitor.social.login;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
-
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -166,7 +165,10 @@ public class SocialLoginPlugin extends Plugin {
     try {
       SocialProvider provider = socialProviderHashMap.get("apple");
       if (!(provider instanceof AppleProvider)) {
-        Log.e(SocialLoginPlugin.LOG_TAG, "Provider is not an apple provider (could be null)");
+        Log.e(
+          SocialLoginPlugin.LOG_TAG,
+          "Provider is not an apple provider (could be null)"
+        );
         return;
       }
       ((AppleProvider) provider).handleIntent(intent);

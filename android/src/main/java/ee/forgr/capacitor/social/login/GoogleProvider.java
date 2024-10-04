@@ -51,12 +51,20 @@ public class GoogleProvider implements SocialProvider {
       return;
     }
 
+    String nonce = call.getString("nonce");
+
     // First attempt with setFilterByAuthorizedAccounts(true)
-    GetGoogleIdOption googleIdOptionFiltered = new GetGoogleIdOption.Builder()
-      .setFilterByAuthorizedAccounts(true)
-      .setServerClientId(this.clientId)
-      .setAutoSelectEnabled(true)
-      .build();
+    GetGoogleIdOption.Builder googleIdOptionBuilder =
+      new GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(true)
+        .setServerClientId(this.clientId)
+        .setAutoSelectEnabled(true);
+
+    if (nonce != null && !nonce.isEmpty()) {
+      googleIdOptionBuilder.setNonce(nonce);
+    }
+
+    GetGoogleIdOption googleIdOptionFiltered = googleIdOptionBuilder.build();
     GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
       .addCredentialOption(googleIdOptionFiltered)
       .build();
@@ -90,10 +98,18 @@ public class GoogleProvider implements SocialProvider {
   }
 
   private void retryWithoutFiltering(PluginCall call) {
-    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-      .setFilterByAuthorizedAccounts(false)
-      .setServerClientId(this.clientId)
-      .build();
+    String nonce = call.getString("nonce");
+
+    GetGoogleIdOption.Builder googleIdOptionBuilder =
+      new GetGoogleIdOption.Builder()
+        .setFilterByAuthorizedAccounts(false)
+        .setServerClientId(this.clientId);
+
+    if (nonce != null && !nonce.isEmpty()) {
+      googleIdOptionBuilder.setNonce(nonce);
+    }
+
+    GetGoogleIdOption googleIdOption = googleIdOptionBuilder.build();
     GetCredentialRequest request = new GetCredentialRequest.Builder()
       .addCredentialOption(googleIdOption)
       .build();

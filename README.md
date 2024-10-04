@@ -432,6 +432,7 @@ Refresh the access token
 | Prop                     | Type                  | Description                                                                                                                              | Default            | Since |
 | ------------------------ | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ----- |
 | **`scopes`**             | <code>string[]</code> | Specifies the scopes required for accessing Google APIs The default is defined in the configuration.                                     |                    |       |
+| **`nonce`**              | <code>string</code>   | Nonce                                                                                                                                    |                    |       |
 | **`grantOfflineAccess`** | <code>boolean</code>  | Set if your application needs to refresh access tokens when the user is not present at the browser. In response use `serverAuthCode` key | <code>false</code> | 3.1.0 |
 
 

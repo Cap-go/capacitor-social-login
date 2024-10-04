@@ -57,7 +57,11 @@ export interface GoogleLoginOptions {
    * @see [Google OAuth2 Scopes](https://developers.google.com/identity/protocols/oauth2/scopes)
    */
   scopes?: string[];
-
+  /**
+   * Nonce
+   * @description nonce
+   */
+  nonce?: string;
   /**
    * Set if your application needs to refresh access tokens when the user is not present at the browser.
    * In response use `serverAuthCode` key
