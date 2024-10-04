@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.28](https://github.com/Cap-go/capacitor-social-login/compare/0.0.27...0.0.28) (2024-10-04)
+
+
+### Bug Fixes
+
+* use xcode 16 ([3c40733](https://github.com/Cap-go/capacitor-social-login/commit/3c4073316a2652830211c6483cdf2dc207385046))
+
 ### [0.0.27](https://github.com/Cap-go/capacitor-social-login/compare/0.0.26...0.0.27) (2024-10-04)
 
 
