@@ -357,7 +357,7 @@ Refresh the access token
 | Prop           | Type                                                                                     |
 | -------------- | ---------------------------------------------------------------------------------------- |
 | **`facebook`** | <code>{ appId: string; }</code>                                                          |
-| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webclientId?: string; }</code> |
+| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; }</code> |
 | **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                |
 
 

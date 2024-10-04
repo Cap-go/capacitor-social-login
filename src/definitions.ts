@@ -27,7 +27,7 @@ export interface InitializeOptions {
      * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
      * @since 3.1.0
      */
-    webclientId?: string;
+    webClientId?: string;
   };
   apple?: {
     /**

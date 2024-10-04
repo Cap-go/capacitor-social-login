@@ -268,7 +268,7 @@ In this part, you will learn how to setup Google login in Android
    - Click "Create"
      ![](./assets/google_cons_web_app_create.png)
    
-   - Copy the client ID, you'll use this as the `webclientId` in your JS/TS code
+   - Copy the client ID, you'll use this as the `webClientId` in your JS/TS code
      ![](./assets/google_cons_copy_web_client_id.png)
 
 3. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
@@ -284,11 +284,11 @@ In this part, you will learn how to setup Google login in Android
      
      ```ts
      // onMounted is Vue specific
-     // webclientId is the client ID you got in the web client creation step not the android client ID.
+     // webClientId is the client ID you got in the web client creation step not the android client ID.
      onMounted(async () => {
        await SocialLogin.initialize({
          google: {
-           webclientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+           webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
          }
        })
      })
