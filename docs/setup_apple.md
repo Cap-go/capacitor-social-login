@@ -34,9 +34,10 @@ Next, you want to initialize the Apple Login.
 | ----------------------------------------------------------------------------------------------------------------- |
 
 ```ts
-// onMounted is vue specific
-onMounted(async () => {
-  await SocialLogin.initialize({
+
+//  onMounted is vue specific
+onMounted(() => {
+  SocialLogin.initialize({
     apple: {}
   })
 });

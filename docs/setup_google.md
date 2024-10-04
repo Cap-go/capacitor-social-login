@@ -194,8 +194,8 @@ In this part, you will learn how to setup Google login in IOS
      
      ```ts
      // onMounted is Vue specific
-     onMounted(async () => {
-       await SocialLogin.initialize({
+     onMounted(() => {
+       SocialLogin.initialize({
          google: {
            iOSClientId: '673324426943-redacted.apps.googleusercontent.com',
          }
@@ -285,8 +285,8 @@ In this part, you will learn how to setup Google login in Android
      ```ts
      // onMounted is Vue specific
      // webClientId is the client ID you got in the web client creation step not the android client ID.
-     onMounted(async () => {
-       await SocialLogin.initialize({
+     onMounted(() => {
+       SocialLogin.initialize({
          google: {
            webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
          }
