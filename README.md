@@ -371,10 +371,11 @@ Refresh the access token
 
 #### FacebookLoginResponse
 
-| Prop              | Type                                                        |
-| ----------------- | ----------------------------------------------------------- |
-| **`accessToken`** | <code><a href="#accesstoken">AccessToken</a> \| null</code> |
-| **`profile`**     | <code>{ fields: readonly string[]; }</code>                 |
+| Prop                      | Type                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`accessToken`**         | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                                                                                                                                                                                                                                                                     |
+| **`profile`**             | <code>{ userID: string; email: string \| null; friendIDs: string[]; birthday: string \| null; ageRange: { min?: number; max?: number; } \| null; gender: string \| null; location: { id: string; name: string; } \| null; hometown: { id: string; name: string; } \| null; profileURL: string \| null; name: string \| null; imageURL: string \| null; }</code> |
+| **`authenticationToken`** | <code>string \| null</code>                                                                                                                                                                                                                                                                                                                                     |
 
 
 #### AccessToken
@@ -422,9 +423,11 @@ Refresh the access token
 
 #### FacebookLoginOptions
 
-| Prop              | Type                  | Description |
-| ----------------- | --------------------- | ----------- |
-| **`permissions`** | <code>string[]</code> | Permissions |
+| Prop               | Type                  | Description      | Default            |
+| ------------------ | --------------------- | ---------------- | ------------------ |
+| **`permissions`**  | <code>string[]</code> | Permissions      |                    |
+| **`limitedLogin`** | <code>boolean</code>  | Is Limited Login | <code>false</code> |
+| **`nonce`**        | <code>string</code>   | Nonce            |                    |
 
 
 #### GoogleLoginOptions

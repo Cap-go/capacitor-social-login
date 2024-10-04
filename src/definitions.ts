@@ -49,7 +49,7 @@ export interface FacebookLoginOptions {
   permissions: string[];
   /**
    * Is Limited Login
-   * @description use limited login for Facebook
+   * @description use limited login for Facebook IOS
    * @default false
    */
   limitedLogin?: boolean;
