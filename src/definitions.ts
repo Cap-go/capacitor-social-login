@@ -47,6 +47,17 @@ export interface FacebookLoginOptions {
    * @description select permissions to login with
    */
   permissions: string[];
+  /**
+   * Is Limited Login
+   * @description use limited login for Facebook
+   * @default false
+   */
+  limitedLogin?: boolean;
+  /**
+   * Nonce
+   * @description A custom nonce to use for the login request
+   */
+  nonce?: string;
 }
 
 export interface GoogleLoginOptions {
@@ -152,8 +163,19 @@ export interface AccessToken {
 export interface FacebookLoginResponse {
   accessToken: AccessToken | null;
   profile: {
-    fields: readonly string[];
+    userID: string;
+    email: string | null;
+    friendIDs: string[];
+    birthday: string | null;
+    ageRange: { min?: number; max?: number } | null;
+    gender: string | null;
+    location: { id: string; name: string } | null;
+    hometown: { id: string; name: string } | null;
+    profileURL: string | null;
+    name: string | null;
+    imageURL: string | null;
   };
+  authenticationToken: string | null;
 }
 
 export interface AuthorizationCode {

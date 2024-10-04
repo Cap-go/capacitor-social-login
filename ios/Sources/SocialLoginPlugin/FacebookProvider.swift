@@ -9,6 +9,7 @@ import FacebookLogin
 struct FacebookLoginResponse {
     let accessToken: [String: Any]
     let profile: [String: Any]
+    let authenticationToken: String?
 }
 
 class FacebookProvider {
@@ -37,36 +38,88 @@ class FacebookProvider {
             return
         }
 
+        let limitedLogin = payload["limitedLogin"] as? Bool ?? false
+        let nonce = payload["nonce"] as? String ?? "123"
+
+        let tracking: LoginTracking = limitedLogin ? .limited : .enabled
+
+        guard let configuration = LoginConfiguration(
+            permissions: permissions,
+            tracking: tracking,
+            nonce: nonce
+        ) else {
+            completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid login configuration"])))
+            return
+        }
+
         DispatchQueue.main.async {
-            self.loginManager.logIn(permissions: permissions, from: nil) { result, error in
-                if let error = error {
+            self.loginManager.logIn(configuration: configuration) { result in
+                switch result {
+                case .success:
+                    let response = self.createLoginResponse()
+                    completion(.success(response))
+                case .failed(let error):
                     completion(.failure(error))
-                    return
-                }
-
-                guard let result = result, !result.isCancelled else {
+                case .cancelled:
                     completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Login cancelled"])))
-                    return
                 }
 
-                let accessToken = result.token
-                let response = FacebookLoginResponse(
-                    accessToken: [
-                        "applicationID": accessToken?.appID ?? "",
-                        "declinedPermissions": accessToken?.declinedPermissions.map { $0.name } ?? [],
-                        "expirationDate": accessToken?.expirationDate ?? Date(),
-                        "isExpired": accessToken?.isExpired ?? false,
-                        "refreshDate": accessToken?.refreshDate ?? Date(),
-                        "permissions": accessToken?.permissions.map { $0.name } ?? [],
-                        "tokenString": accessToken?.tokenString ?? "",
-                        "userID": accessToken?.userID ?? ""
-                    ],
-                    profile: [:]
-                )
-
-                completion(.success(response))
             }
         }
+    }
+
+    private func createLoginResponse() -> FacebookLoginResponse {
+        let profile = Profile.current
+        let authToken = AuthenticationToken.current
+
+        let accessToken: [String: Any] = [
+            "applicationID": AccessToken.current?.appID ?? "",
+            "declinedPermissions": AccessToken.current?.declinedPermissions.map { $0.name } ?? [],
+            "expirationDate": AccessToken.current?.expirationDate ?? Date(),
+            "isExpired": AccessToken.current?.isExpired ?? false,
+            "refreshDate": AccessToken.current?.refreshDate ?? Date(),
+            "permissions": AccessToken.current?.permissions.map { $0.name } ?? [],
+            "tokenString": AccessToken.current?.tokenString ?? "",
+            "userID": AccessToken.current?.userID ?? ""
+        ]
+
+        let profileData: [String: Any] = [
+            "userID": profile?.userID ?? "",
+            "email": profile?.email ?? "",
+            "friendIDs": profile?.friendIDs ?? [],
+            "birthday": profile?.birthday ?? "",
+            "ageRange": profile?.ageRange.flatMap(ageRangeToDictionary) ?? [:],
+            "gender": profile?.gender ?? "",
+            "location": profile?.location.flatMap(locationToDictionary) ?? [:],
+            "hometown": profile?.hometown.flatMap(locationToDictionary) ?? [:],
+            "profileURL": profile?.linkURL?.absoluteString ?? "",
+            "name": profile?.name ?? "",
+            "imageURL": profile?.imageURL?.absoluteString ?? ""
+        ]
+
+        return FacebookLoginResponse(
+            accessToken: accessToken,
+            profile: profileData,
+            authenticationToken: authToken?.tokenString
+        )
+    }
+
+    private func locationToDictionary(_ location: Location) -> [String: String] {
+        return [
+            "id": location.id,
+            "name": location.name
+        ]
+    }
+
+    private func ageRangeToDictionary(_ ageRange: UserAgeRange) -> [String: Int] {
+        var result: [String: Int] = [:]
+        if let min = ageRange.min {
+            result["min"] = min.intValue
+        }
+        if let max = ageRange.max {
+            result["max"] = max.intValue
+        }
+        return result
     }
 
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
