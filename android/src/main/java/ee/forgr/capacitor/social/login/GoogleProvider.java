@@ -18,6 +18,7 @@ import androidx.credentials.exceptions.NoCredentialException;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.concurrent.Executor;
@@ -54,17 +55,18 @@ public class GoogleProvider implements SocialProvider {
     String nonce = call.getString("nonce");
 
     // First attempt with setFilterByAuthorizedAccounts(true)
-    GetGoogleIdOption.Builder googleIdOptionBuilder =
-      new GetGoogleIdOption.Builder()
-        .setFilterByAuthorizedAccounts(true)
-        .setServerClientId(this.clientId)
-        .setAutoSelectEnabled(true);
+//    GetGoogleIdOption.Builder googleIdOptionBuilder =
+//      new GetGoogleIdOption.Builder()
+//        .setFilterByAuthorizedAccounts(true)
+//        .setServerClientId(this.clientId)
+//        .setAutoSelectEnabled(true);
+    GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
 
     if (nonce != null && !nonce.isEmpty()) {
       googleIdOptionBuilder.setNonce(nonce);
     }
 
-    GetGoogleIdOption googleIdOptionFiltered = googleIdOptionBuilder.build();
+    GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
     GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
       .addCredentialOption(googleIdOptionFiltered)
       .build();
@@ -87,50 +89,6 @@ public class GoogleProvider implements SocialProvider {
         @Override
         public void onError(GetCredentialException e) {
           // If no authorized accounts, try again without filtering
-          if (e instanceof NoCredentialException) {
-            retryWithoutFiltering(call);
-          } else {
-            handleSignInError(e, call);
-          }
-        }
-      }
-    );
-  }
-
-  private void retryWithoutFiltering(PluginCall call) {
-    String nonce = call.getString("nonce");
-
-    GetGoogleIdOption.Builder googleIdOptionBuilder =
-      new GetGoogleIdOption.Builder()
-        .setFilterByAuthorizedAccounts(false)
-        .setServerClientId(this.clientId);
-
-    if (nonce != null && !nonce.isEmpty()) {
-      googleIdOptionBuilder.setNonce(nonce);
-    }
-
-    GetGoogleIdOption googleIdOption = googleIdOptionBuilder.build();
-    GetCredentialRequest request = new GetCredentialRequest.Builder()
-      .addCredentialOption(googleIdOption)
-      .build();
-
-    Executor executor = Executors.newSingleThreadExecutor();
-    credentialManager.getCredentialAsync(
-      context,
-      request,
-      null,
-      executor,
-      new CredentialManagerCallback<
-        GetCredentialResponse,
-        GetCredentialException
-      >() {
-        @Override
-        public void onResult(GetCredentialResponse result) {
-          handleSignInResult(result, call);
-        }
-
-        @Override
-        public void onError(GetCredentialException e) {
           handleSignInError(e, call);
         }
       }
