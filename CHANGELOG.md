@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.39](https://github.com/Cap-go/capacitor-social-login/compare/0.0.38...0.0.39) (2024-10-05)
+
+
+### Bug Fixes
+
+* **Android:** Improve Google login ([82228af](https://github.com/Cap-go/capacitor-social-login/commit/82228afcb99d2f7522c24fbd151aacbb75a9d90f))
+
 ### [0.0.38](https://github.com/Cap-go/capacitor-social-login/compare/0.0.37...0.0.38) (2024-10-05)
 
 
