@@ -130,29 +130,27 @@ In this part, you will learn how to setup Google login in IOS
    - After filling all the details, please click `create`
      ![](./assets/google_cons_ios_cred_creat.png)
    
-   - You now want to download the plist. Please save it in a safe place. You will need it shortly
-     ![](./assets/google_cons_ios_down_plist.png)
-
-2- Now, you need to modify your app's plist.
-
+   - You now want to click `ok`![](./assets/google_cons_ios_click_ok.png)
+   
+   - Open the newly created IOS client
+     ![](./assets/google_cons_open_new_ios.png)
+   
+   - Copy the following data
+     ![](./assets/google_cons_ios_what_to_copy.png)
+     
+     The `nr. 1` in this image will later become the `iOSClientId` in the `initialize` call
+     The `nr. 2` in this image will later become `YOUR_DOT_REVERSED_IOS_CLIENT_ID`
 - Please open Xcode and find the `Info` file
   ![](./assets/xcode_info_file.png)
 
 - Now, you want to right click this file and open it as source code
   ![](./assets/xcode_open_as_src_code.png)
 
-- Now, you want to open the downloaded plist file in a separate text editor.
-
-- In this separate file editor, you want to copy the highlighted fragment
-  ![](./assets/kate_plist.png)
-
-- Now, come back to Xcode. At the bottom of your `Plist` file, you will see a `</dict>` tag.
+- At the bottom of your `Plist` file, you will see a `</dict>` tag.
   ![](./assets/xcode_dict_tag.png)
 
-- You want to insert the copied fragment just before it, just like this
+- You want to insert the following fragment just before it, just like this
   ![](./assets/xcode_plist_inserted.png)
-
-- Now, you want to add the following code at the bottom of the plist
   
   ```xml
   <key>CFBundleURLTypes</key>
@@ -165,18 +163,13 @@ In this part, you will learn how to setup Google login in IOS
     </dict>
   </array>
   ```
+
+- Now, you want to change the `YOUR_DOT_REVERSED_IOS_CLIENT_ID` to the value copied in the previous step
   
   You want it to look like this:
-  ![](./assets/xcode_plist_url_scheme.png)
-
-- Now, you want to copy the value of `REVERSED_CLIENT_ID` from above. Copy the text in between the `string` tag under the `REVERSED_CLIENT_ID`
-  ![](./assets/xcode_plist_what_to_copy.png)
-
-- Next, please replace the `YOUR_DOT_REVERSED_IOS_CLIENT_ID` with the text that you copied
-  ![](./assets/xcode_plist_where_to_paste.png)
-
-- Next, please remove the `REVERSED_CLIENT_ID` and the `string` tag below it. The final plist should look like this:
-  ![](./assets/xcode_final_list.png)
+  ![](./assets/xcode_plist_final.png)
+  
+  **WARNING:** Ensure that this value **STARTS** with `com.googleusercontent.apps`
 
 - Save the file with `Command + S`
 
@@ -202,6 +195,8 @@ In this part, you will learn how to setup Google login in IOS
        })
      })
      ```
+     
+     **WARNING:** Ensure that `iOSClientId` **ENDS** with `googleusercontent.com`
    
    - Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
      
@@ -218,8 +213,6 @@ In this part, you will learn how to setup Google login in IOS
    ![](./assets/google_final_ios_v2.gif)
    
    PS: Please pardon the polish language in the google prompt. I don't know how to change it.
-
-
 
 ### Using Google login on Android
 
@@ -245,21 +238,21 @@ In this part, you will learn how to setup Google login in Android
      ![](./assets/term_sign_report.png)
    
    - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from google PLAY console for production releases.
-    Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
+     Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
    
    - The SHA1 certificate fingerprint is crucial for Android app security and authentication. Google uses it to verify your app's identity when making API calls. This is why:
-
+     
      1. It ensures only your app can use your Google API credentials.
      2. It prevents unauthorized use of your Google services.
      3. It's required for certain Google APIs, including Google Sign-In.
-
+   
    - Now, scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
    
    - Now, go back to the Google Console. Enter your `applicationId` as the `Package Name` and your SHA1 in the certificate field and click `create`
      ![](./assets/google_cons_creat_android_client.png)
 
 2. Create a web client (this is required for Android)
-
+   
    - Go to the "Create credentials" page in Google Console
    
    - Set application type to "Web"
@@ -271,7 +264,43 @@ In this part, you will learn how to setup Google login in Android
    - Copy the client ID, you'll use this as the `webClientId` in your JS/TS code
      ![](./assets/google_cons_copy_web_client_id.png)
 
-3. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+3. Modify the `AppDelegate`
+   Although not strictly required, it's recommended by Google.
+   
+   
+   - Open the AppDelegate
+     ![](./assets/xcode_app_deleg.png)
+   
+   - Insert `import GoogleSignIn` before the first line
+     ![](./assets/xcode_app_deleg_google_sign_in.png)
+   
+   - Find the `func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:])` function. It should look like this
+     ![](./assets/xcode_app_deleg_app_fn.png)
+   
+   - Modify the function to look like this
+     
+     ```swift
+     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+         // Called when the app was launched with a url. Feel free to add additional processing here,
+         // but if you want the App API to support tracking app url opens, make sure to keep this call
+     
+         var handled: Bool
+     
+         handled = GIDSignIn.sharedInstance.handle(url)
+         if handled {
+           return true
+         }
+     
+         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+     }
+     
+     ```
+     
+     ![](./assets/xcode_app_deleg_app_fn_mod.png)
+   
+   - Save the file with `Command + S`
+
+4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
    
    - First, you need import `SocialLogin` AND `Capacitor`
      
@@ -306,38 +335,38 @@ In this part, you will learn how to setup Google login in Android
      ```
 
 4- Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
-   
-   - First, go into `Device manager` and click the plus button
-     ![](./assets/studio_device_man.png)
-   
-   - Create a virtual device
-     ![](./assets/studio_create_virt_dev.png)
-   
-   - Select any device with a `Play Store` icon
-     ![](./assets/studio_new_dev_select_hardware.png)
-     
-     As you can see, the `pixel 8` supports the `Play Store` services
-   
-   - Click `next`
-     ![](./assets/studio_new_dev_next_1.png)
-   
-   - Next, **MAKE SURE** that the OS image is of type `Google Play`. **IT MUST** be of type `Google Play`
-     ![](./assets/studio_new_dev_google_play_dev_type.png)
-   
-   - Click next
-     ![](./assets/studio_new_dev_next_1.png)
-   
-   - Confirm your device. I will name my emulator `Tutorial phone`
-     ![](./assets/studio_new_dev_next_3.png)
-   
-   - Next, go into `Device Manager` and boot up your simulator
-     ![](./assets/studio_dev_manager.png)
-   
-   - After the simulator boots up, please go into it's settings
-     ![](./assets/emul_and_settings_1.png)
-   
-   - Now, go into `Google Play`
-     ![](./assets/emul_and_settings_2.png)
-   
-   - Click `Update` and wait about 60 seconds
-     ![](./assets/emul_and_settings_update_play_store.png)
+
+- First, go into `Device manager` and click the plus button
+  ![](./assets/studio_device_man.png)
+
+- Create a virtual device
+  ![](./assets/studio_create_virt_dev.png)
+
+- Select any device with a `Play Store` icon
+  ![](./assets/studio_new_dev_select_hardware.png)
+  
+  As you can see, the `pixel 8` supports the `Play Store` services
+
+- Click `next`
+  ![](./assets/studio_new_dev_next_1.png)
+
+- Next, **MAKE SURE** that the OS image is of type `Google Play`. **IT MUST** be of type `Google Play`
+  ![](./assets/studio_new_dev_google_play_dev_type.png)
+
+- Click next
+  ![](./assets/studio_new_dev_next_1.png)
+
+- Confirm your device. I will name my emulator `Tutorial phone`
+  ![](./assets/studio_new_dev_next_3.png)
+
+- Next, go into `Device Manager` and boot up your simulator
+  ![](./assets/studio_dev_manager.png)
+
+- After the simulator boots up, please go into it's settings
+  ![](./assets/emul_and_settings_1.png)
+
+- Now, go into `Google Play`
+  ![](./assets/emul_and_settings_2.png)
+
+- Click `Update` and wait about 60 seconds
+  ![](./assets/emul_and_settings_update_play_store.png)

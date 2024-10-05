@@ -19,15 +19,8 @@ class GoogleProvider {
 
     func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
         DispatchQueue.main.async {
-            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
-                GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
-                    if let error = error {
-                        completion(.failure(error))
-                        return
-                    }
-                    completion(.success(self.createLoginResponse(user: user!)))
-                }
-            } else {
+            var goto = Goto()
+            goto.set(label: "login") {
                 guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
                     completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                     return
@@ -48,6 +41,19 @@ class GoogleProvider {
                     }
                     completion(.success(self.createLoginResponse(user: result.user)))
                 }
+            }
+            
+            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
+                GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
+                    if let error = error {
+                        // completion(.failure(error))
+                        goto.call(label: "login")
+                        return
+                    }
+                    completion(.success(self.createLoginResponse(user: user!)))
+                }
+            } else {
+                goto.call(label: "login")
             }
         }
     }
