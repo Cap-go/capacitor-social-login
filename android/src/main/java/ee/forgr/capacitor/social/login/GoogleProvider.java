@@ -29,11 +29,17 @@ import org.json.JSONObject;
 public class GoogleProvider implements SocialProvider {
 
   private static final String LOG_TAG = "GoogleProvider";
+  private static final String SHARED_PREFERENCE_NAME =
+          "GOOGLE_LOGIN_F13oz0I_SHARED_PERF";
+  private static final String GOOGLE_DATA_PREFERENCE =
+          "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
 
   private final Activity activity;
   private final Context context;
   private CredentialManager credentialManager;
   private String clientId;
+
+  private String idToken = null;
 
   public GoogleProvider(Activity activity, Context context) {
     this.activity = activity;
@@ -43,6 +49,30 @@ public class GoogleProvider implements SocialProvider {
   public void initialize(String clientId) {
     this.credentialManager = CredentialManager.create(activity);
     this.clientId = clientId;
+
+    String data = context
+            .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+            .getString(GOOGLE_DATA_PREFERENCE, null);
+
+    if (data == null || data.isEmpty()) {
+      Log.i(SocialLoginPlugin.LOG_TAG, "No data to restore for google login");
+      return;
+    }
+    try {
+      JSONObject object = new JSONObject(data);
+      GoogleProvider.this.idToken = object.optString("idToken", null);
+
+      Log.i(
+              SocialLoginPlugin.LOG_TAG,
+              String.format("Google restoreState: %s", object)
+      );
+    } catch (JSONException e) {
+      Log.e(
+              SocialLoginPlugin.LOG_TAG,
+              "Google restoreState: Failed to parse JSON",
+              e
+      );
+    }
   }
 
   @Override
@@ -95,6 +125,21 @@ public class GoogleProvider implements SocialProvider {
     );
   }
 
+  private void persistState(
+          String idToken
+  ) throws JSONException {
+    JSONObject object = new JSONObject();
+    object.put("idToken", idToken);
+
+    GoogleProvider.this.idToken = idToken;
+
+    activity
+            .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(GOOGLE_DATA_PREFERENCE, object.toString())
+            .apply();
+  }
+
   private void handleSignInResult(
     GetCredentialResponse result,
     PluginCall call
@@ -103,8 +148,19 @@ public class GoogleProvider implements SocialProvider {
       JSObject user = handleSignInResult(result);
       JSObject response = new JSObject();
       response.put("provider", "google");
-      response.put("status", "success");
-      response.put("user", user);
+      JSObject resultObj = new JSObject();
+
+      Credential credential = result.getCredential();
+      if (credential instanceof CustomCredential) {
+        if (GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+          GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.getData());
+          resultObj.put("idToken", googleIdTokenCredential.getIdToken());
+          persistState(googleIdTokenCredential.getIdToken());
+        }
+      }
+
+      resultObj.put("profile", user);
+      response.put("result", resultObj);
       Log.d(LOG_TAG, "Google Sign-In success: " + response.toString());
       call.resolve(response);
     } catch (JSONException e) {
@@ -162,6 +218,12 @@ public class GoogleProvider implements SocialProvider {
       new CredentialManagerCallback<Void, ClearCredentialException>() {
         @Override
         public void onResult(Void result) {
+          context
+            .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply();
+          GoogleProvider.this.idToken = null;
           call.resolve();
         }
 
@@ -176,61 +238,18 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void getAuthorizationCode(PluginCall call) {
-    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-      .setFilterByAuthorizedAccounts(false)
-      .setServerClientId(this.clientId)
-      .build();
-    GetCredentialRequest request = new GetCredentialRequest.Builder()
-      .addCredentialOption(googleIdOption)
-      .build();
-
-    Executor executor = Executors.newSingleThreadExecutor();
-    credentialManager.getCredentialAsync(
-      context,
-      request,
-      null,
-      executor,
-      new CredentialManagerCallback<
-        GetCredentialResponse,
-        GetCredentialException
-      >() {
-        @Override
-        public void onResult(GetCredentialResponse result) {
-          Credential credential = result.getCredential();
-          if (credential instanceof CustomCredential) {
-            if (
-              GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(
-                credential.getType()
-              )
-            ) {
-              GoogleIdTokenCredential googleIdTokenCredential =
-                GoogleIdTokenCredential.createFrom(
-                  ((CustomCredential) credential).getData()
-                );
-              String idToken = googleIdTokenCredential.getIdToken();
-              JSObject response = new JSObject();
-              response.put("code", idToken);
-              call.resolve(response);
-            } else {
-              call.reject("Unexpected credential type");
-            }
-          } else {
-            call.reject("Invalid credential");
-          }
-        }
-
-        @Override
-        public void onError(GetCredentialException e) {
-          Log.e(LOG_TAG, "Failed to get authorization code", e);
-          call.reject("Failed to get authorization code: " + e.getMessage());
-        }
-      }
-    );
+    JSObject response = new JSObject();
+    if (GoogleProvider.this.idToken == null) {
+      call.reject("Not logged in to google, cannot get authorization code!");
+      return;
+    }
+    response.put("jwt", GoogleProvider.this.idToken);
+    call.resolve(response);
   }
 
   @Override
   public void isLoggedIn(PluginCall call) {
-    call.resolve(new JSObject().put("isLoggedIn", true));
+    call.resolve(new JSObject().put("isLoggedIn", GoogleProvider.this.idToken != null));
   }
 
   @Override
