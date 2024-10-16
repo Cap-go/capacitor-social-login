@@ -8,12 +8,17 @@
 
 All social logins in one plugin
 
-WIP: Code is ready we ar now polishing documentation
-
 This plugin implement social auth for:
 - Google (with credential manager)
 - Apple (with 0auth on android)
 - Facebook ( with latest SDK)
+
+We plan in the future to keep adding others social login and make this plugin the all in one solution.
+
+FAQ:
+
+- Do we support web login?
+=> Not yet but PR are welcome, our focus is the native part for now as any Web sdk will work for web
 
 ## Install
 
