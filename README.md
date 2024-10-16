@@ -207,7 +207,9 @@ Directly call the `initialize` method with the `google` provider
 ```typescript
 await SocialLogin.initialize({
   google: {
-    clientId: 'your-client-id', // the web client id
+    webClientId: 'your-client-id', // the web client id for Android and Web
+    iOSClientId: 'your-client-id', // the iOS client id
+    iOSServerClientId: 'your-server-client-id', // the iOS server client id (optional)
   },
 });
 const res = await SocialLogin.login({
