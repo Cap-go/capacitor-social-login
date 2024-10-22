@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.43](https://github.com/Cap-go/capacitor-social-login/compare/0.0.42...0.0.43) (2024-10-22)
+
+
+### Features
+
+* add google for web ([2f430b0](https://github.com/Cap-go/capacitor-social-login/commit/2f430b0d5be6f18c8ded8b45b4d971d0bab33d07))
+
 ### [0.0.42](https://github.com/Cap-go/capacitor-social-login/compare/0.0.41...0.0.42) (2024-10-16)
 
 
