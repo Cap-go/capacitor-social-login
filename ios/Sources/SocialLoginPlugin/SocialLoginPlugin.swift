@@ -311,7 +311,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "provider": "facebook",
                     "result": [
                         "accessToken": facebookResponse.accessToken,
-                        "profile": facebookResponse.profile
+                        "profile": facebookResponse.profile,
+                        "authenticationToken": facebookResponse.authenticationToken ?? ""
                     ]
                 ])
             } else {
