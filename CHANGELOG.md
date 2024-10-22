@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.44](https://github.com/Cap-go/capacitor-social-login/compare/0.0.43...0.0.44) (2024-10-22)
+
+
+### Features
+
+* add apple ([85a6693](https://github.com/Cap-go/capacitor-social-login/commit/85a669389fd36d2e5ba4c711a1f09d61e309cf4f))
+
 ### [0.0.43](https://github.com/Cap-go/capacitor-social-login/compare/0.0.42...0.0.43) (2024-10-22)
 
 
