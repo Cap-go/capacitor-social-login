@@ -60,7 +60,7 @@ call the `initialize` method with the `apple` provider
 ```typescript
 await SocialLogin.initialize({
   apple: {
-    clientId: 'your-client-id',
+    clientId: 'your-client-id', // it not used at os level only in plugin to know which provider initialize
   },
 });
 const res = await SocialLogin.login({

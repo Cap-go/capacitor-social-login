@@ -31,7 +31,7 @@ export interface InitializeOptions {
   };
   apple?: {
     /**
-     * Apple Client ID, provided by Apple
+     * Apple Client ID, provided by Apple for web and Android
      */
     clientId?: string;
     /**
