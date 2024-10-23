@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.46](https://github.com/Cap-go/capacitor-social-login/compare/0.0.45...0.0.46) (2024-10-23)
+
+
+### Bug Fixes
+
+* add accesstoken as GPT recomend ([9d50f8c](https://github.com/Cap-go/capacitor-social-login/commit/9d50f8c1d0ac80c2ea2de0084e76d14d2623f8d3))
+* apple issue ([68cebb6](https://github.com/Cap-go/capacitor-social-login/commit/68cebb67437d5b1498dcd0c5d8e16e17299bc7cb))
+* facebook implementation + deps update ([6807d32](https://github.com/Cap-go/capacitor-social-login/commit/6807d327a87949eabd5205bc5fa787675e0b9dc5))
+* lockfile issue ([b13138e](https://github.com/Cap-go/capacitor-social-login/commit/b13138e3dde4fa23dfb6cb94140b2c8a68af7821))
+
 ### [0.0.45](https://github.com/Cap-go/capacitor-social-login/compare/0.0.44...0.0.45) (2024-10-22)
 
 ### [0.0.44](https://github.com/Cap-go/capacitor-social-login/compare/0.0.43...0.0.44) (2024-10-22)
