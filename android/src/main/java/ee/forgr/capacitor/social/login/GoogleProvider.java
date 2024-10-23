@@ -154,11 +154,13 @@ public class GoogleProvider implements SocialProvider {
       if (credential instanceof CustomCredential) {
         if (GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
           GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.getData());
-          resultObj.put("idToken", googleIdTokenCredential.getIdToken());
-          persistState(googleIdTokenCredential.getIdToken());
+          String idToken = googleIdTokenCredential.getIdToken();
+          resultObj.put("idToken", idToken);
+          resultObj.put("accessToken", idToken); // Use idToken as accessToken
+          persistState(idToken);
         }
       }
-
+      
       resultObj.put("profile", user);
       response.put("result", resultObj);
       Log.d(LOG_TAG, "Google Sign-In success: " + response.toString());
