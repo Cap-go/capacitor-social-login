@@ -168,7 +168,12 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
         let appleIDProvider = ASAuthorizationAppleIDProvider()
         let request = appleIDProvider.createRequest()
-        request.requestedScopes = [.fullName, .email]
+        
+        if let scopes = payload["scopes"] as? [ASAuthorization.Scope] {
+            request.requestedScopes = scopes
+        } else {
+            request.requestedScopes = [.fullName, .email]
+        }
 
         let authorizationController = ASAuthorizationController(authorizationRequests: [request])
         authorizationController.delegate = self
@@ -205,7 +210,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             case .authorized:
                 // User is authorized, you might want to fetch more details here
                 completion(.success(nil))
-            case .revoked, .notFound:
+            case .revoked, .notFound, .transferred:
                 completion(.success(nil))
             @unknown default:
                 completion(.failure(NSError(domain: "AppleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unknown credential state"])))
@@ -222,7 +227,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-            let userIdentifier = appleIDCredential.user
+            let _ = appleIDCredential.user
             let fullName = appleIDCredential.fullName
             let email = appleIDCredential.email
 
