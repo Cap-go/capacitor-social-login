@@ -75,22 +75,6 @@ const res = await SocialLogin.login({
 
 ### Android configuration
 
-In file `android/app/src/main/AndroidManifest.xml`, add the following XML elements under `<manifest><application>` :
-
-```xml
-<meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
-<meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>
-```
-
-In file `android/app/src/main/res/values/strings.xml` add the following lines :
-
-```xml
-<string name="facebook_app_id">[APP_ID]</string>
-<string name="facebook_client_token">[CLIENT_TOKEN]</string>
-```
-
-Don't forget to replace `[APP_ID]` and `[CLIENT_TOKEN]` by your Facebook application Id.
-
 More information can be found here: https://developers.facebook.com/docs/android/getting-started
 
 Then call the `initialize` method with the `facebook` provider
@@ -99,6 +83,7 @@ Then call the `initialize` method with the `facebook` provider
 await SocialLogin.initialize({
   facebook: {
     appId: 'your-app-id',
+    clientToken: 'your-client-token',
   },
 });
 const res = await SocialLogin.login({
@@ -362,7 +347,7 @@ Refresh the access token
 
 | Prop           | Type                                                                                     |
 | -------------- | ---------------------------------------------------------------------------------------- |
-| **`facebook`** | <code>{ appId: string; }</code>                                                          |
+| **`facebook`** | <code>{ appId: string; clientToken: string; }</code>                                     |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; }</code> |
 | **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                |
 

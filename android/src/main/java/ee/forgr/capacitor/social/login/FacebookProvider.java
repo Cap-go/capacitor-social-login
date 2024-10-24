@@ -8,12 +8,16 @@ import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.FacebookSdk;
 import com.facebook.GraphRequest;
 import com.facebook.GraphResponse;
+import com.facebook.login.LoginBehavior;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import androidx.activity.result.ActivityResultRegistryOwner;
 import ee.forgr.capacitor.social.login.helpers.JsonHelper;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.Collection;
@@ -26,72 +30,99 @@ public class FacebookProvider implements SocialProvider {
 
   private Activity activity;
   private CallbackManager callbackManager;
+  private PluginCall savedCall;
 
   public FacebookProvider(Activity activity) {
     this.activity = activity;
   }
 
-  public void initialize(JSONObject _config) {
-    this.callbackManager = CallbackManager.Factory.create();
+  public void initialize(JSONObject config) {
+    try {
+        // Set Facebook App ID
+        String facebookAppId = config.getString("appId");
+        FacebookSdk.setApplicationId(facebookAppId);
+        
+        // Set Facebook Client Token
+        String facebookClientToken = config.getString("clientToken");
+        FacebookSdk.setClientToken(facebookClientToken);
+        
+        // Initialize Facebook SDK
+        FacebookSdk.sdkInitialize(activity.getApplicationContext());
+        
+        this.callbackManager = CallbackManager.Factory.create();
 
-    LoginManager.getInstance()
-      .registerCallback(
-        callbackManager,
-        new FacebookCallback<LoginResult>() {
-          @Override
-          public void onSuccess(LoginResult loginResult) {
-            Log.d(LOG_TAG, "LoginManager.onSuccess");
-          }
+        LoginManager.getInstance().registerCallback(callbackManager,
+            new FacebookCallback<LoginResult>() {
+                @Override
+                public void onSuccess(LoginResult loginResult) {
+                    Log.d(LOG_TAG, "LoginManager.onSuccess");
+                }
 
-          @Override
-          public void onCancel() {
-            Log.d(LOG_TAG, "LoginManager.onCancel");
-          }
+                @Override
+                public void onCancel() {
+                    Log.d(LOG_TAG, "LoginManager.onCancel");
+                }
 
-          @Override
-          public void onError(FacebookException exception) {
-            Log.e(LOG_TAG, "LoginManager.onError", exception);
-          }
-        }
-      );
+                @Override
+                public void onError(FacebookException exception) {
+                    Log.e(LOG_TAG, "LoginManager.onError", exception);
+                }
+            });
+    } catch (JSONException e) {
+        Log.e(LOG_TAG, "Error initializing Facebook SDK", e);
+        throw new RuntimeException("Failed to initialize Facebook SDK: " + e.getMessage());
+    }
   }
 
   @Override
   public void login(PluginCall call, JSONObject config) {
+    this.savedCall = call;
     try {
-      Collection<String> permissions = JsonHelper.jsonArrayToList(
-        config.getJSONArray("permissions")
-      );
-      LoginManager.getInstance()
-        .registerCallback(
-          callbackManager,
-          new FacebookCallback<LoginResult>() {
-            @Override
-            public void onSuccess(LoginResult loginResult) {
-              Log.d(LOG_TAG, "LoginManager.onSuccess");
-              AccessToken accessToken = loginResult.getAccessToken();
-              JSObject result = new JSObject();
-              result.put("accessToken", accessToken.getToken());
-              result.put("userId", accessToken.getUserId());
-              call.resolve(result);
-            }
-
-            @Override
-            public void onCancel() {
-              Log.d(LOG_TAG, "LoginManager.onCancel");
-              call.reject("Login cancelled");
-            }
-
-            @Override
-            public void onError(FacebookException exception) {
-              Log.e(LOG_TAG, "LoginManager.onError", exception);
-              call.reject(exception.getMessage());
-            }
-          }
+        Collection<String> permissions = JsonHelper.jsonArrayToList(
+            config.getJSONArray("permissions")
         );
-      LoginManager.getInstance().logIn(activity, permissions);
+        boolean limitedLogin = config.optBoolean("limitedLogin", false);
+        String nonce = config.optString("nonce", "");
+
+        LoginManager.getInstance().registerCallback(callbackManager,
+            new FacebookCallback<LoginResult>() {
+                @Override
+                public void onSuccess(LoginResult loginResult) {
+                    Log.d(LOG_TAG, "LoginManager.onSuccess");
+                    AccessToken accessToken = loginResult.getAccessToken();
+                    JSObject result = new JSObject();
+                    result.put("accessToken", createAccessTokenObject(accessToken));
+                    result.put("authenticationToken", loginResult.getAuthenticationToken() != null ? loginResult.getAuthenticationToken().getToken() : null);
+                    // TODO: Fetch profile information and add it to the result
+                    savedCall.resolve(result);
+                }
+
+                @Override
+                public void onCancel() {
+                    Log.d(LOG_TAG, "LoginManager.onCancel");
+                    savedCall.reject("Login cancelled");
+                }
+
+                @Override
+                public void onError(FacebookException exception) {
+                    Log.e(LOG_TAG, "LoginManager.onError", exception);
+                    savedCall.reject(exception.getMessage());
+                }
+            });
+
+        LoginManager loginManager = LoginManager.getInstance();
+        if (limitedLogin) {
+            Log.w(LOG_TAG, "Limited login is not available for Android");
+        }
+        
+        loginManager.setLoginBehavior(LoginBehavior.NATIVE_WITH_FALLBACK);
+        if (!nonce.isEmpty()) {
+            loginManager.logIn((ActivityResultRegistryOwner) activity, callbackManager, permissions, nonce);
+        } else {
+            loginManager.logIn((ActivityResultRegistryOwner) activity, callbackManager, permissions);
+        }
     } catch (JSONException e) {
-      call.reject("Invalid permissions format");
+        savedCall.reject("Invalid login options format");
     }
   }
 
@@ -170,6 +201,23 @@ public class FacebookProvider implements SocialProvider {
     int resultCode,
     Intent data
   ) {
-    return callbackManager.onActivityResult(requestCode, resultCode, data);
+    Log.d(LOG_TAG, "FacebookProvider.handleOnActivityResult called");
+    if (callbackManager != null) {
+        return callbackManager.onActivityResult(requestCode, resultCode, data);
+    }
+    return false;
+  }
+
+  private JSObject createAccessTokenObject(AccessToken accessToken) {
+    JSObject tokenObject = new JSObject();
+    tokenObject.put("applicationId", accessToken.getApplicationId());
+    tokenObject.put("declinedPermissions", new JSArray(accessToken.getDeclinedPermissions()));
+    tokenObject.put("expires", accessToken.getExpires().getTime());
+    tokenObject.put("isExpired", accessToken.isExpired());
+    tokenObject.put("lastRefresh", accessToken.getLastRefresh().getTime());
+    tokenObject.put("permissions", new JSArray(accessToken.getPermissions()));
+    tokenObject.put("token", accessToken.getToken());
+    tokenObject.put("userId", accessToken.getUserId());
+    return tokenObject;
   }
 }

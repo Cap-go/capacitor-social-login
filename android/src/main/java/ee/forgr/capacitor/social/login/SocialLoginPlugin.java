@@ -69,11 +69,24 @@ public class SocialLoginPlugin extends Plugin {
 
     JSObject facebook = call.getObject("facebook");
     if (facebook != null) {
-      FacebookProvider facebookProvider = new FacebookProvider(
-        this.getActivity()
-      );
-      facebookProvider.initialize(new JSONObject());
-      this.socialProviderHashMap.put("facebook", facebookProvider);
+      String facebookAppId = facebook.getString("appId");
+      String facebookClientToken = facebook.getString("clientToken");
+      if (facebookAppId == null || facebookAppId.isEmpty()) {
+        call.reject("facebook.appId is null or empty");
+        return;
+      }
+      if (facebookClientToken == null || facebookClientToken.isEmpty()) {
+        call.reject("facebook.clientToken is null or empty");
+        return;
+      }
+      FacebookProvider facebookProvider = new FacebookProvider(this.getActivity());
+      try {
+        facebookProvider.initialize(facebook);
+        this.socialProviderHashMap.put("facebook", facebookProvider);
+      } catch (Exception e) {
+        call.reject("Failed to initialize Facebook provider: " + e.getMessage());
+        return;
+      }
     }
 
     call.resolve();
@@ -175,5 +188,25 @@ public class SocialLoginPlugin extends Plugin {
     } catch (Throwable t) {
       Log.e(SocialLoginPlugin.LOG_TAG, "Cannot handle apple login intent");
     }
+  }
+
+  @Override
+  protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
+    super.handleOnActivityResult(requestCode, resultCode, data);
+    
+    Log.d(LOG_TAG, "SocialLoginPlugin.handleOnActivityResult called");
+    
+    // Handle Facebook login result
+    SocialProvider facebookProvider = socialProviderHashMap.get("facebook");
+    if (facebookProvider instanceof FacebookProvider) {
+        boolean handled = ((FacebookProvider) facebookProvider).handleOnActivityResult(requestCode, resultCode, data);
+        if (handled) {
+            Log.d(LOG_TAG, "Facebook activity result handled");
+            return;
+        }
+    }
+    
+    // Handle other providers' activity results if needed
+    Log.d(LOG_TAG, "Activity result not handled by any provider");
   }
 }
