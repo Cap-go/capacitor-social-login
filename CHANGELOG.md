@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.51](https://github.com/Cap-go/capacitor-social-login/compare/0.0.50...0.0.51) (2024-10-24)
+
+
+### Bug Fixes
+
+* apple and facebook ([c14c2af](https://github.com/Cap-go/capacitor-social-login/commit/c14c2af4a6a800aa165c70ad009ddd7d8b79611e))
+* remove useless var ([4510b05](https://github.com/Cap-go/capacitor-social-login/commit/4510b05ed48adc6acfa4a644086383fbcf4010be))
+
 ### [0.0.50](https://github.com/Cap-go/capacitor-social-login/compare/0.0.49...0.0.50) (2024-10-24)
 
 
