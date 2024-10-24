@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.52](https://github.com/Cap-go/capacitor-social-login/compare/0.0.51...0.0.52) (2024-10-24)
+
+
+### Features
+
+* add facebook in web ([920b7c3](https://github.com/Cap-go/capacitor-social-login/commit/920b7c35d65444dee225adffe98d3725d3e11541))
+
 ### [0.0.51](https://github.com/Cap-go/capacitor-social-login/compare/0.0.50...0.0.51) (2024-10-24)
 
 
