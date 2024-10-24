@@ -314,6 +314,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "result": [
                         "accessToken": [
                             "token": googleResponse.authentication.accessToken,
+                            "refreshToken": googleResponse.authentication.refreshToken,
                             "userId": googleResponse.id ?? ""
                         ],
                         "idToken": googleResponse.authentication.idToken ?? "",

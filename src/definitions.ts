@@ -161,6 +161,7 @@ export interface AccessToken {
   lastRefresh?: string;
   permissions?: string[];
   token: string;
+  refreshToken?: string;
   userId?: string;
 }
 
