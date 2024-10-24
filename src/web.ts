@@ -16,7 +16,10 @@ import type {
 declare const google: {
   accounts: {
     id: {
-      initialize(config: { client_id: string; callback: (response: any) => void }): void;
+      initialize(config: {
+        client_id: string;
+        callback: (response: any) => void;
+      }): void;
       prompt(callback: (notification: any) => void): void;
     };
   };
@@ -29,7 +32,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
   private appleScriptLoaded = false;
-  private appleScriptUrl = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+  private appleScriptUrl =
+    "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
 
   async initialize(options: InitializeOptions): Promise<void> {
     if (options.google?.webClientId) {
@@ -44,89 +48,103 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async login(options: LoginOptions): Promise<LoginResult> {
-    if (options.provider === 'google') {
+    if (options.provider === "google") {
       return this.loginWithGoogle(options.options);
-    } else if (options.provider === 'apple') {
+    } else if (options.provider === "apple") {
       return this.loginWithApple(options.options);
     }
     // Implement login for other providers
     throw new Error(`Login for ${options.provider} is not implemented on web`);
   }
 
-  async logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void> {
+  async logout(options: {
+    provider: "apple" | "google" | "facebook";
+  }): Promise<void> {
     switch (options.provider) {
-      case 'google':
+      case "google":
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
-        console.log('Google logout: Token should be revoked on the client side if stored');
+        console.log(
+          "Google logout: Token should be revoked on the client side if stored",
+        );
         break;
-      case 'apple':
+      case "apple":
         // Apple doesn't provide a logout method for web
-        console.log('Apple logout: Session should be managed on the client side');
+        console.log(
+          "Apple logout: Session should be managed on the client side",
+        );
         break;
-      case 'facebook':
+      case "facebook":
         // Implement Facebook logout when Facebook login is added
-        console.log('Facebook logout not implemented');
+        console.log("Facebook logout not implemented");
         break;
       default:
         throw new Error(`Logout for ${options.provider} is not implemented`);
     }
   }
 
-  async isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }> {
+  async isLoggedIn(
+    options: isLoggedInOptions,
+  ): Promise<{ isLoggedIn: boolean }> {
     switch (options.provider) {
-      case 'google':
+      case "google":
         // For Google, we can check if there's a valid token
         const googleUser = await this.getGoogleUser();
         return { isLoggedIn: !!googleUser };
-      case 'apple':
+      case "apple":
         // Apple doesn't provide a method to check login status on web
-        console.log('Apple login status should be managed on the client side');
+        console.log("Apple login status should be managed on the client side");
         return { isLoggedIn: false };
-      case 'facebook':
+      case "facebook":
         // Implement Facebook isLoggedIn when Facebook login is added
-        console.log('Facebook isLoggedIn not implemented');
+        console.log("Facebook isLoggedIn not implemented");
         return { isLoggedIn: false };
       default:
-        throw new Error(`isLoggedIn for ${options.provider} is not implemented`);
+        throw new Error(
+          `isLoggedIn for ${options.provider} is not implemented`,
+        );
     }
   }
 
-  async getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode> {
+  async getAuthorizationCode(
+    options: AuthorizationCodeOptions,
+  ): Promise<AuthorizationCode> {
     switch (options.provider) {
-      case 'google':
+      case "google":
         // For Google, we can use the id_token as the authorization code
         const googleUser = await this.getGoogleUser();
         if (googleUser && googleUser.credential) {
           return { jwt: googleUser.credential };
         }
-        throw new Error('No Google authorization code available');
-      case 'apple':
+        throw new Error("No Google authorization code available");
+      case "apple":
         // Apple authorization code should be obtained during login
-        console.log('Apple authorization code should be stored during login');
-        throw new Error('Apple authorization code not available');
-      case 'facebook':
+        console.log("Apple authorization code should be stored during login");
+        throw new Error("Apple authorization code not available");
+      case "facebook":
         // Implement Facebook getAuthorizationCode when Facebook login is added
-        console.log('Facebook getAuthorizationCode not implemented');
-        throw new Error('Facebook authorization code not available');
+        console.log("Facebook getAuthorizationCode not implemented");
+        throw new Error("Facebook authorization code not available");
       default:
-        throw new Error(`getAuthorizationCode for ${options.provider} is not implemented`);
+        throw new Error(
+          `getAuthorizationCode for ${options.provider} is not implemented`,
+        );
     }
   }
 
   async refresh(options: LoginOptions): Promise<void> {
     switch (options.provider) {
-      case 'google':
+      case "google":
         // For Google, we can prompt for re-authentication
         await this.loginWithGoogle(options.options);
         break;
-      case 'apple':
+      case "apple":
         // Apple doesn't provide a refresh method for web
-        console.log('Apple refresh not available on web');
+        console.log("Apple refresh not available on web");
         break;
-      case 'facebook':
+      case "facebook":
         // Implement Facebook refresh when Facebook login is added
-        console.log('Facebook refresh not implemented');
+        console.log("Facebook refresh not implemented");
         break;
       default:
         throw new Error(`Refresh for ${options.provider} is not implemented`);
@@ -136,7 +154,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private async loginWithGoogle(options: any): Promise<LoginResult> {
     console.log("isLoggedIn", options);
     if (!this.googleClientId) {
-      throw new Error('Google Client ID not set. Call initialize() first.');
+      throw new Error("Google Client ID not set. Call initialize() first.");
     }
 
     return new Promise((resolve, reject) => {
@@ -158,9 +176,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                 id: payload.sub || null,
                 name: payload.name || null,
                 imageUrl: payload.picture || null,
-              }
+              },
             };
-            resolve({ provider: 'google', result });
+            resolve({ provider: "google", result });
           }
         },
       });
@@ -175,11 +193,16 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   private parseJwt(token: string) {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join(""),
+    );
     return JSON.parse(jsonPayload);
   }
 
@@ -187,8 +210,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (this.googleScriptLoaded) return;
 
     return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.onload = () => {
         this.googleScriptLoaded = true;
@@ -201,34 +224,37 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   private async loginWithApple(options: any): Promise<LoginResult> {
     if (!this.appleClientId) {
-      throw new Error('Apple Client ID not set. Call initialize() first.');
+      throw new Error("Apple Client ID not set. Call initialize() first.");
     }
 
     if (!this.appleScriptLoaded) {
-      throw new Error('Apple Sign-In script not loaded.');
+      throw new Error("Apple Sign-In script not loaded.");
     }
 
     return new Promise((resolve, reject) => {
       AppleID.auth.init({
         clientId: this.appleClientId!,
-        scope: options.scopes?.join(' ') || 'name email',
+        scope: options.scopes?.join(" ") || "name email",
         redirectURI: options.redirectUrl || window.location.href,
         state: options.state,
         nonce: options.nonce,
         usePopup: true,
       });
 
-      AppleID.auth.signIn()
+      AppleID.auth
+        .signIn()
         .then((res: any) => {
           const result: AppleProviderResponse = {
-            user: res.user?.name?.firstName ? `${res.user.name.firstName} ${res.user.name.lastName}` : null,
+            user: res.user?.name?.firstName
+              ? `${res.user.name.firstName} ${res.user.name.lastName}`
+              : null,
             email: res.user?.email || null,
             givenName: res.user?.name?.firstName || null,
             familyName: res.user?.name?.lastName || null,
             identityToken: res.authorization.id_token || null,
             authorizationCode: res.authorization.code || null,
           };
-          resolve({ provider: 'apple', result });
+          resolve({ provider: "apple", result });
         })
         .catch((error: any) => {
           reject(error);
@@ -240,7 +266,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (this.appleScriptLoaded) return;
 
     return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
+      const script = document.createElement("script");
       script.src = this.appleScriptUrl;
       script.async = true;
       script.onload = () => {

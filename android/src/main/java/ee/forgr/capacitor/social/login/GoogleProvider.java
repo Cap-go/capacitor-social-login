@@ -1,9 +1,9 @@
 package ee.forgr.capacitor.social.login;
 
+import android.accounts.Account;
 import android.app.Activity;
 import android.content.Context;
-import android.credentials.PrepareGetCredentialResponse;
-import android.os.Build;
+import android.os.AsyncTask;
 import android.util.Log;
 import androidx.credentials.ClearCredentialStateRequest;
 import androidx.credentials.Credential;
@@ -17,10 +17,14 @@ import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import org.json.JSONException;
@@ -30,9 +34,9 @@ public class GoogleProvider implements SocialProvider {
 
   private static final String LOG_TAG = "GoogleProvider";
   private static final String SHARED_PREFERENCE_NAME =
-          "GOOGLE_LOGIN_F13oz0I_SHARED_PERF";
+    "GOOGLE_LOGIN_F13oz0I_SHARED_PERF";
   private static final String GOOGLE_DATA_PREFERENCE =
-          "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
+    "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
 
   private final Activity activity;
   private final Context context;
@@ -51,8 +55,8 @@ public class GoogleProvider implements SocialProvider {
     this.clientId = clientId;
 
     String data = context
-            .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
-            .getString(GOOGLE_DATA_PREFERENCE, null);
+      .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .getString(GOOGLE_DATA_PREFERENCE, null);
 
     if (data == null || data.isEmpty()) {
       Log.i(SocialLoginPlugin.LOG_TAG, "No data to restore for google login");
@@ -63,14 +67,14 @@ public class GoogleProvider implements SocialProvider {
       GoogleProvider.this.idToken = object.optString("idToken", null);
 
       Log.i(
-              SocialLoginPlugin.LOG_TAG,
-              String.format("Google restoreState: %s", object)
+        SocialLoginPlugin.LOG_TAG,
+        String.format("Google restoreState: %s", object)
       );
     } catch (JSONException e) {
       Log.e(
-              SocialLoginPlugin.LOG_TAG,
-              "Google restoreState: Failed to parse JSON",
-              e
+        SocialLoginPlugin.LOG_TAG,
+        "Google restoreState: Failed to parse JSON",
+        e
       );
     }
   }
@@ -85,18 +89,20 @@ public class GoogleProvider implements SocialProvider {
     String nonce = call.getString("nonce");
 
     // First attempt with setFilterByAuthorizedAccounts(true)
-//    GetGoogleIdOption.Builder googleIdOptionBuilder =
-//      new GetGoogleIdOption.Builder()
-//        .setFilterByAuthorizedAccounts(true)
-//        .setServerClientId(this.clientId)
-//        .setAutoSelectEnabled(true);
-    GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
+    //    GetGoogleIdOption.Builder googleIdOptionBuilder =
+    //      new GetGoogleIdOption.Builder()
+    //        .setFilterByAuthorizedAccounts(true)
+    //        .setServerClientId(this.clientId)
+    //        .setAutoSelectEnabled(true);
+    GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
+      new GetSignInWithGoogleOption.Builder(this.clientId);
 
     if (nonce != null && !nonce.isEmpty()) {
       googleIdOptionBuilder.setNonce(nonce);
     }
 
-    GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
+    GetSignInWithGoogleOption googleIdOptionFiltered =
+      googleIdOptionBuilder.build();
     GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
       .addCredentialOption(googleIdOptionFiltered)
       .build();
@@ -125,19 +131,17 @@ public class GoogleProvider implements SocialProvider {
     );
   }
 
-  private void persistState(
-          String idToken
-  ) throws JSONException {
+  private void persistState(String idToken) throws JSONException {
     JSONObject object = new JSONObject();
     object.put("idToken", idToken);
 
     GoogleProvider.this.idToken = idToken;
 
     activity
-            .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(GOOGLE_DATA_PREFERENCE, object.toString())
-            .apply();
+      .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
+      .edit()
+      .putString(GOOGLE_DATA_PREFERENCE, object.toString())
+      .apply();
   }
 
   private void handleSignInResult(
@@ -152,21 +156,95 @@ public class GoogleProvider implements SocialProvider {
 
       Credential credential = result.getCredential();
       if (credential instanceof CustomCredential) {
-        if (GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
-          GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.getData());
+        if (
+          GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(
+            credential.getType()
+          )
+        ) {
+          GoogleIdTokenCredential googleIdTokenCredential =
+            GoogleIdTokenCredential.createFrom(credential.getData());
           String idToken = googleIdTokenCredential.getIdToken();
           resultObj.put("idToken", idToken);
-          resultObj.put("accessToken", idToken); // Use idToken as accessToken
-          persistState(idToken);
+
+          // Start a new task to retrieve the access token
+          new AccessTokenRetrievalTask(this, call, resultObj, user).execute(
+            googleIdTokenCredential
+          );
+
+          return; // The call will be resolved in the AsyncTask
         }
       }
-      
-      resultObj.put("profile", user);
-      response.put("result", resultObj);
-      Log.d(LOG_TAG, "Google Sign-In success: " + response.toString());
-      call.resolve(response);
-    } catch (JSONException e) {
-      call.reject("Error creating success response: " + e.getMessage());
+
+      // If we reach here, something went wrong
+      call.reject("Failed to get Google credentials");
+    } catch (Exception e) {
+      call.reject("Error handling sign-in result: " + e.getMessage());
+    }
+  }
+
+  private static class AccessTokenRetrievalTask
+    extends AsyncTask<GoogleIdTokenCredential, Void, AccessToken> {
+
+    private final WeakReference<GoogleProvider> providerRef;
+    private final PluginCall call;
+    private final JSObject resultObj;
+    private final JSObject user;
+
+    AccessTokenRetrievalTask(
+      GoogleProvider provider,
+      PluginCall call,
+      JSObject resultObj,
+      JSObject user
+    ) {
+      this.providerRef = new WeakReference<>(provider);
+      this.call = call;
+      this.resultObj = resultObj;
+      this.user = user;
+    }
+
+    @Override
+    protected AccessToken doInBackground(GoogleIdTokenCredential... params) {
+      GoogleProvider provider = providerRef.get();
+      if (provider == null) return null;
+
+      GoogleIdTokenCredential credential = params[0];
+      try {
+        Account account = new Account(credential.getId(), "com.google");
+        String scopes = "oauth2:profile email";
+        String token = GoogleAuthUtil.getToken(
+          provider.context,
+          account,
+          scopes
+        );
+
+        AccessToken accessToken = new AccessToken();
+        accessToken.token = token;
+        accessToken.userId = credential.getId();
+        // Note: We don't have exact expiration time, so we're not setting it here
+
+        return accessToken;
+      } catch (IOException | GoogleAuthException e) {
+        Log.e(LOG_TAG, "Failed to get access token: " + e.getMessage(), e);
+        return null;
+      }
+    }
+
+    @Override
+    protected void onPostExecute(AccessToken accessToken) {
+      if (accessToken != null) {
+        JSObject accessTokenObj = new JSObject();
+        accessTokenObj.put("token", accessToken.token);
+        accessTokenObj.put("userId", accessToken.userId);
+
+        resultObj.put("accessToken", accessTokenObj);
+        resultObj.put("profile", user);
+        JSObject response = new JSObject();
+        response.put("provider", "google");
+        response.put("result", resultObj);
+        call.resolve(response);
+      } else {
+        call.reject("Failed to get access token");
+      }
     }
   }
 
@@ -251,7 +329,9 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void isLoggedIn(PluginCall call) {
-    call.resolve(new JSObject().put("isLoggedIn", GoogleProvider.this.idToken != null));
+    call.resolve(
+      new JSObject().put("isLoggedIn", GoogleProvider.this.idToken != null)
+    );
   }
 
   @Override
@@ -296,5 +376,12 @@ public class GoogleProvider implements SocialProvider {
   public void refresh(PluginCall call) {
     // Implement refresh logic here
     call.reject("Not implemented");
+  }
+
+  private static class AccessToken {
+
+    String token;
+    String userId;
+    // Add other fields as needed (expires, isExpired, etc.)
   }
 }
