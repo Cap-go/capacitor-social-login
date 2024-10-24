@@ -2,9 +2,13 @@ import Foundation
 import AuthenticationServices
 import Alamofire
 
-struct AppleProviderResponse {
-    //    let user: String
+struct AppleProviderResponse: Codable {
+    let user: String
+    let email: String?
+    let givenName: String?
+    let familyName: String?
     let identityToken: String
+    let authorizationCode: String
 }
 
 // Define the Decodable structs for the response
@@ -86,6 +90,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     private let TOKEN_URL = "https://appleid.apple.com/auth/token"
     private let SHARED_PREFERENCE_NAME = "AppleProviderSharedPrefs_0eda2642"
     private var redirectUrl = ""
+    private let USER_INFO_KEY = "AppleUserInfo"
 
     func initialize(redirectUrl: String? = nil) {
         if let redirectUrl = redirectUrl {
@@ -199,21 +204,27 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     }
 
     func getCurrentUser(completion: @escaping (Result<AppleProviderResponse?, Error>) -> Void) {
-        let appleIDProvider = ASAuthorizationAppleIDProvider()
-        appleIDProvider.getCredentialState(forUserID: "currentUserIdentifier") { (credentialState, error) in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
+        retrieveUserInfo { userInfo in
+            if let userInfo = userInfo {
+                completion(.success(userInfo))
+            } else {
+                let appleIDProvider = ASAuthorizationAppleIDProvider()
+                appleIDProvider.getCredentialState(forUserID: "currentUserIdentifier") { (credentialState, error) in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
 
-            switch credentialState {
-            case .authorized:
-                // User is authorized, you might want to fetch more details here
-                completion(.success(nil))
-            case .revoked, .notFound, .transferred:
-                completion(.success(nil))
-            @unknown default:
-                completion(.failure(NSError(domain: "AppleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unknown credential state"])))
+                    switch credentialState {
+                    case .authorized:
+                        // User is authorized, but we don't have their info
+                        completion(.success(nil))
+                    case .revoked, .notFound, .transferred:
+                        completion(.success(nil))
+                    @unknown default:
+                        completion(.failure(NSError(domain: "AppleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unknown credential state"])))
+                    }
+                }
             }
         }
     }
@@ -227,52 +238,44 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-            let _ = appleIDCredential.user
+            let userIdentifier = appleIDCredential.user
             let fullName = appleIDCredential.fullName
             let email = appleIDCredential.email
 
-            //            let response = AppleProviderResponse(
-            //                user: userIdentifier,
-            //                email: email,
-            //                givenName: fullName?.givenName,
-            //                familyName: fullName?.familyName,
-            //                identityToken: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
-            //                authorizationCode: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
-            //            )
+            retrieveUserInfo { savedUserInfo in
+                let response = AppleProviderResponse(
+                    user: userIdentifier,
+                    email: email ?? savedUserInfo?.email,
+                    givenName: fullName?.givenName ?? savedUserInfo?.givenName,
+                    familyName: fullName?.familyName ?? savedUserInfo?.familyName,
+                    identityToken: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
+                    authorizationCode: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
+                )
 
-            let errorCompletion: ((Result<AppleProviderResponse, AppleProviderError>) -> Void) = { result in
-                do {
-                    let finalResult = try result.get()
-                    self.completion?(.success(finalResult))
-                } catch {
-                    self.completion?(.failure(error))
-                }
-            }
+                // Persist user info
+                self.persistUserInfo(userInfo: response)
 
-            let authorizationCode = String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
-            let identityToken = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
+                if !self.redirectUrl.isEmpty {
+                    let firstName = fullName?.givenName ?? ""
+                    let lastName = fullName?.familyName ?? ""
 
-            if !self.redirectUrl.isEmpty {
-                let firstName = fullName?.givenName ?? "Jhon"
-                let lastName = fullName?.familyName ?? "Doe"
-
-                if let _ = fullName?.givenName {
-                    sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: false)
+                    self.sendRequest(code: response.authorizationCode, identityToken: response.identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: { result in
+                        switch result {
+                        case .success(let appleResponse):
+                            self.completion?(.success(appleResponse))
+                        case .failure(let error):
+                            self.completion?(.failure(error))
+                        }
+                    }, skipUser: fullName?.givenName == nil)
                 } else {
-                    sendRequest(code: authorizationCode, identityToken: identityToken, email: email ?? "", firstName: firstName, lastName: lastName, completion: errorCompletion, skipUser: true)
-                }
-            } else {
-                do {
-                    try self.persistState(idToken: identityToken, refreshToken: "", accessToken: "")
-                    let appleResponse = AppleProviderResponse(identityToken: identityToken)
-                    completion?(.success(appleResponse))
-                    return
-                } catch {
-                    completion?(.failure(AppleProviderError.specificJsonWritingError(error)))
-                    return
+                    do {
+                        try self.persistState(idToken: response.identityToken, refreshToken: "", accessToken: "")
+                        self.completion?(.success(response))
+                    } catch {
+                        self.completion?(.failure(AppleProviderError.specificJsonWritingError(error)))
+                    }
                 }
             }
-            // completion?(.success(response))
         }
     }
 
@@ -365,7 +368,14 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
                                 do {
                                     try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
-                                    let appleResponse = AppleProviderResponse(identityToken: idToken)
+                                    let appleResponse = AppleProviderResponse(
+                                        user: "", // We don't have this information at this point
+                                        email: nil, // We don't have this information at this point
+                                        givenName: nil, // We don't have this information at this point
+                                        familyName: nil, // We don't have this information at this point
+                                        identityToken: idToken,
+                                        authorizationCode: "" // We don't have this information at this point
+                                    )
                                     completion(.success(appleResponse))
                                     return
                                 } catch {
@@ -375,8 +385,14 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                             }
 
                             if (pathComponents.filter { $0.name == "ios_no_code" }).first != nil {
-                                // identityToken provided by apple
-                                let appleResponse = AppleProviderResponse(identityToken: identityToken)
+                                let appleResponse = AppleProviderResponse(
+                                    user: "", // You might want to extract this from the identityToken
+                                    email: email,
+                                    givenName: firstName,
+                                    familyName: lastName,
+                                    identityToken: identityToken,
+                                    authorizationCode: code
+                                )
 
                                 do {
                                     try self.persistState(idToken: identityToken, refreshToken: "", accessToken: "")
@@ -470,7 +486,14 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                        let userData = try? JSONSerialization.jsonObject(with: decodedData, options: []) as? [String: Any],
                        let userId = userData["sub"] as? String {
                         // Create the response object
-                        let appleResponse = AppleProviderResponse(identityToken: idToken)
+                        let appleResponse = AppleProviderResponse(
+                            user: userId,
+                            email: nil, // You might want to extract this from the idToken if available
+                            givenName: nil,
+                            familyName: nil,
+                            identityToken: idToken,
+                            authorizationCode: code
+                        )
 
                         // Log the tokens (replace with your logging mechanism)
                         print("Apple Access Token is: \(accessToken)")
@@ -512,5 +535,26 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         return UIApplication.shared.windows.first!
+    }
+
+    func persistUserInfo(userInfo: AppleProviderResponse) {
+        let encoder = JSONEncoder()
+        if let encoded = try? encoder.encode(userInfo) {
+            UserDefaults.standard.set(encoded, forKey: USER_INFO_KEY)
+            print("Successfully saved user info locally")
+        }
+    }
+
+    func retrieveUserInfo(completion: @escaping (AppleProviderResponse?) -> Void) {
+        if let savedUserInfo = UserDefaults.standard.object(forKey: USER_INFO_KEY) as? Data {
+            let decoder = JSONDecoder()
+            if let loadedUserInfo = try? decoder.decode(AppleProviderResponse.self, from: savedUserInfo) {
+                completion(loadedUserInfo)
+            } else {
+                completion(nil)
+            }
+        } else {
+            completion(nil)
+        }
     }
 }

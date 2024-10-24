@@ -199,7 +199,23 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         case "apple":
             apple.getCurrentUser { result in
-                self.handleCurrentUserResult(result, call: call)
+                switch result {
+                case .success(let appleResponse):
+                    if let response = appleResponse {
+                        call.resolve([
+                            "user": response.user,
+                            "email": response.email ?? "",
+                            "givenName": response.givenName ?? "",
+                            "familyName": response.familyName ?? "",
+                            "identityToken": response.identityToken,
+                            "authorizationCode": response.authorizationCode
+                        ])
+                    } else {
+                        call.resolve([:])
+                    }
+                case .failure(let error):
+                    call.reject(error.localizedDescription)
+                }
             }
         default:
             call.reject("Invalid provider")
@@ -280,10 +296,16 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         switch result {
         case .success(let response):
             if let appleResponse = response as? AppleProviderResponse {
+                // The user info is already persisted in the AppleProvider class
                 call.resolve([
                     "provider": "apple",
                     "result": [
-                        "identityToken": appleResponse.identityToken
+                        "user": appleResponse.user,
+                        "email": appleResponse.email ?? "",
+                        "givenName": appleResponse.givenName ?? "",
+                        "familyName": appleResponse.familyName ?? "",
+                        "identityToken": appleResponse.identityToken,
+                        "authorizationCode": appleResponse.authorizationCode
                     ]
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {

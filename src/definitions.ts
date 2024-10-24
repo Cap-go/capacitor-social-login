@@ -4,6 +4,10 @@ export interface InitializeOptions {
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
      */
     appId: string;
+    /**
+     * Facebook Client Token, provided by Facebook for web, in mobile it's set in the native files
+     */
+    clientToken: string;
   };
 
   google?: {

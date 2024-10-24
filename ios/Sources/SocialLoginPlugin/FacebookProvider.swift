@@ -52,10 +52,20 @@ class FacebookProvider {
             return
         }
 
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Check if a user is already logged in
+            if AccessToken.current != nil {
+                // User is already logged in, return current session info
+                let response = self.createLoginResponse()
+                completion(.success(response))
+                return
+            }
+            
             self.loginManager.logIn(configuration: configuration) { result in
                 switch result {
-                case .success:
+                case .success(_, _, _):
                     let response = self.createLoginResponse()
                     completion(.success(response))
                 case .failed(let error):
@@ -63,7 +73,6 @@ class FacebookProvider {
                 case .cancelled:
                     completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Login cancelled"])))
                 }
-
             }
         }
     }
@@ -123,28 +132,32 @@ class FacebookProvider {
     }
 
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
-        loginManager.logOut()
-        completion(.success(()))
+        DispatchQueue.main.async { [weak self] in
+            self?.loginManager.logOut()
+            completion(.success(()))
+        }
     }
 
     func getCurrentUser(completion: @escaping (Result<[String: Any]?, Error>) -> Void) {
-        if let accessToken = AccessToken.current {
-            let response: [String: Any] = [
-                "accessToken": [
-                    "applicationID": accessToken.appID,
-                    "declinedPermissions": accessToken.declinedPermissions.map { $0.name },
-                    "expirationDate": accessToken.expirationDate,
-                    "isExpired": accessToken.isExpired,
-                    "refreshDate": accessToken.refreshDate,
-                    "permissions": accessToken.permissions.map { $0.name },
-                    "tokenString": accessToken.tokenString,
-                    "userID": accessToken.userID
-                ],
-                "profile": [:]
-            ]
-            completion(.success(response))
-        } else {
-            completion(.success(nil))
+        DispatchQueue.main.async {
+            if let accessToken = AccessToken.current {
+                let response: [String: Any] = [
+                    "accessToken": [
+                        "applicationID": accessToken.appID,
+                        "declinedPermissions": accessToken.declinedPermissions.map { $0.name },
+                        "expirationDate": accessToken.expirationDate,
+                        "isExpired": accessToken.isExpired,
+                        "refreshDate": accessToken.refreshDate,
+                        "permissions": accessToken.permissions.map { $0.name },
+                        "tokenString": accessToken.tokenString,
+                        "userID": accessToken.userID
+                    ],
+                    "profile": [:]
+                ]
+                completion(.success(response))
+            } else {
+                completion(.success(nil))
+            }
         }
     }
 
