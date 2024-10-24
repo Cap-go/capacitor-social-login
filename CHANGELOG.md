@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.53](https://github.com/Cap-go/capacitor-social-login/compare/0.0.52...0.0.53) (2024-10-24)
+
+
+### Bug Fixes
+
+* add missing refreshToken ([04ab619](https://github.com/Cap-go/capacitor-social-login/commit/04ab619d320e9a6ebe7c08984ca4189e257e46e1))
+
 ### [0.0.52](https://github.com/Cap-go/capacitor-social-login/compare/0.0.51...0.0.52) (2024-10-24)
 
 
