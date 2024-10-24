@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.49](https://github.com/Cap-go/capacitor-social-login/compare/0.0.48...0.0.49) (2024-10-24)
+
+
+### Bug Fixes
+
+* use latest of gms lib ([340557c](https://github.com/Cap-go/capacitor-social-login/commit/340557ce0ab036904afca740d3c04a35a46f90aa))
+
 ### [0.0.48](https://github.com/Cap-go/capacitor-social-login/compare/0.0.47...0.0.48) (2024-10-24)
 
 
