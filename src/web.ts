@@ -10,6 +10,8 @@ import type {
   AppleProviderResponse,
   isLoggedInOptions,
   AuthorizationCodeOptions,
+  FacebookLoginOptions,
+  FacebookLoginResponse,
 } from "./definitions";
 
 // Add this declaration at the top of the file
@@ -27,6 +29,23 @@ declare const google: {
 
 declare const AppleID: any;
 
+declare const FB: {
+  init(options: any): void;
+  login(
+    callback: (response: { status: string; authResponse: { accessToken: string; userID: string } }) => void,
+    options?: { scope: string }
+  ): void;
+  logout(callback: () => void): void;
+  api(
+    path: string,
+    params: { fields: string },
+    callback: (response: any) => void
+  ): void;
+  getLoginStatus(
+    callback: (response: { status: string; authResponse?: { accessToken: string } }) => void
+  ): void;
+};
+
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private googleClientId: string | null = null;
   private appleClientId: string | null = null;
@@ -34,6 +53,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private appleScriptLoaded = false;
   private appleScriptUrl =
     "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+  private facebookAppId: string | null = null;
+  private facebookScriptLoaded = false;
 
   async initialize(options: InitializeOptions): Promise<void> {
     if (options.google?.webClientId) {
@@ -44,6 +65,16 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       this.appleClientId = options.apple.clientId;
       await this.loadAppleScript();
     }
+    if (options.facebook?.appId) {
+      this.facebookAppId = options.facebook.appId;
+      await this.loadFacebookScript();
+      FB.init({
+        appId: this.facebookAppId,
+        version: 'v17.0',
+        xfbml: true,
+        cookie: true,
+      });
+    }
     // Implement initialization for other providers if needed
   }
 
@@ -52,6 +83,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       return this.loginWithGoogle(options.options);
     } else if (options.provider === "apple") {
       return this.loginWithApple(options.options);
+    } else if (options.provider === "facebook") {
+      return this.loginWithFacebook(options.options as FacebookLoginOptions);
     }
     // Implement login for other providers
     throw new Error(`Login for ${options.provider} is not implemented on web`);
@@ -75,9 +108,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         );
         break;
       case "facebook":
-        // Implement Facebook logout when Facebook login is added
-        console.log("Facebook logout not implemented");
-        break;
+        return new Promise<void>((resolve) => {
+          FB.logout(() => resolve());
+        });
       default:
         throw new Error(`Logout for ${options.provider} is not implemented`);
     }
@@ -96,9 +129,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         console.log("Apple login status should be managed on the client side");
         return { isLoggedIn: false };
       case "facebook":
-        // Implement Facebook isLoggedIn when Facebook login is added
-        console.log("Facebook isLoggedIn not implemented");
-        return { isLoggedIn: false };
+        return new Promise((resolve) => {
+          FB.getLoginStatus((response) => {
+            resolve({ isLoggedIn: response.status === 'connected' });
+          });
+        });
       default:
         throw new Error(
           `isLoggedIn for ${options.provider} is not implemented`,
@@ -122,9 +157,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         console.log("Apple authorization code should be stored during login");
         throw new Error("Apple authorization code not available");
       case "facebook":
-        // Implement Facebook getAuthorizationCode when Facebook login is added
-        console.log("Facebook getAuthorizationCode not implemented");
-        throw new Error("Facebook authorization code not available");
+        return new Promise((resolve, reject) => {
+          FB.getLoginStatus((response) => {
+            if (response.status === 'connected') {
+              resolve({ jwt: response.authResponse?.accessToken || "" });
+            } else {
+              reject(new Error("No Facebook authorization code available"));
+            }
+          });
+        });
       default:
         throw new Error(
           `getAuthorizationCode for ${options.provider} is not implemented`,
@@ -143,8 +184,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         console.log("Apple refresh not available on web");
         break;
       case "facebook":
-        // Implement Facebook refresh when Facebook login is added
-        console.log("Facebook refresh not implemented");
+        await this.loginWithFacebook(options.options as FacebookLoginOptions);
         break;
       default:
         throw new Error(`Refresh for ${options.provider} is not implemented`);
@@ -291,6 +331,61 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           resolve(null);
         }
       });
+    });
+  }
+
+  private async loadFacebookScript(): Promise<void> {
+    if (this.facebookScriptLoaded) return;
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        this.facebookScriptLoaded = true;
+        resolve();
+      };
+      script.onerror = reject;
+      document.body.appendChild(script);
+    });
+  }
+
+  private async loginWithFacebook(options: FacebookLoginOptions): Promise<LoginResult> {
+    if (!this.facebookAppId) {
+      throw new Error("Facebook App ID not set. Call initialize() first.");
+    }
+
+    return new Promise((resolve, reject) => {
+      FB.login((response) => {
+        if (response.status === 'connected') {
+          FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
+            const result: FacebookLoginResponse = {
+              accessToken: {
+                token: response.authResponse.accessToken,
+                userId: response.authResponse.userID,
+              },
+              profile: {
+                userID: userInfo.id,
+                name: userInfo.name,
+                email: userInfo.email || null,
+                imageURL: userInfo.picture?.data?.url || null,
+                friendIDs: [],
+                birthday: null,
+                ageRange: null,
+                gender: null,
+                location: null,
+                hometown: null,
+                profileURL: null,
+              },
+              authenticationToken: null,
+            };
+            resolve({ provider: "facebook", result });
+          });
+        } else {
+          reject(new Error("Facebook login failed"));
+        }
+      }, { scope: options.permissions.join(',') });
     });
   }
 }
