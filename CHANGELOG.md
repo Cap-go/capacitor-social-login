@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.50](https://github.com/Cap-go/capacitor-social-login/compare/0.0.49...0.0.50) (2024-10-24)
+
+
+### Bug Fixes
+
+* facebook login Android ([b344396](https://github.com/Cap-go/capacitor-social-login/commit/b344396e7c8261477acf69573284c529712995a4))
+
 ### [0.0.49](https://github.com/Cap-go/capacitor-social-login/compare/0.0.48...0.0.49) (2024-10-24)
 
 
