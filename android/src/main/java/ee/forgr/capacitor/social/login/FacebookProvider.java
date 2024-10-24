@@ -30,7 +30,6 @@ public class FacebookProvider implements SocialProvider {
 
   private Activity activity;
   private CallbackManager callbackManager;
-  private PluginCall savedCall;
 
   public FacebookProvider(Activity activity) {
     this.activity = activity;
@@ -76,7 +75,6 @@ public class FacebookProvider implements SocialProvider {
 
   @Override
   public void login(PluginCall call, JSONObject config) {
-    this.savedCall = call;
     try {
         Collection<String> permissions = JsonHelper.jsonArrayToList(
             config.getJSONArray("permissions")
@@ -94,19 +92,19 @@ public class FacebookProvider implements SocialProvider {
                     result.put("accessToken", createAccessTokenObject(accessToken));
                     result.put("authenticationToken", loginResult.getAuthenticationToken() != null ? loginResult.getAuthenticationToken().getToken() : null);
                     // TODO: Fetch profile information and add it to the result
-                    savedCall.resolve(result);
+                    call.resolve(result);
                 }
 
                 @Override
                 public void onCancel() {
                     Log.d(LOG_TAG, "LoginManager.onCancel");
-                    savedCall.reject("Login cancelled");
+                    call.reject("Login cancelled");
                 }
 
                 @Override
                 public void onError(FacebookException exception) {
                     Log.e(LOG_TAG, "LoginManager.onError", exception);
-                    savedCall.reject(exception.getMessage());
+                    call.reject(exception.getMessage());
                 }
             });
 
@@ -122,7 +120,7 @@ public class FacebookProvider implements SocialProvider {
             loginManager.logIn((ActivityResultRegistryOwner) activity, callbackManager, permissions);
         }
     } catch (JSONException e) {
-        savedCall.reject("Invalid login options format");
+        call.reject("Invalid login options format");
     }
   }
 
