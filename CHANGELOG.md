@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.61](https://github.com/Cap-go/capacitor-social-login/compare/0.0.60...0.0.61) (2024-10-25)
+
+
+### Bug Fixes
+
+* allow scope in Apple Android ([8bce71d](https://github.com/Cap-go/capacitor-social-login/commit/8bce71da15f75f57e90acae415a67144bd55e3b4))
+
 ### [0.0.60](https://github.com/Cap-go/capacitor-social-login/compare/0.0.59...0.0.60) (2024-10-25)
 
 ### [0.0.59](https://github.com/Cap-go/capacitor-social-login/compare/0.0.58...0.0.59) (2024-10-25)
