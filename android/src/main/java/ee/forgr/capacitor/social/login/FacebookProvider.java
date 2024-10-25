@@ -90,9 +90,14 @@ public class FacebookProvider implements SocialProvider {
                     AccessToken accessToken = loginResult.getAccessToken();
                     JSObject result = new JSObject();
                     result.put("accessToken", createAccessTokenObject(accessToken));
+                    result.put("profile", createProfileObject(accessToken));
                     result.put("authenticationToken", loginResult.getAuthenticationToken() != null ? loginResult.getAuthenticationToken().getToken() : null);
-                    // TODO: Fetch profile information and add it to the result
-                    call.resolve(result);
+                    
+                    JSObject response = new JSObject();
+                    response.put("provider", "facebook");
+                    response.put("result", result);
+                    
+                    call.resolve(response);
                 }
 
                 @Override
@@ -217,5 +222,37 @@ public class FacebookProvider implements SocialProvider {
     tokenObject.put("token", accessToken.getToken());
     tokenObject.put("userId", accessToken.getUserId());
     return tokenObject;
+  }
+
+  private JSObject createProfileObject(AccessToken accessToken) {
+    JSObject profileObject = new JSObject();
+    GraphRequest request = GraphRequest.newMeRequest(
+      accessToken,
+      new GraphRequest.GraphJSONObjectCallback() {
+        @Override
+        public void onCompleted(JSONObject object, GraphResponse response) {
+          if (response.getError() != null) {
+            Log.e(LOG_TAG, "Error fetching profile", response.getError().getException());
+          } else {
+            try {
+              profileObject.put("userID", object.optString("id"));
+              profileObject.put("email", object.optString("email"));
+              profileObject.put("name", object.optString("name"));
+              profileObject.put("imageURL", object.optJSONObject("picture")
+                .optJSONObject("data")
+                .optString("url"));
+              // Add other fields as needed
+            } catch (JSONException e) {
+              Log.e(LOG_TAG, "Error parsing profile data", e);
+            }
+          }
+        }
+      }
+    );
+    Bundle parameters = new Bundle();
+    parameters.putString("fields", "id,name,email,picture.type(large)");
+    request.setParameters(parameters);
+    request.executeAndWait();
+    return profileObject;
   }
 }

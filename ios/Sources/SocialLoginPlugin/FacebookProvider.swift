@@ -7,9 +7,44 @@ import FacebookLogin
 #endif
 
 struct FacebookLoginResponse {
-    let accessToken: [String: Any]
-    let profile: [String: Any]
+    let accessToken: AccessToken?
+    let profile: FacebookProfile
     let authenticationToken: String?
+}
+
+struct AccessToken {
+    let applicationId: String?
+    let declinedPermissions: [String]?
+    let expires: String?
+    let isExpired: Bool?
+    let lastRefresh: String?
+    let permissions: [String]?
+    let token: String
+    let userId: String?
+}
+
+struct FacebookProfile {
+    let userID: String
+    let email: String?
+    let friendIDs: [String]
+    let birthday: String?
+    let ageRange: AgeRange?
+    let gender: String?
+    let location: Location?
+    let hometown: Location?
+    let profileURL: String?
+    let name: String?
+    let imageURL: String?
+}
+
+struct AgeRange {
+    let min: Int?
+    let max: Int?
+}
+
+struct Location {
+    let id: String
+    let name: String
 }
 
 class FacebookProvider {
@@ -81,30 +116,32 @@ class FacebookProvider {
         let profile = Profile.current
         let authToken = AuthenticationToken.current
 
-        let accessToken: [String: Any] = [
-            "applicationID": AccessToken.current?.appID ?? "",
-            "declinedPermissions": AccessToken.current?.declinedPermissions.map { $0.name } ?? [],
-            "expirationDate": AccessToken.current?.expirationDate ?? Date(),
-            "isExpired": AccessToken.current?.isExpired ?? false,
-            "refreshDate": AccessToken.current?.refreshDate ?? Date(),
-            "permissions": AccessToken.current?.permissions.map { $0.name } ?? [],
-            "tokenString": AccessToken.current?.tokenString ?? "",
-            "userID": AccessToken.current?.userID ?? ""
-        ]
+        let accessToken = AccessToken.current.map { token in
+            AccessToken(
+                applicationId: token.appID,
+                declinedPermissions: token.declinedPermissions.map { $0.name },
+                expires: dateToJS(token.expirationDate),
+                isExpired: token.isExpired,
+                lastRefresh: dateToJS(token.refreshDate),
+                permissions: token.permissions.map { $0.name },
+                token: token.tokenString,
+                userId: token.userID
+            )
+        }
 
-        let profileData: [String: Any] = [
-            "userID": profile?.userID ?? "",
-            "email": profile?.email ?? "",
-            "friendIDs": profile?.friendIDs ?? [],
-            "birthday": profile?.birthday ?? "",
-            "ageRange": profile?.ageRange.flatMap(ageRangeToDictionary) ?? [:],
-            "gender": profile?.gender ?? "",
-            "location": profile?.location.flatMap(locationToDictionary) ?? [:],
-            "hometown": profile?.hometown.flatMap(locationToDictionary) ?? [:],
-            "profileURL": profile?.linkURL?.absoluteString ?? "",
-            "name": profile?.name ?? "",
-            "imageURL": profile?.imageURL?.absoluteString ?? ""
-        ]
+        let profileData = FacebookProfile(
+            userID: profile?.userID ?? "",
+            email: profile?.email,
+            friendIDs: profile?.friendIDs ?? [],
+            birthday: profile?.birthday,
+            ageRange: profile?.ageRange.map { AgeRange(min: $0.min?.intValue, max: $0.max?.intValue) },
+            gender: profile?.gender,
+            location: profile?.location.map { Location(id: $0.id, name: $0.name) },
+            hometown: profile?.hometown.map { Location(id: $0.id, name: $0.name) },
+            profileURL: profile?.linkURL?.absoluteString,
+            name: profile?.name,
+            imageURL: profile?.imageURL?.absoluteString
+        )
 
         return FacebookLoginResponse(
             accessToken: accessToken,
