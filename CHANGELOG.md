@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.55](https://github.com/Cap-go/capacitor-social-login/compare/0.0.54...0.0.55) (2024-10-25)
+
+
+### Bug Fixes
+
+* add missing persistState ([3cfe7d9](https://github.com/Cap-go/capacitor-social-login/commit/3cfe7d9fd014fb82f693dabdd2014ab2e37125e0))
+
 ### [0.0.54](https://github.com/Cap-go/capacitor-social-login/compare/0.0.53...0.0.54) (2024-10-25)
 
 
