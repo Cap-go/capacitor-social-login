@@ -3,12 +3,22 @@ import AuthenticationServices
 import Alamofire
 
 struct AppleProviderResponse: Codable {
+    let accessToken: AccessToken?
+    let profile: AppleProfile
+    let identityToken: String?
+    let authorizationCode: String?
+}
+
+struct AppleProfile: Codable {
     let user: String
     let email: String?
     let givenName: String?
     let familyName: String?
-    let identityToken: String
-    let authorizationCode: String
+}
+
+struct AccessToken: Codable {
+    let token: String
+    // Add other fields if needed
 }
 
 // Define the Decodable structs for the response
@@ -80,7 +90,7 @@ extension AppleProviderError: LocalizedError {
 }
 
 class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    private var completion: ((Result<AppleProviderResponse, Error>) -> Void)?
+    private var completion: ((Result<[String: Any], Error>) -> Void)?
 
     // Instance variables
     var idToken: String?
@@ -168,7 +178,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         print("Apple retrieveState: \(object)")
     }
 
-    func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
+    func login(payload: [String: Any], completion: @escaping (Result<[String: Any], Error>) -> Void) {
         self.completion = completion
 
         let appleIDProvider = ASAuthorizationAppleIDProvider()
@@ -244,10 +254,13 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
             retrieveUserInfo { savedUserInfo in
                 let response = AppleProviderResponse(
-                    user: userIdentifier,
-                    email: email ?? savedUserInfo?.email,
-                    givenName: fullName?.givenName ?? savedUserInfo?.givenName,
-                    familyName: fullName?.familyName ?? savedUserInfo?.familyName,
+                    accessToken: AccessToken(token: ""), // You might need to implement this
+                    profile: AppleProfile(
+                        user: userIdentifier,
+                        email: email ?? savedUserInfo?.email,
+                        givenName: fullName?.givenName ?? savedUserInfo?.givenName,
+                        familyName: fullName?.familyName ?? savedUserInfo?.familyName
+                    ),
                     identityToken: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
                     authorizationCode: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
                 )
@@ -369,10 +382,13 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                 do {
                                     try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
                                     let appleResponse = AppleProviderResponse(
-                                        user: "", // We don't have this information at this point
-                                        email: nil, // We don't have this information at this point
-                                        givenName: nil, // We don't have this information at this point
-                                        familyName: nil, // We don't have this information at this point
+                                        accessToken: AccessToken(token: ""), // You might need to implement this
+                                        profile: AppleProfile(
+                                            user: "", // We don't have this information at this point
+                                            email: nil, // We don't have this information at this point
+                                            givenName: nil, // We don't have this information at this point
+                                            familyName: nil // We don't have this information at this point
+                                        ),
                                         identityToken: idToken,
                                         authorizationCode: "" // We don't have this information at this point
                                     )
@@ -386,10 +402,13 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
                             if (pathComponents.filter { $0.name == "ios_no_code" }).first != nil {
                                 let appleResponse = AppleProviderResponse(
-                                    user: "", // You might want to extract this from the identityToken
-                                    email: email,
-                                    givenName: firstName,
-                                    familyName: lastName,
+                                    accessToken: AccessToken(token: ""), // You might need to implement this
+                                    profile: AppleProfile(
+                                        user: "", // You might want to extract this from the identityToken
+                                        email: email,
+                                        givenName: firstName,
+                                        familyName: lastName
+                                    ),
                                     identityToken: identityToken,
                                     authorizationCode: code
                                 )
@@ -487,10 +506,13 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                        let userId = userData["sub"] as? String {
                         // Create the response object
                         let appleResponse = AppleProviderResponse(
-                            user: userId,
-                            email: nil, // You might want to extract this from the idToken if available
-                            givenName: nil,
-                            familyName: nil,
+                            accessToken: AccessToken(token: ""), // You might need to implement this
+                            profile: AppleProfile(
+                                user: userId,
+                                email: nil, // You might want to extract this from the idToken if available
+                                givenName: nil,
+                                familyName: nil
+                            ),
                             identityToken: idToken,
                             authorizationCode: code
                         )

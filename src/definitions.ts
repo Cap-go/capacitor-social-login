@@ -119,11 +119,14 @@ export interface AppleProviderOptions {
 }
 
 export interface AppleProviderResponse {
-  user: string | null;
-  email: string | null;
-  givenName: string | null;
-  familyName: string | null;
-  identityToken: string | null;
+  accessToken: AccessToken | null;
+  profile: {
+    user: string;
+    email: string | null;
+    givenName: string | null;
+    familyName: string | null;
+  };
+  idToken: string | null;
   authorizationCode: string | null;
 }
 

@@ -177,45 +177,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    @objc func getCurrentUser(_ call: CAPPluginCall) {
-        guard let provider = call.getString("provider") else {
-            call.reject("Missing provider")
-            return
-        }
-
-        switch provider {
-        case "facebook":
-            facebook.getCurrentUser { result in
-                self.handleCurrentUserResult(result, call: call)
-            }
-        case "google":
-            google.getCurrentUser { result in
-                self.handleCurrentUserResult(result, call: call)
-            }
-        case "apple":
-            apple.getCurrentUser { result in
-                switch result {
-                case .success(let appleResponse):
-                    if let response = appleResponse {
-                        call.resolve([
-                            "user": response.user,
-                            "email": response.email ?? "",
-                            "givenName": response.givenName ?? "",
-                            "familyName": response.familyName ?? "",
-                            "identityToken": response.identityToken,
-                            "authorizationCode": response.authorizationCode
-                        ])
-                    } else {
-                        call.resolve([:])
-                    }
-                case .failure(let error):
-                    call.reject(error.localizedDescription)
-                }
-            }
-        default:
-            call.reject("Invalid provider")
-        }
-    }
 
     @objc func refresh(_ call: CAPPluginCall) {
         guard let provider = call.getString("provider") else {
@@ -291,14 +252,27 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         switch result {
         case .success(let response):
             if let appleResponse = response as? AppleProviderResponse {
-                let appleResult: [String: Any] = [
-                    "user": appleResponse.user,
-                    "email": appleResponse.email ?? "",
-                    "givenName": appleResponse.givenName ?? "",
-                    "familyName": appleResponse.familyName ?? "",
-                    "identityToken": appleResponse.identityToken,
-                    "authorizationCode": appleResponse.authorizationCode
+                let accessTokenObject = appleResponse.accessToken.map { accessToken in
+                    [
+                        "token": accessToken.token,
+                        // Add other AccessToken fields if needed
+                    ]
+                }
+                
+                let profileObject: [String: Any] = [
+                    "user": appleResponse.profile.user,
+                    "email": appleResponse.profile.email ?? "",
+                    "givenName": appleResponse.profile.givenName ?? "",
+                    "familyName": appleResponse.profile.familyName ?? ""
                 ]
+                
+                let appleResult: [String: Any] = [
+                    "accessToken": accessTokenObject ?? NSNull(),
+                    "profile": profileObject,
+                    "idToken": appleResponse.identityToken ?? "",
+                    "authorizationCode": appleResponse.authorizationCode ?? ""
+                ]
+                
                 call.resolve([
                     "provider": "apple",
                     "result": appleResult

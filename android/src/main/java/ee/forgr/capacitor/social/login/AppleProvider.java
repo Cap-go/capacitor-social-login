@@ -231,7 +231,16 @@ public class AppleProvider implements SocialProvider {
 
   @Override
   public void getCurrentUser(PluginCall call) {
-    call.reject("Not implemented");
+    if (this.idToken != null && !this.idToken.isEmpty()) {
+      JSObject result = new JSObject();
+      result.put("accessToken", createAccessTokenObject(this.accessToken));
+      result.put("profile", createProfileObject(this.idToken));
+      result.put("idToken", this.idToken);
+      result.put("authorizationCode", ""); // Apple doesn't provide this after initial login
+      call.resolve(result);
+    } else {
+      call.reject("Not logged in");
+    }
   }
 
   @Override
@@ -249,16 +258,20 @@ public class AppleProvider implements SocialProvider {
         String idToken = uri.getQueryParameter("id_token");
         try {
           persistState(idToken, refreshToken, accessToken);
-          this.lastcall.resolve(
-              new JSObject()
-                .put("provider", "apple")
-                .put("result", new JSObject().put("identityToken", idToken))
-            );
-          this.lastcall = null;
+          JSObject result = new JSObject();
+          result.put("accessToken", createAccessTokenObject(accessToken));
+          result.put("profile", createProfileObject(idToken));
+          result.put("idToken", idToken);
+          result.put("authorizationCode", ""); // Apple doesn't provide this in the response
+
+          JSObject response = new JSObject();
+          response.put("provider", "apple");
+          response.put("result", result);
+
+          this.lastcall.resolve(response);
         } catch (JSONException e) {
           Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", e);
           this.lastcall.reject("Cannot persist state", e);
-          this.lastcall = null;
         }
       } else {
         String appleAuthCode = uri.getQueryParameter("code");
@@ -267,8 +280,8 @@ public class AppleProvider implements SocialProvider {
       }
     } else {
       this.lastcall.reject("We couldn't get the Auth Code");
-      this.lastcall = null;
     }
+    this.lastcall = null;
   }
 
   private void requestForAccessToken(String code, String clientSecret) {
@@ -378,5 +391,33 @@ public class AppleProvider implements SocialProvider {
     );
 
     builder.build().launchUrl(context, Uri.parse(url));
+  }
+
+  private JSObject createAccessTokenObject(String accessToken) {
+    JSObject tokenObject = new JSObject();
+    tokenObject.put("token", accessToken);
+    // Add other fields if available
+    return tokenObject;
+  }
+
+  private JSObject createProfileObject(String idToken) {
+    JSObject profileObject = new JSObject();
+    // Parse the ID token to extract user information
+    // This is a simplified example. In practice, you should properly decode and verify the JWT.
+    String[] parts = idToken.split("\\.");
+    if (parts.length == 3) {
+      try {
+        String payload = new String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE));
+        JSONObject claims = new JSONObject(payload);
+        profileObject.put("user", claims.optString("sub"));
+        profileObject.put("email", claims.optString("email"));
+        // Apple doesn't provide given name and family name in the ID token
+        profileObject.put("givenName", JSONObject.NULL);
+        profileObject.put("familyName", JSONObject.NULL);
+      } catch (JSONException e) {
+        Log.e(LOG_TAG, "Error parsing ID token", e);
+      }
+    }
+    return profileObject;
   }
 }
