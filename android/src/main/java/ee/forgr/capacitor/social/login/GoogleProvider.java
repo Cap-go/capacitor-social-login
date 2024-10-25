@@ -19,7 +19,6 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.android.gms.auth.GoogleAuthException;
 import com.google.android.gms.auth.GoogleAuthUtil;
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
@@ -326,44 +325,6 @@ public class GoogleProvider implements SocialProvider {
   public void isLoggedIn(PluginCall call) {
     call.resolve(
       new JSObject().put("isLoggedIn", GoogleProvider.this.idToken != null)
-    );
-  }
-
-  @Override
-  public void getCurrentUser(PluginCall call) {
-    GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
-      .setFilterByAuthorizedAccounts(true)
-      .setServerClientId(this.clientId)
-      .build();
-    GetCredentialRequest request = new GetCredentialRequest.Builder()
-      .addCredentialOption(googleIdOption)
-      .build();
-
-    Executor executor = Executors.newSingleThreadExecutor();
-    credentialManager.getCredentialAsync(
-      context,
-      request,
-      null,
-      executor,
-      new CredentialManagerCallback<
-        GetCredentialResponse,
-        GetCredentialException
-      >() {
-        @Override
-        public void onResult(GetCredentialResponse result) {
-          try {
-            JSObject user = handleSignInResult(result);
-            call.resolve(user);
-          } catch (JSONException e) {
-            call.reject("Error creating user object: " + e.getMessage());
-          }
-        }
-
-        @Override
-        public void onError(GetCredentialException e) {
-          call.reject("No current user: " + e.getMessage());
-        }
-      }
     );
   }
 

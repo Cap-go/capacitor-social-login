@@ -8,6 +8,5 @@ public interface SocialProvider {
   void logout(PluginCall call);
   void getAuthorizationCode(PluginCall call);
   void isLoggedIn(PluginCall call);
-  void getCurrentUser(PluginCall call);
   void refresh(PluginCall call);
 }

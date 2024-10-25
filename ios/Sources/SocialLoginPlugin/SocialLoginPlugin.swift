@@ -269,7 +269,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 let appleResult: [String: Any] = [
                     "accessToken": accessTokenObject ?? NSNull(),
                     "profile": profileObject,
-                    "idToken": appleResponse.identityToken ?? "",
+                    "idToken": appleResponse.idToken ?? "",
                     "authorizationCode": appleResponse.authorizationCode ?? ""
                 ]
                 

@@ -108,14 +108,6 @@ class GoogleProvider {
         }
     }
 
-    func getCurrentUser(completion: @escaping (Result<GoogleLoginResponse?, Error>) -> Void) {
-        if let user = GIDSignIn.sharedInstance.currentUser {
-            completion(.success(createLoginResponse(user: user)))
-        } else {
-            completion(.success(nil))
-        }
-    }
-
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.main.async {
             guard let currentUser = GIDSignIn.sharedInstance.currentUser else {

@@ -103,7 +103,9 @@ export interface GoogleLoginResponse {
 export interface AppleProviderOptions {
   /**
    * Scopes
-   * @description select scopes to login with
+   * @description An array of scopes to request during login
+   * @example ["name", "email"]
+   * default: ["name", "email"]
    */
   scopes?: string[];
   /**

@@ -43,13 +43,14 @@ import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
 public class AppleProvider implements SocialProvider {
 
-  private static final String SCOPE = "name%20email";
+  private static final String DEFAULT_SCOPE = "name%20email";
   private static final String AUTHURL =
     "https://appleid.apple.com/auth/authorize";
   private static final String TOKENURL = "https://appleid.apple.com/auth/token";
@@ -164,13 +165,27 @@ public class AppleProvider implements SocialProvider {
     }
 
     String state = UUID.randomUUID().toString();
+    
+    // Extract scopes from config
+    String scopes = DEFAULT_SCOPE;
+    if (config.has("scopes")) {
+      try {
+        JSONArray scopesArray = config.getJSONArray("scopes");
+        if (scopesArray.length() > 0) {
+          scopes = String.join("%20", toStringArray(scopesArray));
+        }
+      } catch (JSONException e) {
+        Log.e(SocialLoginPlugin.LOG_TAG, "Error parsing scopes", e);
+      }
+    }
+
     this.appleAuthURLFull = AUTHURL +
     "?client_id=" +
     this.clientId +
     "&redirect_uri=" +
     this.redirectUrl +
     "&response_type=code&scope=" +
-    SCOPE +
+    scopes +
     "&response_mode=form_post&state=" +
     state;
 
@@ -226,20 +241,6 @@ public class AppleProvider implements SocialProvider {
       }
     } else {
       call.resolve(new JSObject().put("isLoggedIn", false));
-    }
-  }
-
-  @Override
-  public void getCurrentUser(PluginCall call) {
-    if (this.idToken != null && !this.idToken.isEmpty()) {
-      JSObject result = new JSObject();
-      result.put("accessToken", createAccessTokenObject(this.accessToken));
-      result.put("profile", createProfileObject(this.idToken));
-      result.put("idToken", this.idToken);
-      result.put("authorizationCode", ""); // Apple doesn't provide this after initial login
-      call.resolve(result);
-    } else {
-      call.reject("Not logged in");
     }
   }
 
@@ -419,5 +420,14 @@ public class AppleProvider implements SocialProvider {
       }
     }
     return profileObject;
+  }
+
+  // Helper method to convert JSONArray to String array
+  private String[] toStringArray(JSONArray array) throws JSONException {
+    String[] stringArray = new String[array.length()];
+    for (int i = 0; i < array.length(); i++) {
+      stringArray[i] = array.getString(i);
+    }
+    return stringArray;
   }
 }

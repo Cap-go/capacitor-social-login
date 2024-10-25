@@ -155,45 +155,6 @@ public class FacebookProvider implements SocialProvider {
   }
 
   @Override
-  public void getCurrentUser(PluginCall call) {
-    AccessToken accessToken = AccessToken.getCurrentAccessToken();
-    if (accessToken == null) {
-      call.reject(
-        "You're not logged in. Call FacebookLogin.login() first to obtain an access token."
-      );
-      return;
-    }
-
-    if (accessToken.isExpired()) {
-      call.reject("AccessToken is expired.");
-      return;
-    }
-
-    GraphRequest graphRequest = GraphRequest.newMeRequest(
-      accessToken,
-      new GraphRequest.GraphJSONObjectCallback() {
-        @Override
-        public void onCompleted(JSONObject object, GraphResponse response) {
-          if (response.getError() != null) {
-            call.reject(response.getError().getErrorMessage());
-          } else {
-            try {
-              call.resolve(JSObject.fromJSONObject(object));
-            } catch (JSONException e) {
-              call.reject("Error parsing user data: " + e.getMessage());
-            }
-          }
-        }
-      }
-    );
-
-    Bundle parameters = new Bundle();
-    parameters.putString("fields", "id,name,email");
-    graphRequest.setParameters(parameters);
-    graphRequest.executeAsync();
-  }
-
-  @Override
   public void refresh(PluginCall call) {
     // Not implemented for Facebook
     call.reject("Not implemented");
@@ -234,17 +195,18 @@ public class FacebookProvider implements SocialProvider {
           if (response.getError() != null) {
             Log.e(LOG_TAG, "Error fetching profile", response.getError().getException());
           } else {
-            try {
-              profileObject.put("userID", object.optString("id"));
-              profileObject.put("email", object.optString("email"));
-              profileObject.put("name", object.optString("name"));
-              profileObject.put("imageURL", object.optJSONObject("picture")
-                .optJSONObject("data")
-                .optString("url"));
+              profileObject.put("userID", object.optString("id", ""));
+              profileObject.put("email", object.optString("email", ""));
+              profileObject.put("name", object.optString("name", ""));
+
+              JSONObject pictureObject = object.optJSONObject("picture");
+              if (pictureObject != null) {
+                JSONObject dataObject = pictureObject.optJSONObject("data");
+                if (dataObject != null) {
+                  profileObject.put("imageURL", dataObject.optString("url", ""));
+                }
+              }
               // Add other fields as needed
-            } catch (JSONException e) {
-              Log.e(LOG_TAG, "Error parsing profile data", e);
-            }
           }
         }
       }
