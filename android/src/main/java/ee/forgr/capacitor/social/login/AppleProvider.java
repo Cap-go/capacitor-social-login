@@ -50,6 +50,7 @@ import org.json.JSONTokener;
 
 public class AppleProvider implements SocialProvider {
 
+  private static final String LOG_TAG = "AppleProvider";
   private static final String DEFAULT_SCOPE = "name%20email";
   private static final String AUTHURL =
     "https://appleid.apple.com/auth/authorize";
