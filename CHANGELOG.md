@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.54](https://github.com/Cap-go/capacitor-social-login/compare/0.0.53...0.0.54) (2024-10-25)
+
+
+### Features
+
+* add scopes for google auth ([750e4e7](https://github.com/Cap-go/capacitor-social-login/commit/750e4e70fbcff01dfdfb04e0184edecadadee1f7))
+
 ### [0.0.53](https://github.com/Cap-go/capacitor-social-login/compare/0.0.52...0.0.53) (2024-10-24)
 
 
