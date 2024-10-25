@@ -166,7 +166,7 @@ public class AppleProvider implements SocialProvider {
     }
 
     String state = UUID.randomUUID().toString();
-    
+
     // Extract scopes from config
     String scopes = DEFAULT_SCOPE;
     if (config.has("scopes")) {
@@ -409,7 +409,9 @@ public class AppleProvider implements SocialProvider {
     String[] parts = idToken.split("\\.");
     if (parts.length == 3) {
       try {
-        String payload = new String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE));
+        String payload = new String(
+          android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE)
+        );
         JSONObject claims = new JSONObject(payload);
         profileObject.put("user", claims.optString("sub"));
         profileObject.put("email", claims.optString("email"));

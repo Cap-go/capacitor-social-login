@@ -32,17 +32,23 @@ declare const AppleID: any;
 declare const FB: {
   init(options: any): void;
   login(
-    callback: (response: { status: string; authResponse: { accessToken: string; userID: string } }) => void,
-    options?: { scope: string }
+    callback: (response: {
+      status: string;
+      authResponse: { accessToken: string; userID: string };
+    }) => void,
+    options?: { scope: string },
   ): void;
   logout(callback: () => void): void;
   api(
     path: string,
     params: { fields: string },
-    callback: (response: any) => void
+    callback: (response: any) => void,
   ): void;
   getLoginStatus(
-    callback: (response: { status: string; authResponse?: { accessToken: string } }) => void
+    callback: (response: {
+      status: string;
+      authResponse?: { accessToken: string };
+    }) => void,
   ): void;
 };
 
@@ -70,7 +76,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       await this.loadFacebookScript();
       FB.init({
         appId: this.facebookAppId,
-        version: 'v17.0',
+        version: "v17.0",
         xfbml: true,
         cookie: true,
       });
@@ -131,7 +137,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       case "facebook":
         return new Promise((resolve) => {
           FB.getLoginStatus((response) => {
-            resolve({ isLoggedIn: response.status === 'connected' });
+            resolve({ isLoggedIn: response.status === "connected" });
           });
         });
       default:
@@ -159,7 +165,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       case "facebook":
         return new Promise((resolve, reject) => {
           FB.getLoginStatus((response) => {
-            if (response.status === 'connected') {
+            if (response.status === "connected") {
               resolve({ jwt: response.authResponse?.accessToken || "" });
             } else {
               reject(new Error("No Facebook authorization code available"));
@@ -338,8 +344,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (this.facebookScriptLoaded) return;
 
     return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://connect.facebook.net/en_US/sdk.js';
+      const script = document.createElement("script");
+      script.src = "https://connect.facebook.net/en_US/sdk.js";
       script.async = true;
       script.defer = true;
       script.onload = () => {
@@ -351,41 +357,50 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     });
   }
 
-  private async loginWithFacebook(options: FacebookLoginOptions): Promise<LoginResult> {
+  private async loginWithFacebook(
+    options: FacebookLoginOptions,
+  ): Promise<LoginResult> {
     if (!this.facebookAppId) {
       throw new Error("Facebook App ID not set. Call initialize() first.");
     }
 
     return new Promise((resolve, reject) => {
-      FB.login((response) => {
-        if (response.status === 'connected') {
-          FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
-            const result: FacebookLoginResponse = {
-              accessToken: {
-                token: response.authResponse.accessToken,
-                userId: response.authResponse.userID,
+      FB.login(
+        (response) => {
+          if (response.status === "connected") {
+            FB.api(
+              "/me",
+              { fields: "id,name,email,picture" },
+              (userInfo: any) => {
+                const result: FacebookLoginResponse = {
+                  accessToken: {
+                    token: response.authResponse.accessToken,
+                    userId: response.authResponse.userID,
+                  },
+                  profile: {
+                    userID: userInfo.id,
+                    name: userInfo.name,
+                    email: userInfo.email || null,
+                    imageURL: userInfo.picture?.data?.url || null,
+                    friendIDs: [],
+                    birthday: null,
+                    ageRange: null,
+                    gender: null,
+                    location: null,
+                    hometown: null,
+                    profileURL: null,
+                  },
+                  authenticationToken: null,
+                };
+                resolve({ provider: "facebook", result });
               },
-              profile: {
-                userID: userInfo.id,
-                name: userInfo.name,
-                email: userInfo.email || null,
-                imageURL: userInfo.picture?.data?.url || null,
-                friendIDs: [],
-                birthday: null,
-                ageRange: null,
-                gender: null,
-                location: null,
-                hometown: null,
-                profileURL: null,
-              },
-              authenticationToken: null,
-            };
-            resolve({ provider: "facebook", result });
-          });
-        } else {
-          reject(new Error("Facebook login failed"));
-        }
-      }, { scope: options.permissions.join(',') });
+            );
+          } else {
+            reject(new Error("Facebook login failed"));
+          }
+        },
+        { scope: options.permissions.join(",") },
+      );
     });
   }
 }
