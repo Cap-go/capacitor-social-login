@@ -174,6 +174,7 @@ public class GoogleProvider implements SocialProvider {
             GoogleIdTokenCredential.createFrom(credential.getData());
           String idToken = googleIdTokenCredential.getIdToken();
           resultObj.put("idToken", idToken);
+          persistState(idToken);
 
           // Use ExecutorService to retrieve the access token
           ExecutorService executor = Executors.newSingleThreadExecutor();
