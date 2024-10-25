@@ -375,6 +375,7 @@ Refresh the access token
 | **`lastRefresh`**         | <code>string</code>   |
 | **`permissions`**         | <code>string[]</code> |
 | **`token`**               | <code>string</code>   |
+| **`refreshToken`**        | <code>string</code>   |
 | **`userId`**              | <code>string</code>   |
 
 
@@ -389,14 +390,12 @@ Refresh the access token
 
 #### AppleProviderResponse
 
-| Prop                    | Type                        |
-| ----------------------- | --------------------------- |
-| **`user`**              | <code>string \| null</code> |
-| **`email`**             | <code>string \| null</code> |
-| **`givenName`**         | <code>string \| null</code> |
-| **`familyName`**        | <code>string \| null</code> |
-| **`identityToken`**     | <code>string \| null</code> |
-| **`authorizationCode`** | <code>string \| null</code> |
+| Prop                    | Type                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **`accessToken`**       | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                  |
+| **`profile`**           | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> |
+| **`idToken`**           | <code>string \| null</code>                                                                                  |
+| **`authorizationCode`** | <code>string \| null</code>                                                                                  |
 
 
 #### LoginOptions
