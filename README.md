@@ -15,11 +15,6 @@ This plugin implement social auth for:
 
 We plan in the future to keep adding others social login and make this plugin the all in one solution.
 
-FAQ:
-
-- Do we support web login?
-=> Not yet but PR are welcome, our focus is the native part for now as any Web sdk will work for web
-
 ## Install
 
 ```bash
