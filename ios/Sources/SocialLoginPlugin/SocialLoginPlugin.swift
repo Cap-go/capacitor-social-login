@@ -22,15 +22,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let google = GoogleProvider()
 
     @objc func initialize(_ call: CAPPluginCall) {
-        guard let options = call.options else {
-            call.reject("Missing options")
-            return
-        }
-
         var initialized = false
 
         if let facebookSettings = call.getObject("facebook") {
-            if let facebookAppId = facebookSettings["appId"] as? String {
+            if facebookSettings["appId"] is String {
                 facebook.initialize()
                 initialized = true
             }
@@ -280,9 +275,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             if let user = response as? SocialLoginUser {
                 call.resolve([
                     "accessToken": user.accessToken,
-                    "idToken": user.idToken ?? "",
-                    "refreshToken": user.refreshToken ?? "",
-                    "expiresIn": user.expiresIn ?? 0
+                    "idToken": user.idToken as Any,
+                    "refreshToken": user.refreshToken as Any,
+                    "expiresIn": user.expiresIn as Any
                 ])
             } else {
                 call.reject("User not logged in")
@@ -296,47 +291,50 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         switch result {
         case .success(let response):
             if let appleResponse = response as? AppleProviderResponse {
-                // The user info is already persisted in the AppleProvider class
+                let appleResult: [String: Any] = [
+                    "user": appleResponse.user,
+                    "email": appleResponse.email ?? "",
+                    "givenName": appleResponse.givenName ?? "",
+                    "familyName": appleResponse.familyName ?? "",
+                    "identityToken": appleResponse.identityToken,
+                    "authorizationCode": appleResponse.authorizationCode
+                ]
                 call.resolve([
                     "provider": "apple",
-                    "result": [
-                        "user": appleResponse.user,
-                        "email": appleResponse.email ?? "",
-                        "givenName": appleResponse.givenName ?? "",
-                        "familyName": appleResponse.familyName ?? "",
-                        "identityToken": appleResponse.identityToken,
-                        "authorizationCode": appleResponse.authorizationCode
-                    ]
+                    "result": appleResult
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {
+                let accessToken: [String: Any] = [
+                    "token": googleResponse.authentication.accessToken,
+                    "refreshToken": googleResponse.authentication.refreshToken as Any,
+                    "userId": googleResponse.id ?? ""
+                ]
+                let profile: [String: Any] = [
+                    "email": googleResponse.email ?? "",
+                    "familyName": googleResponse.familyName ?? "",
+                    "givenName": googleResponse.givenName ?? "",
+                    "id": googleResponse.id ?? "",
+                    "name": googleResponse.name ?? "",
+                    "imageUrl": googleResponse.imageUrl ?? ""
+                ]
+                let googleResult: [String: Any] = [
+                    "accessToken": accessToken,
+                    "idToken": googleResponse.authentication.idToken ?? "",
+                    "profile": profile
+                ]
                 call.resolve([
                     "provider": "google",
-                    "result": [
-                        "accessToken": [
-                            "token": googleResponse.authentication.accessToken,
-                            "refreshToken": googleResponse.authentication.refreshToken,
-                            "userId": googleResponse.id ?? ""
-                        ],
-                        "idToken": googleResponse.authentication.idToken ?? "",
-                        //      ""
-                        "profile": [
-                            "email": googleResponse.email ?? "",
-                            "familyName": googleResponse.familyName ?? "",
-                            "givenName": googleResponse.givenName ?? "",
-                            "id": googleResponse.id ?? "",
-                            "name": googleResponse.name ?? "",
-                            "imageUrl": googleResponse.imageUrl ?? ""
-                        ]
-                    ]
+                    "result": googleResult
                 ])
             } else if let facebookResponse = response as? FacebookLoginResponse {
+                let facebookResult: [String: Any] = [
+                    "accessToken": facebookResponse.accessToken,
+                    "profile": facebookResponse.profile,
+                    "authenticationToken": facebookResponse.authenticationToken ?? ""
+                ]
                 call.resolve([
                     "provider": "facebook",
-                    "result": [
-                        "accessToken": facebookResponse.accessToken,
-                        "profile": facebookResponse.profile,
-                        "authenticationToken": facebookResponse.authenticationToken ?? ""
-                    ]
+                    "result": facebookResult
                 ])
             } else {
                 call.reject("Unsupported provider response")
