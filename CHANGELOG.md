@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.63](https://github.com/Cap-go/capacitor-social-login/compare/0.0.62...0.0.63) (2024-10-26)
+
+
+### Bug Fixes
+
+* add missing scope for web ([c41abe8](https://github.com/Cap-go/capacitor-social-login/commit/c41abe8386a3ea28ee533b81aa381ba7a2903df6))
+
 ### [0.0.62](https://github.com/Cap-go/capacitor-social-login/compare/0.0.61...0.0.62) (2024-10-25)
 
 
