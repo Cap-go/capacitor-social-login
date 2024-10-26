@@ -226,8 +226,6 @@ public class GoogleProvider implements SocialProvider {
                     .addHeader("Authorization", "Bearer " + accessToken.token)
                     .build();
 
-                  Log.i("T", request.toString());
-
                   client
                     .newCall(request)
                     .enqueue(
@@ -598,9 +596,5 @@ public class GoogleProvider implements SocialProvider {
 
     String token;
     // Add other fields as needed (expires, isExpired, etc.)
-  }
-
-  public static interface TriFunction<A, B, C> {
-    void call(A a, B b, C c);
   }
 }
