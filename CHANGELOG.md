@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.64](https://github.com/Cap-go/capacitor-social-login/compare/0.0.63...0.0.64) (2024-10-26)
+
+
+### Bug Fixes
+
+* issue with data format ([4410c7a](https://github.com/Cap-go/capacitor-social-login/commit/4410c7a0d5e3bff61a3081ee137d28907485dbc5))
+
 ### [0.0.63](https://github.com/Cap-go/capacitor-social-login/compare/0.0.62...0.0.63) (2024-10-26)
 
 
