@@ -89,7 +89,7 @@ export interface GoogleLoginOptions {
 
 export interface GoogleLoginResponse {
   accessToken: AccessToken | null;
-  idToken: string | null;
+  serverAuthCode: string | null;
   profile: {
     email: string | null;
     familyName: string | null;
@@ -97,7 +97,7 @@ export interface GoogleLoginResponse {
     id: string | null;
     name: string | null;
     imageUrl: string | null;
-  };
+  } | null;
 }
 
 export interface AppleProviderOptions {

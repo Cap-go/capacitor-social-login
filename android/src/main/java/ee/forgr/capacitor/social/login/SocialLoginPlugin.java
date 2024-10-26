@@ -10,6 +10,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import org.json.JSONObject;
 
 @CapacitorPlugin(name = "SocialLogin")
@@ -54,6 +56,11 @@ public class SocialLoginPlugin extends Plugin {
 
     JSObject google = call.getObject("google");
     if (google != null) {
+      if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
+        call.reject("Android version to small");
+        return;
+      }
+
       GoogleProvider googleProvider = new GoogleProvider(
         this.getActivity(),
         this.getContext()
@@ -191,6 +198,25 @@ public class SocialLoginPlugin extends Plugin {
       ((AppleProvider) provider).handleIntent(intent);
     } catch (Throwable t) {
       Log.e(SocialLoginPlugin.LOG_TAG, "Cannot handle apple login intent");
+    }
+  }
+
+  public void handleGoogleLoginIntent(int requestCode, Intent intent) {
+    try {
+      SocialProvider provider = socialProviderHashMap.get("google");
+      if (!(provider instanceof GoogleProvider)) {
+        Log.e(
+          SocialLoginPlugin.LOG_TAG,
+          "Provider is not a Google provider (could be null)"
+        );
+        return;
+      }
+      ((GoogleProvider) provider).handleAuthorizationIntent(
+          requestCode,
+          intent
+        );
+    } catch (Throwable t) {
+      Log.e(SocialLoginPlugin.LOG_TAG, "Cannot handle Google login intent");
     }
   }
 
