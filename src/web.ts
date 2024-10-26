@@ -25,6 +25,16 @@ declare const google: {
       }): void;
       prompt(callback: (notification: any) => void): void;
     };
+    oauth2: {
+      initTokenClient(config: {
+        client_id: string;
+        callback: (response: any) => void;
+        auto_select?: boolean;
+        scope: string
+      }): {
+        requestAccessToken(): void;
+      };
+    }
   };
 };
 
@@ -203,7 +213,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
 
-    const scopes = options.scopes || [];
+    const scopes = options.scopes || ["email", "profile"];
 
     if (scopes.length > 0) {
       // If scopes are provided, directly use the traditional OAuth flow
@@ -432,7 +442,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             // Process the response similar to One Tap
             const payload = this.parseJwt(response.access_token);
             const result: GoogleLoginResponse = {
-              accessToken: response.access_token,
+              accessToken: {
+                token: response.access_token
+              },
               idToken: null, // Traditional OAuth doesn't provide id_token by default
               profile: {
                 email: payload.email || null,
