@@ -21,6 +21,7 @@ declare const google: {
       initialize(config: {
         client_id: string;
         callback: (response: any) => void;
+        auto_select?: boolean;
       }): void;
       prompt(callback: (notification: any) => void): void;
     };
@@ -198,9 +199,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   private async loginWithGoogle(options: any): Promise<LoginResult> {
-    console.log("isLoggedIn", options);
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
+    }
+
+    const scopes = options.scopes || [];
+
+    if (scopes.length > 0) {
+      // If scopes are provided, directly use the traditional OAuth flow
+      return this.fallbackToTraditionalOAuth(scopes);
     }
 
     return new Promise((resolve, reject) => {
@@ -227,13 +234,17 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             resolve({ provider: "google", result });
           }
         },
+        auto_select: true
       });
 
       google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           console.log("OneTap is not displayed or skipped");
+          // Fallback to traditional OAuth if One Tap is not available
+          this.fallbackToTraditionalOAuth(scopes).then(resolve).catch(reject);
+        } else {
+          console.log("OneTap is displayed");
         }
-        console.log("OneTap is displayed");
       });
     });
   }
@@ -291,13 +302,18 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         .signIn()
         .then((res: any) => {
           const result: AppleProviderResponse = {
-            user: res.user?.name?.firstName
+            profile: {
+              user: res.user?.name?.firstName
               ? `${res.user.name.firstName} ${res.user.name.lastName}`
-              : null,
-            email: res.user?.email || null,
-            givenName: res.user?.name?.firstName || null,
-            familyName: res.user?.name?.lastName || null,
-            identityToken: res.authorization.id_token || null,
+              : "",
+              email: res.user?.email || null,
+              givenName: res.user?.name?.firstName || null,
+              familyName: res.user?.name?.lastName || null,
+            },
+            accessToken: {
+              token:  "", // TODO: to fix and find the correct token
+            },
+            idToken: res.authorization.id_token || null,
             authorizationCode: res.authorization.code || null,
           };
           resolve({ provider: "apple", result });
@@ -401,6 +417,37 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         },
         { scope: options.permissions.join(",") },
       );
+    });
+  }
+
+  private async fallbackToTraditionalOAuth(scopes: string[]): Promise<LoginResult> {
+    return new Promise((resolve, reject) => {
+      const auth2 = google.accounts.oauth2.initTokenClient({
+        client_id: this.googleClientId!,
+        scope: scopes.join(' '),
+        callback: (response) => {
+          if (response.error) {
+            reject(response.error);
+          } else {
+            // Process the response similar to One Tap
+            const payload = this.parseJwt(response.access_token);
+            const result: GoogleLoginResponse = {
+              accessToken: response.access_token,
+              idToken: null, // Traditional OAuth doesn't provide id_token by default
+              profile: {
+                email: payload.email || null,
+                familyName: payload.family_name || null,
+                givenName: payload.given_name || null,
+                id: payload.sub || null,
+                name: payload.name || null,
+                imageUrl: payload.picture || null,
+              },
+            };
+            resolve({ provider: "google", result });
+          }
+        },
+      });
+      auth2.requestAccessToken();
     });
   }
 }
