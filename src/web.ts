@@ -6,27 +6,12 @@ import type {
   LoginOptions,
   LoginResult,
   AuthorizationCode,
-  GoogleLoginResponse,
   AppleProviderResponse,
   isLoggedInOptions,
   AuthorizationCodeOptions,
   FacebookLoginOptions,
   FacebookLoginResponse,
 } from "./definitions";
-
-// Add this declaration at the top of the file
-declare const google: {
-  accounts: {
-    id: {
-      initialize(config: {
-        client_id: string;
-        callback: (response: any) => void;
-        auto_select?: boolean;
-      }): void;
-      prompt(callback: (notification: any) => void): void;
-    };
-  };
-};
 
 declare const AppleID: any;
 
@@ -203,64 +188,125 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
 
-    const scopes = options.scopes || [];
+    let scopes = options.scopes || [];
 
     if (scopes.length > 0) {
       // If scopes are provided, directly use the traditional OAuth flow
-      return this.fallbackToTraditionalOAuth(scopes);
+      return Promise.reject("Not yet implemented");
+    } else {
+      scopes = [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "openid",
+      ];
     }
 
     return new Promise((resolve, reject) => {
-      google.accounts.id.initialize({
+      const auth2 = google.accounts.oauth2.initTokenClient({
         client_id: this.googleClientId!,
-        callback: (response) => {
-          console.log("google.accounts.id.initialize callback", response);
+        scope: scopes.join(" "),
+        callback: async (response) => {
           if (response.error) {
             reject(response.error);
           } else {
-            const payload = this.parseJwt(response.credential);
-            const result: GoogleLoginResponse = {
-              accessToken: null,
-              idToken: response.credential,
-              profile: {
-                email: payload.email || null,
-                familyName: payload.family_name || null,
-                givenName: payload.given_name || null,
-                id: payload.sub || null,
-                name: payload.name || null,
-                imageUrl: payload.picture || null,
-              },
-            };
-            resolve({ provider: "google", result });
+            // Process the response similar to One Tap
+            const accessToken = response.access_token;
+            try {
+              const profileRes = await fetch(
+                "https://openidconnect.googleapis.com/v1/userinfo",
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                  },
+                },
+              );
+
+              if (!profileRes.ok) {
+                reject(
+                  new Error(
+                    `Profile response is not OK. Status: ${profileRes.status}`,
+                  ),
+                );
+                return;
+              }
+
+              function isString(value: any): value is string {
+                return typeof value === "string";
+              }
+
+              const jsonObject = await profileRes.json();
+              // Assuming jsonObject is of type any or a specific interface
+              let name: string;
+              let givenName: string;
+              let familyName: string;
+              let picture: string;
+              let email: string;
+              let sub: string;
+
+              if (isString(jsonObject.name)) {
+                name = jsonObject.name;
+              } else {
+                throw new Error('Invalid or missing "name" property.');
+              }
+
+              if (isString(jsonObject.given_name)) {
+                givenName = jsonObject.given_name;
+              } else {
+                throw new Error('Invalid or missing "given_name" property.');
+              }
+
+              if (isString(jsonObject.family_name)) {
+                familyName = jsonObject.family_name;
+              } else {
+                throw new Error('Invalid or missing "family_name" property.');
+              }
+
+              if (isString(jsonObject.picture)) {
+                picture = jsonObject.picture;
+              } else {
+                throw new Error('Invalid or missing "picture" property.');
+              }
+
+              if (isString(jsonObject.email)) {
+                email = jsonObject.email;
+              } else {
+                throw new Error('Invalid or missing "email" property.');
+              }
+
+              if (isString(jsonObject.sub)) {
+                sub = jsonObject.sub;
+              } else {
+                throw new Error('Invalid or missing "sub" property.');
+              }
+
+              // Assuming profile is an object of a specific interface or type
+              const profile = {
+                email: email,
+                familyName: familyName,
+                givenName: givenName,
+                id: sub,
+                name: name,
+                imageUrl: picture,
+              };
+
+              resolve({
+                provider: "google",
+                result: {
+                  accessToken: {
+                    token: accessToken,
+                  },
+                  profile,
+                  serverAuthCode: null,
+                },
+              });
+            } catch (e) {
+              reject(e);
+            }
           }
         },
-        auto_select: true
       });
-
-      google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.log("OneTap is not displayed or skipped");
-          // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth(scopes).then(resolve).catch(reject);
-        } else {
-          console.log("OneTap is displayed");
-        }
-      });
+      auth2.requestAccessToken();
     });
-  }
-
-  private parseJwt(token: string) {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join(""),
-    );
-    return JSON.parse(jsonPayload);
   }
 
   private async loadGoogleScript(): Promise<void> {
@@ -304,14 +350,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           const result: AppleProviderResponse = {
             profile: {
               user: res.user?.name?.firstName
-              ? `${res.user.name.firstName} ${res.user.name.lastName}`
-              : "",
+                ? `${res.user.name.firstName} ${res.user.name.lastName}`
+                : "",
               email: res.user?.email || null,
               givenName: res.user?.name?.firstName || null,
               familyName: res.user?.name?.lastName || null,
             },
             accessToken: {
-              token:  "", // TODO: to fix and find the correct token
+              token: "", // TODO: to fix and find the correct token
             },
             idToken: res.authorization.id_token || null,
             authorizationCode: res.authorization.code || null,
@@ -417,37 +463,6 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         },
         { scope: options.permissions.join(",") },
       );
-    });
-  }
-
-  private async fallbackToTraditionalOAuth(scopes: string[]): Promise<LoginResult> {
-    return new Promise((resolve, reject) => {
-      const auth2 = google.accounts.oauth2.initTokenClient({
-        client_id: this.googleClientId!,
-        scope: scopes.join(' '),
-        callback: (response) => {
-          if (response.error) {
-            reject(response.error);
-          } else {
-            // Process the response similar to One Tap
-            const payload = this.parseJwt(response.access_token);
-            const result: GoogleLoginResponse = {
-              accessToken: response.access_token,
-              idToken: null, // Traditional OAuth doesn't provide id_token by default
-              profile: {
-                email: payload.email || null,
-                familyName: payload.family_name || null,
-                givenName: payload.given_name || null,
-                id: payload.sub || null,
-                name: payload.name || null,
-                imageUrl: payload.picture || null,
-              },
-            };
-            resolve({ provider: "google", result });
-          }
-        },
-      });
-      auth2.requestAccessToken();
     });
   }
 }
