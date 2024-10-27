@@ -84,7 +84,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             self.google.getAuthorizationCode { res in
                 do {
                     let authorizationCode = try res.get()
-                    call.resolve([ "jwt": authorizationCode ])
+                    call.resolve([ "accessToken": authorizationCode ])
                 } catch {
                     call.reject(error.localizedDescription)
                 }
