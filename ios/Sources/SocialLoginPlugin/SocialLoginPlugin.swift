@@ -280,6 +280,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             } else if let googleResponse = response as? GoogleLoginResponse {
                 let accessToken: [String: Any] = [
                     "token": googleResponse.accessToken.token,
+                    "expires": String(describing: googleResponse.accessToken.expires)
                 ]
                 let profile: [String: Any]? = googleResponse.profile != nil ? [
                     "email": googleResponse.profile!.email,

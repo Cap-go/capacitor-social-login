@@ -31,13 +31,19 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -60,6 +66,8 @@ public class GoogleProvider implements SocialProvider {
   private static final Integer FUTURE_LIST_LENGTH = 128;
   private static final String USERINFO_URL =
     "https://openidconnect.googleapis.com/v1/userinfo";
+  private static final String TOKEN_REQUEST_URL =
+    "https://www.googleapis.com/oauth2/v3/tokeninfo";
 
   public static final Integer REQUEST_AUTHORIZE_GOOGLE_MIN = 583892990;
   public static final Integer REQUEST_AUTHORIZE_GOOGLE_MAX =
@@ -226,6 +234,160 @@ public class GoogleProvider implements SocialProvider {
                     .addHeader("Authorization", "Bearer " + accessToken.token)
                     .build();
 
+                  CompletableFuture<Date> tokenExpiresIn =
+                    new CompletableFuture<>();
+                  Request tokenRequest = new Request.Builder()
+                    .url(
+                      TOKEN_REQUEST_URL +
+                      "?" +
+                      "access_token=" +
+                      accessToken.token
+                    )
+                    .get()
+                    .build();
+
+                  client
+                    .newCall(tokenRequest)
+                    .enqueue(
+                      new Callback() {
+                        @Override
+                        public void onFailure(
+                          @NonNull Call call,
+                          @NonNull IOException e
+                        ) {}
+
+                        @Override
+                        public void onResponse(
+                          @NonNull Call httpCall,
+                          @NonNull Response httpResponse
+                        ) throws IOException {
+                          if (!httpResponse.isSuccessful()) {
+                            tokenExpiresIn.completeExceptionally(
+                              new RuntimeException(
+                                String.format(
+                                  "Invalid response from %s. Response not successful. Status code: %s",
+                                  TOKEN_REQUEST_URL,
+                                  httpResponse.code()
+                                )
+                              )
+                            );
+                            Log.e(
+                              LOG_TAG,
+                              String.format(
+                                "Invalid response from %s. Response not successful. Status code: %s",
+                                TOKEN_REQUEST_URL,
+                                httpResponse.code()
+                              )
+                            );
+                            return;
+                          }
+
+                          ResponseBody responseBody = httpResponse.body();
+                          if (responseBody == null) {
+                            tokenExpiresIn.completeExceptionally(
+                              new RuntimeException(
+                                String.format(
+                                  "Invalid response from %s. Response body is null",
+                                  TOKEN_REQUEST_URL
+                                )
+                              )
+                            );
+                            Log.e(
+                              LOG_TAG,
+                              String.format(
+                                "Invalid response from %s. Response body is null",
+                                TOKEN_REQUEST_URL
+                              )
+                            );
+                            return;
+                          }
+
+                          String responseString = responseBody.string();
+                          JSONObject jsonObject;
+                          try {
+                            jsonObject = (JSONObject) new JSONTokener(
+                              responseString
+                            ).nextValue();
+                          } catch (JSONException e) {
+                            tokenExpiresIn.completeExceptionally(
+                              new RuntimeException(
+                                String.format(
+                                  "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                  TOKEN_REQUEST_URL,
+                                  e
+                                )
+                              )
+                            );
+                            Log.e(
+                              LOG_TAG,
+                              String.format(
+                                "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                TOKEN_REQUEST_URL,
+                                e
+                              )
+                            );
+                            return;
+                          }
+
+                          String expiresIn;
+                          try {
+                            expiresIn = jsonObject.getString("expires_in");
+                          } catch (JSONException e) {
+                            tokenExpiresIn.completeExceptionally(
+                              new RuntimeException(
+                                String.format(
+                                  "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                                  TOKEN_REQUEST_URL,
+                                  e
+                                )
+                              )
+                            );
+                            Log.e(
+                              LOG_TAG,
+                              String.format(
+                                "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                                TOKEN_REQUEST_URL,
+                                e
+                              )
+                            );
+                            return;
+                          }
+
+                          Integer expressInInt;
+                          try {
+                            expressInInt = Integer.parseInt(expiresIn);
+                          } catch (Exception e) {
+                            tokenExpiresIn.completeExceptionally(
+                              new RuntimeException(
+                                String.format(
+                                  "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                                  TOKEN_REQUEST_URL,
+                                  expiresIn,
+                                  e
+                                )
+                              )
+                            );
+                            Log.e(
+                              LOG_TAG,
+                              String.format(
+                                "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                                TOKEN_REQUEST_URL,
+                                expiresIn,
+                                e
+                              )
+                            );
+                            return;
+                          }
+
+                          Date instant = new Date();
+                          Calendar calendar = Calendar.getInstance();
+                          calendar.setTime(instant);
+                          calendar.add(Calendar.SECOND, expressInInt);
+                          tokenExpiresIn.complete(calendar.getTime());
+                        }
+                      }
+                    );
+
                   client
                     .newCall(request)
                     .enqueue(
@@ -309,6 +471,26 @@ public class GoogleProvider implements SocialProvider {
                               String email = jsonObject.getString("email");
                               String sub = jsonObject.getString("sub");
 
+                              // now, let's try to get the expiry
+                              try {
+                                Date expiryDate = tokenExpiresIn.get(
+                                  5,
+                                  TimeUnit.SECONDS
+                                );
+                                long seconds =
+                                  (expiryDate.getTime() -
+                                    (new Date()).getTime()) /
+                                  1000;
+                                accessToken.expires = String.valueOf(seconds);
+                              } catch (
+                                ExecutionException
+                                | InterruptedException
+                                | TimeoutException e
+                              ) {
+                                Log.e(LOG_TAG, "Cannot get expiry date", e);
+                                // it's a non-fatal error
+                              }
+
                               profile.put("email", email);
                               profile.put("familyName", familyName);
                               profile.put("givenName", givenName);
@@ -318,6 +500,12 @@ public class GoogleProvider implements SocialProvider {
 
                               JSObject accessTokenObj = new JSObject();
                               accessTokenObj.put("token", accessToken.token);
+                              if (accessToken.expires != null) {
+                                accessTokenObj.put(
+                                  "expires",
+                                  accessToken.expires
+                                );
+                              }
 
                               resultObj.put("accessToken", accessTokenObj);
                               resultObj.put("profile", profile);
@@ -595,6 +783,7 @@ public class GoogleProvider implements SocialProvider {
   private static class AccessToken {
 
     String token;
+    String expires;
     // Add other fields as needed (expires, isExpired, etc.)
   }
 }

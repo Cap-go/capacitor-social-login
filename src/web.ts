@@ -294,6 +294,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                 result: {
                   accessToken: {
                     token: accessToken,
+                    expires: response.expires_in, //expires_in = seconds until the token expirers
                   },
                   profile,
                   serverAuthCode: null,

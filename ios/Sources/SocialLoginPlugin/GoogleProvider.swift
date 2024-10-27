@@ -154,7 +154,8 @@ class GoogleProvider {
             switch response.result {
                 
             case .success(let result):
-                completion(.success(GoogleLoginResponse(accessToken: GoogleLoginResponse.Authentication(token: user.accessToken.tokenString), profile: GoogleLoginResponse.Profile(email: result.email, familyName: result.family_name, givenName: result.given_name, id: result.sub, name: result.name, imageUrl: result.picture))))
+                var expires = abs((user.accessToken.expirationDate ?? Date()).timeIntervalSince(Date()))
+                completion(.success(GoogleLoginResponse(accessToken: GoogleLoginResponse.Authentication(token: user.accessToken.tokenString, expires: Int64(expires)), profile: GoogleLoginResponse.Profile(email: result.email, familyName: result.family_name, givenName: result.given_name, id: result.sub, name: result.name, imageUrl: result.picture))))
             case .failure(let err):
                 completion(.failure(err))
             }
@@ -182,6 +183,7 @@ struct GoogleLoginResponse {
 
     struct Authentication {
         let token: String
+        let expires: Int64
     }
     
     struct Profile {
