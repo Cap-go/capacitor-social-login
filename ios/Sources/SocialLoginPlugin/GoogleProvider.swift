@@ -19,6 +19,7 @@ class GoogleProvider {
     var additionalScopes: [String]!
     var defaultGrantedScopes = ["email", "profile", "openid"]
     var USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+    var TOKEN_REQUEST_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo"
 
     func initialize(clientId: String, serverClientId: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
@@ -99,9 +100,20 @@ class GoogleProvider {
 
     func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
         DispatchQueue.main.async {
-            if let currentUser = GIDSignIn.sharedInstance.currentUser, let idToken = currentUser.idToken?.tokenString {
-                completion(.success(idToken))
-                return
+            if let user = GIDSignIn.sharedInstance.currentUser {
+                user.refreshTokensIfNeeded { user, error in
+                    guard error == nil else {
+                        completion(.failure(error!))
+                        return
+                    }
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User guard failed??"])))
+                        return
+                    }
+                    
+                    completion(.success(user.accessToken.tokenString))
+                    return
+                }
             }
             if GIDSignIn.sharedInstance.hasPreviousSignIn() {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
@@ -109,17 +121,58 @@ class GoogleProvider {
                         completion(.failure(error))
                         return
                     }
-                    if let user = user, let idToken = user.idToken?.tokenString {
-                        completion(.success(idToken))
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "2nd User guard failed??"])))
                         return
                     }
-                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                    
+                    user.refreshTokensIfNeeded { user, error in
+                        guard error == nil else {
+                            completion(.failure(error!))
+                            return
+                        }
+                        guard let user = user else {
+                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "3rd user guard failed??"])))
+                            return
+                        }
+                        
+                        completion(.success(user.accessToken.tokenString))
+                        return
+                    }
                 }
             } else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User is not logged in"])))
             }
         }
     }
+    
+//    func accessTokenIsValid(accessToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+//        AF.request(
+//            "\(TOKEN_REQUEST_URL)?access_token=\(accessToken)",
+//            method: .get
+//        )
+//        .validate(statusCode: 200..<300) // Ensure the response status code is in the 200-299 range
+//        .responseDecodable(of: GoogleTokenInfoResponse.self) { response in
+//            switch response.result {
+//                
+//            case .success(let result):
+//                guard let expires_in = Int64(result.expires_in) else {
+//                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "expires_in is not a number"])))
+//                    return
+//                }
+//                completion(.success(expires_in > 5))
+//            case .failure(let err):
+//                if let statusCode = response.response?.statusCode {
+//                    if statusCode != 200 {
+//                        print("[GoogleProvider] Invalid response from %s. Response not successful. Status code: \(statusCode). Assuming that the token is not valid")
+//                        completion(.success(true))
+//                        return
+//                    }
+//                }
+//                completion(.failure(err))
+//            }
+//        };
+//    }
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"])))

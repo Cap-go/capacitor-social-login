@@ -45,7 +45,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private appleScriptLoaded = false;
   private appleScriptUrl =
     "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
-  private GOOGLE_TOKEN_REQUEST_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo"
+  private GOOGLE_TOKEN_REQUEST_URL =
+    "https://www.googleapis.com/oauth2/v3/tokeninfo";
   private facebookAppId: string | null = null;
   private facebookScriptLoaded = false;
 
@@ -83,25 +84,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     throw new Error(`Login for ${options.provider} is not implemented on web`);
   }
 
-  private async rawLogoutGoogle(accessToken: string, tokenValid: boolean | null = null) {
+  private async rawLogoutGoogle(
+    accessToken: string,
+    tokenValid: boolean | null = null,
+  ) {
     if (tokenValid === null) {
-      tokenValid = await this.accessTokenIsValid(accessToken)
+      tokenValid = await this.accessTokenIsValid(accessToken);
     }
 
     if (tokenValid === true) {
       return new Promise<void>((resolve, reject) => {
         try {
           google.accounts.oauth2.revoke(accessToken, async () => {
-            this.clearStateGoogle()
-            resolve()
-          })
+            this.clearStateGoogle();
+            resolve();
+          });
         } catch (e) {
-          reject(e)
+          reject(e);
         }
-      })
+      });
     } else {
-      this.clearStateGoogle()
-      return
+      this.clearStateGoogle();
+      return;
     }
   }
 
@@ -112,7 +116,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       case "google":
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
-        return this.rawLogoutGoogle(this.getGoogleState())
+        return this.rawLogoutGoogle(this.getGoogleState());
       case "apple":
         // Apple doesn't provide a logout method for web
         console.log(
@@ -134,25 +138,26 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can check if there's a valid token
-        const googleAccessToken = this.getGoogleState()
+        const googleAccessToken = this.getGoogleState();
         if (!googleAccessToken) {
-          return Promise.reject("User is not logged in")
+          return Promise.reject("User is not logged in");
         }
 
         try {
-          const isValidAccessToken =  await this.accessTokenIsValid(googleAccessToken)
+          const isValidAccessToken =
+            await this.accessTokenIsValid(googleAccessToken);
           if (isValidAccessToken) {
-            return { isLoggedIn: true }
+            return { isLoggedIn: true };
           } else {
             try {
-              await this.rawLogoutGoogle(googleAccessToken, false)
-            } catch(e) {
-              console.error("Access token is not valid, but cannot logout", e)
+              await this.rawLogoutGoogle(googleAccessToken, false);
+            } catch (e) {
+              console.error("Access token is not valid, but cannot logout", e);
             }
-            return { isLoggedIn: false }
+            return { isLoggedIn: false };
           }
         } catch (e) {
-          return Promise.reject(e)
+          return Promise.reject(e);
         }
       case "apple":
         // Apple doesn't provide a method to check login status on web
@@ -176,12 +181,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<AuthorizationCode> {
     switch (options.provider) {
       case "google":
-        // For Google, we can use the id_token as the authorization code
-        const googleUser = await this.getGoogleUser();
-        if (googleUser && googleUser.credential) {
-          return { jwt: googleUser.credential };
+        // For Google, we can check if there's a valid token
+        const googleAccessToken = this.getGoogleState();
+        if (!googleAccessToken) {
+          return Promise.reject("User is not logged in");
         }
-        throw new Error("No Google authorization code available");
+
+        try {
+          const isValidAccessToken =
+            await this.accessTokenIsValid(googleAccessToken);
+          if (isValidAccessToken) {
+            return { accessToken: googleAccessToken };
+          } else {
+            try {
+              await this.rawLogoutGoogle(googleAccessToken, false);
+            } catch (e) {
+              console.error("Access token is not valid, but cannot logout", e);
+            }
+            return Promise.reject("User is not logged in");
+          }
+        } catch (e) {
+          return Promise.reject(e);
+        }
       case "apple":
         // Apple authorization code should be obtained during login
         console.log("Apple authorization code should be stored during login");
@@ -219,84 +240,90 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         throw new Error(`Refresh for ${options.provider} is not implemented`);
     }
   }
-  
+
   private persistStateGoogle(accessToken: string) {
     try {
-      window.localStorage.setItem("capgo_social_login_google_access_token", accessToken)
+      window.localStorage.setItem(
+        "capgo_social_login_google_access_token",
+        accessToken,
+      );
     } catch (e) {
-      console.error('Cannot persist state google', e)
+      console.error("Cannot persist state google", e);
     }
   }
 
   private clearStateGoogle() {
     try {
-      window.localStorage.removeItem("capgo_social_login_google_access_token")
+      window.localStorage.removeItem("capgo_social_login_google_access_token");
     } catch (e) {
-      console.error('Cannot clear state google', e)
+      console.error("Cannot clear state google", e);
     }
   }
 
   private getGoogleState(): string {
     try {
-      return window.localStorage.getItem("capgo_social_login_google_access_token") ?? ''
+      return (
+        window.localStorage.getItem("capgo_social_login_google_access_token") ??
+        ""
+      );
     } catch (e) {
-      console.error('Cannot get state google', e)
-      return ""
+      console.error("Cannot get state google", e);
+      return "";
     }
   }
 
   private async accessTokenIsValid(accessToken: string): Promise<boolean> {
     const url = `${this.GOOGLE_TOKEN_REQUEST_URL}?access_token=${encodeURIComponent(accessToken)}`;
-  
+
     try {
       // Make the GET request using fetch
       const response = await fetch(url);
-  
+
       // Check if the response is successful
       if (!response.ok) {
         console.log(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response not successful. Status code: ${response.status}. Assuming that the token is not valid`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response not successful. Status code: ${response.status}. Assuming that the token is not valid`,
         );
-        return false
+        return false;
       }
-  
+
       // Get the response body as text
       const responseBody = await response.text();
-  
+
       if (!responseBody) {
         console.error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is null`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is null`,
         );
         throw new Error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is null`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is null`,
         );
       }
-  
+
       // Parse the response body as JSON
       let jsonObject: any;
       try {
         jsonObject = JSON.parse(responseBody);
       } catch (e) {
         console.error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`,
         );
         throw new Error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`,
         );
       }
-  
+
       // Extract the 'expires_in' field
-      let expiresInStr = jsonObject['expires_in'];
-  
+      let expiresInStr = jsonObject["expires_in"];
+
       if (expiresInStr === undefined || expiresInStr === null) {
         console.error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response JSON does not include 'expires_in'.`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response JSON does not include 'expires_in'.`,
         );
         throw new Error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response JSON does not include 'expires_in'.`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response JSON does not include 'expires_in'.`,
         );
       }
-  
+
       // Parse 'expires_in' as an integer
       let expiresInInt: number;
       try {
@@ -306,13 +333,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         }
       } catch (e) {
         console.error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`,
         );
         throw new Error(
-          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`,
         );
       }
-  
+
       // Determine if the access token is valid based on 'expires_in'
       return expiresInInt > 5;
     } catch (error) {
@@ -427,7 +454,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                 imageUrl: picture,
               };
 
-              this.persistStateGoogle(accessToken)
+              this.persistStateGoogle(accessToken);
               resolve({
                 provider: "google",
                 result: {
@@ -523,22 +550,6 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       };
       script.onerror = reject;
       document.body.appendChild(script);
-    });
-  }
-
-  private async getGoogleUser(): Promise<any> {
-    return new Promise((resolve) => {
-      google.accounts.id.initialize({
-        client_id: this.googleClientId!,
-        callback: (response) => {
-          resolve(response);
-        },
-      });
-      google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          resolve(null);
-        }
-      });
     });
   }
 
