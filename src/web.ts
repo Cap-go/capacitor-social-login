@@ -169,7 +169,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can prompt for re-authentication
-        await this.loginWithGoogle(options.options);
+        return Promise.reject("Not implemented")
         break;
       case "apple":
         // Apple doesn't provide a refresh method for web

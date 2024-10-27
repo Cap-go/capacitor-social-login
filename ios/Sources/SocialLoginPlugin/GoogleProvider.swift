@@ -122,19 +122,7 @@ class GoogleProvider {
     }
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
-        DispatchQueue.main.async {
-            guard let currentUser = GIDSignIn.sharedInstance.currentUser else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])))
-                return
-            }
-            currentUser.refreshTokensIfNeeded { _, error in
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-                completion(.success(()))
-            }
-        }
+        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"])))
     }
 
     private func getServerClientIdValue() -> String? {
