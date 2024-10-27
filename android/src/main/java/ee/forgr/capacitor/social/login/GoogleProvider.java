@@ -796,19 +796,11 @@ public class GoogleProvider implements SocialProvider {
             @NonNull Response httpResponse
           ) throws IOException {
             if (!httpResponse.isSuccessful()) {
-              accessTokenIsValid.completeExceptionally(
-                new RuntimeException(
-                  String.format(
-                    "Invalid response from %s. Response not successful. Status code: %s",
-                    TOKEN_REQUEST_URL,
-                    httpResponse.code()
-                  )
-                )
-              );
-              Log.e(
+              accessTokenIsValid.complete(false);
+              Log.i(
                 LOG_TAG,
                 String.format(
-                  "Invalid response from %s. Response not successful. Status code: %s",
+                  "Invalid response from %s. Response not successful. Status code: %s. Assuming that the token is not valid",
                   TOKEN_REQUEST_URL,
                   httpResponse.code()
                 )

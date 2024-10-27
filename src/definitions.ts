@@ -193,7 +193,12 @@ export interface AuthorizationCode {
    * Jwt
    * @description A JSON web token
    */
-  jwt: string;
+  jwt?: string | null;
+  /**
+   * accessToken
+   * @description An accessToken. It is NOT a JSON Web Token
+   */
+  accessToken?: string | null;
 }
 
 export interface AuthorizationCodeOptions {
