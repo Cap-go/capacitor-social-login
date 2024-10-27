@@ -82,7 +82,7 @@ public class GoogleProvider implements SocialProvider {
     FUTURE_LIST_LENGTH
   );
 
-  private String idToken = null;
+  private String savedAccessToken = null;
 
   public GoogleProvider(Activity activity, Context context) {
     this.activity = activity;
@@ -107,7 +107,10 @@ public class GoogleProvider implements SocialProvider {
     }
     try {
       JSONObject object = new JSONObject(data);
-      GoogleProvider.this.idToken = object.optString("idToken", null);
+      GoogleProvider.this.savedAccessToken = object.optString(
+        "savedAccessToken",
+        null
+      );
 
       Log.i(
         SocialLoginPlugin.LOG_TAG,
@@ -180,11 +183,11 @@ public class GoogleProvider implements SocialProvider {
     );
   }
 
-  private void persistState(String idToken) throws JSONException {
+  private void persistState(String savedAccessToken) throws JSONException {
     JSONObject object = new JSONObject();
-    object.put("idToken", idToken);
+    object.put("savedAccessToken", savedAccessToken);
 
-    GoogleProvider.this.idToken = idToken;
+    GoogleProvider.this.savedAccessToken = savedAccessToken;
 
     activity
       .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
@@ -214,7 +217,6 @@ public class GoogleProvider implements SocialProvider {
             GoogleIdTokenCredential.createFrom(credential.getData());
           String idToken = googleIdTokenCredential.getIdToken();
           //          resultObj.put("idToken", idToken);
-          persistState(idToken);
 
           // Use ExecutorService to retrieve the access token
           ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -510,6 +512,7 @@ public class GoogleProvider implements SocialProvider {
                               resultObj.put("accessToken", accessTokenObj);
                               resultObj.put("profile", profile);
                               response.put("result", resultObj);
+                              persistState(accessToken.token);
                               call.resolve(response);
                             } catch (JSONException e) {
                               call.reject(
@@ -726,8 +729,8 @@ public class GoogleProvider implements SocialProvider {
     }
   }
 
-  @Override
-  public void logout(PluginCall call) {
+  private void rawLogout(CredentialManagerCallback<Void, Exception> handler) {
+    Log.i(LOG_TAG, "Logout requested");
     ClearCredentialStateRequest request = new ClearCredentialStateRequest();
 
     Executor executor = Executors.newSingleThreadExecutor();
@@ -743,35 +746,262 @@ public class GoogleProvider implements SocialProvider {
             .edit()
             .clear()
             .apply();
-          GoogleProvider.this.idToken = null;
-          call.resolve();
+          GoogleProvider.this.savedAccessToken = null;
+          handler.onResult(null);
         }
 
         @Override
         public void onError(ClearCredentialException e) {
           Log.e(LOG_TAG, "Failed to clear credential state", e);
-          call.reject("Failed to clear credential state: " + e.getMessage());
+          handler.onError(e);
         }
       }
     );
   }
 
   @Override
+  public void logout(PluginCall call) {
+    rawLogout(
+      new CredentialManagerCallback<Void, Exception>() {
+        @Override
+        public void onResult(Void unused) {}
+
+        @Override
+        public void onError(@NonNull Exception e) {
+          call.reject("Failed to clear credential state: " + e.getMessage());
+        }
+      }
+    );
+  }
+
+  public CompletableFuture<Boolean> accessTokenIsValid(String accessToken) {
+    CompletableFuture<Boolean> accessTokenIsValid = new CompletableFuture<>();
+
+    OkHttpClient client = new OkHttpClient();
+    Request tokenRequest = new Request.Builder()
+      .url(TOKEN_REQUEST_URL + "?" + "access_token=" + accessToken)
+      .get()
+      .build();
+
+    client
+      .newCall(tokenRequest)
+      .enqueue(
+        new Callback() {
+          @Override
+          public void onFailure(@NonNull Call call, @NonNull IOException e) {}
+
+          @Override
+          public void onResponse(
+            @NonNull Call httpCall,
+            @NonNull Response httpResponse
+          ) throws IOException {
+            if (!httpResponse.isSuccessful()) {
+              accessTokenIsValid.completeExceptionally(
+                new RuntimeException(
+                  String.format(
+                    "Invalid response from %s. Response not successful. Status code: %s",
+                    TOKEN_REQUEST_URL,
+                    httpResponse.code()
+                  )
+                )
+              );
+              Log.e(
+                LOG_TAG,
+                String.format(
+                  "Invalid response from %s. Response not successful. Status code: %s",
+                  TOKEN_REQUEST_URL,
+                  httpResponse.code()
+                )
+              );
+              return;
+            }
+
+            ResponseBody responseBody = httpResponse.body();
+            if (responseBody == null) {
+              accessTokenIsValid.completeExceptionally(
+                new RuntimeException(
+                  String.format(
+                    "Invalid response from %s. Response body is null",
+                    TOKEN_REQUEST_URL
+                  )
+                )
+              );
+              Log.e(
+                LOG_TAG,
+                String.format(
+                  "Invalid response from %s. Response body is null",
+                  TOKEN_REQUEST_URL
+                )
+              );
+              return;
+            }
+
+            String responseString = responseBody.string();
+            JSONObject jsonObject;
+            try {
+              jsonObject = (JSONObject) new JSONTokener(
+                responseString
+              ).nextValue();
+            } catch (JSONException e) {
+              accessTokenIsValid.completeExceptionally(
+                new RuntimeException(
+                  String.format(
+                    "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                    TOKEN_REQUEST_URL,
+                    e
+                  )
+                )
+              );
+              Log.e(
+                LOG_TAG,
+                String.format(
+                  "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                  TOKEN_REQUEST_URL,
+                  e
+                )
+              );
+              return;
+            }
+
+            String expiresIn;
+            try {
+              expiresIn = jsonObject.getString("expires_in");
+            } catch (JSONException e) {
+              accessTokenIsValid.completeExceptionally(
+                new RuntimeException(
+                  String.format(
+                    "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                    TOKEN_REQUEST_URL,
+                    e
+                  )
+                )
+              );
+              Log.e(
+                LOG_TAG,
+                String.format(
+                  "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                  TOKEN_REQUEST_URL,
+                  e
+                )
+              );
+              return;
+            }
+
+            Integer expressInInt;
+            try {
+              expressInInt = Integer.parseInt(expiresIn);
+            } catch (Exception e) {
+              accessTokenIsValid.completeExceptionally(
+                new RuntimeException(
+                  String.format(
+                    "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                    TOKEN_REQUEST_URL,
+                    expiresIn,
+                    e
+                  )
+                )
+              );
+              Log.e(
+                LOG_TAG,
+                String.format(
+                  "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                  TOKEN_REQUEST_URL,
+                  expiresIn,
+                  e
+                )
+              );
+              return;
+            }
+
+            accessTokenIsValid.complete(expressInInt > 5);
+          }
+        }
+      );
+
+    return accessTokenIsValid;
+  }
+
+  @Override
   public void getAuthorizationCode(PluginCall call) {
-    JSObject response = new JSObject();
-    if (GoogleProvider.this.idToken == null) {
-      call.reject("Not logged in to google, cannot get authorization code!");
+    if (GoogleProvider.this.savedAccessToken == null) {
+      call.reject("User is not logged in");
       return;
     }
-    response.put("jwt", GoogleProvider.this.idToken);
-    call.resolve(response);
+    CompletableFuture<Boolean> isAccessTokenValid = accessTokenIsValid(
+      GoogleProvider.this.savedAccessToken
+    );
+    try {
+      Boolean isValid = isAccessTokenValid.get(10, TimeUnit.SECONDS);
+      if (isValid) {
+        call.resolve(
+          new JSObject()
+            .put("accessToken", GoogleProvider.this.savedAccessToken)
+        );
+      } else {
+        rawLogout(
+          new CredentialManagerCallback<Void, Exception>() {
+            @Override
+            public void onResult(Void unused) {
+              call.reject("User is not logged in");
+            }
+
+            @Override
+            public void onError(@NonNull Exception e) {
+              // This is a non-fatal error. Let's log it
+              Log.e(
+                LOG_TAG,
+                "Saved access token isn't valid, but logout failed",
+                e
+              );
+              call.reject("User is not logged in");
+            }
+          }
+        );
+      }
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      Log.e(LOG_TAG, "isAccessTokenValid failed", e);
+      call.reject(String.format("isAccessTokenValid failed %s", e));
+    }
   }
 
   @Override
   public void isLoggedIn(PluginCall call) {
-    call.resolve(
-      new JSObject().put("isLoggedIn", GoogleProvider.this.idToken != null)
+    if (GoogleProvider.this.savedAccessToken == null) {
+      call.resolve(new JSObject().put("isLoggedIn", false));
+      return;
+    }
+    CompletableFuture<Boolean> isAccessTokenValid = accessTokenIsValid(
+      GoogleProvider.this.savedAccessToken
     );
+    try {
+      Boolean isValid = isAccessTokenValid.get(10, TimeUnit.SECONDS);
+      if (isValid) {
+        call.resolve(new JSObject().put("isLoggedIn", true));
+      } else {
+        rawLogout(
+          new CredentialManagerCallback<Void, Exception>() {
+            @Override
+            public void onResult(Void unused) {
+              call.resolve(new JSObject().put("isLoggedIn", true));
+            }
+
+            @Override
+            public void onError(@NonNull Exception e) {
+              // This is a non-fatal error. Let's log it
+              Log.e(
+                LOG_TAG,
+                "Saved access token isn't valid, but logout failed",
+                e
+              );
+              call.resolve(new JSObject().put("isLoggedIn", false));
+            }
+          }
+        );
+      }
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      Log.e(LOG_TAG, "isAccessTokenValid failed", e);
+      call.reject(String.format("isAccessTokenValid failed %s", e));
+    }
   }
 
   @Override
