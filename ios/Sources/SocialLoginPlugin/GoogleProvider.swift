@@ -1,11 +1,24 @@
 import Foundation
 import GoogleSignIn
+import Alamofire
+
+// Define the Decodable structs for the response
+struct GoogleUserinfoResponse: Decodable {
+    let sub: String
+    let name: String
+    let given_name: String
+    let family_name: String
+    let picture: String
+    let email: String
+    let email_verified: Bool?
+}
 
 class GoogleProvider {
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
     var defaultGrantedScopes = ["email", "profile", "openid"]
+    var USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 
     func initialize(clientId: String, serverClientId: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
@@ -38,7 +51,7 @@ class GoogleProvider {
                         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
                         return
                     }
-                    completion(.success(self.createLoginResponse(user: result.user)))
+                    self.createLoginResponse(user: result.user, completion: completion)
                 }
             }
             
@@ -49,7 +62,7 @@ class GoogleProvider {
                         login()
                         return
                     }
-                    completion(.success(self.createLoginResponse(user: user!)))
+                    self.createLoginResponse(user: user!, completion: completion)
                 }
             } else {
                 login()
@@ -129,35 +142,54 @@ class GoogleProvider {
         return nil
     }
 
-    private func createLoginResponse(user: GIDGoogleUser) -> GoogleLoginResponse {
-        return GoogleLoginResponse(
-            authentication: GoogleLoginResponse.Authentication(
-                accessToken: user.accessToken.tokenString,
-                idToken: user.idToken?.tokenString,
-                refreshToken: user.refreshToken.tokenString
-            ),
-            email: user.profile?.email,
-            familyName: user.profile?.familyName,
-            givenName: user.profile?.givenName,
-            id: user.userID,
-            name: user.profile?.name,
-            imageUrl: user.profile?.imageURL(withDimension: 100)?.absoluteString
+    private func createLoginResponse(user: GIDGoogleUser, completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
+        // For platform consistency sake, I will fetch the userinfo API, but it's really not needed
+        AF.request(
+            USERINFO_URL,
+            method: .get,
+            headers: ["Authorization": "Bearer \(user.accessToken.tokenString)"]
         )
+        .validate(statusCode: 200..<300) // Ensure the response status code is in the 200-299 range
+        .responseDecodable(of: GoogleUserinfoResponse.self) { response in
+            switch response.result {
+                
+            case .success(let result):
+                completion(.success(GoogleLoginResponse(accessToken: GoogleLoginResponse.Authentication(token: user.accessToken.tokenString), profile: GoogleLoginResponse.Profile(email: result.email, familyName: result.family_name, givenName: result.given_name, id: result.sub, name: result.name, imageUrl: result.picture))))
+            case .failure(let err):
+                completion(.failure(err))
+            }
+        };
+                
+//        return GoogleLoginResponse(
+//            authentication: GoogleLoginResponse.Authentication(
+//                accessToken: user.accessToken.tokenString,
+//                idToken: user.idToken?.tokenString,
+//                refreshToken: user.refreshToken.tokenString
+//            ),
+//            email: user.profile?.email,
+//            familyName: user.profile?.familyName,
+//            givenName: user.profile?.givenName,
+//            id: user.userID,
+//            name: user.profile?.name,
+//            imageUrl: user.profile?.imageURL(withDimension: 100)?.absoluteString
+//        )
     }
 }
 
 struct GoogleLoginResponse {
-    let authentication: Authentication
-    let email: String?
-    let familyName: String?
-    let givenName: String?
-    let id: String?
-    let name: String?
-    let imageUrl: String?
+    let accessToken: Authentication
+    let profile: Profile?
 
     struct Authentication {
-        let accessToken: String
-        let idToken: String?
-        let refreshToken: String?
+        let token: String
+    }
+    
+    struct Profile {
+        let email: String
+        let familyName: String
+        let givenName: String
+        let id: String
+        let name: String
+        let imageUrl: String
     }
 }
