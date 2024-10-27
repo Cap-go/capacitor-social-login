@@ -974,7 +974,7 @@ public class GoogleProvider implements SocialProvider {
           new CredentialManagerCallback<Void, Exception>() {
             @Override
             public void onResult(Void unused) {
-              call.resolve(new JSObject().put("isLoggedIn", true));
+              call.resolve(new JSObject().put("isLoggedIn", false));
             }
 
             @Override
