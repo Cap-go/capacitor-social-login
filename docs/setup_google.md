@@ -6,8 +6,6 @@ In this guide, you will learn how to setup Google Login with Capgo Social Login.
 
 - A Google account
 
-Please note, that unlike the Apple guide, this guide will NOT help you setup backend. Please use the `getAuthorizationCode` function to get the `JWT` and send it to your server.
-
 ### General setup
 
 This step is required regardless of which the platform you decide to use. In this part, you will setup the login screen displayed by Google. 
@@ -39,7 +37,7 @@ This step is required regardless of which the platform you decide to use. In thi
    - Configure the consent screen. I will assume that you are developing an app open to the public, so I will use the  `external`  user type. Please select the user type that suits you the best AND click `create`
      ![](./assets/google_cons_oauth_const_scr.png)
    
-   - Now, I you have a lot of informations to fill
+   - Now, you have a lot of informations to fill
      
      - Let's start with the `App Information`
        ![](./assets/google_cons_app_inf.png)
@@ -60,16 +58,16 @@ This step is required regardless of which the platform you decide to use. In thi
      ![](./assets/google_cons_cons_sav_cont.png)
 
 4. Next, please configure the scopes
-- **Warning**: In the current stage, this plugin **DOES NOT** support custom scopes for Google. Please add **ONLY** the scopes shown in this tutorial
+  - **Warning**: In the current stage, this plugin **DOES NOT** support custom scopes for Google. Please add **ONLY** the scopes shown in this tutorial
 
-- Click on `add or remove scopes` 
-  ![](./assets/google_cons_add_rm_sco.png)
+  - Click on `add or remove scopes` 
+    ![](./assets/google_cons_add_rm_sco.png)
 
-- Select the following scopes and click `update`
-  ![](./assets/google_cons_update_scope.png)
+  - Select the following scopes and click `update`
+    ![](./assets/google_cons_update_scope.png)
 
-- Click `save and continue`
-  ![](./assets/google_cons_scope_save.png)
+  - Click `save and continue`
+    ![](./assets/google_cons_scope_save.png)
 5. Now, you need to add a test user.
    
    - Click on `add users`
@@ -140,40 +138,76 @@ In this part, you will learn how to setup Google login in IOS
      
      The `nr. 1` in this image will later become the `iOSClientId` in the `initialize` call
      The `nr. 2` in this image will later become `YOUR_DOT_REVERSED_IOS_CLIENT_ID`
-- Please open Xcode and find the `Info` file
-  ![](./assets/xcode_info_file.png)
 
-- Now, you want to right click this file and open it as source code
-  ![](./assets/xcode_open_as_src_code.png)
+2. Now, you need to modify your app's plist.
+   
+   - Please open Xcode and find the `Info` file
+     ![](./assets/xcode_info_file.png)
+   
+   - Now, you want to right click this file and open it as source code
+     ![](./assets/xcode_open_as_src_code.png)
+   
+   - At the bottom of your `Plist` file, you will see a `</dict>` tag.
+     ![](./assets/xcode_dict_tag.png)
+   
+   - You want to insert the following fragment just before it, just like this
+     ![](./assets/xcode_plist_inserted.png)
+     
+     ```xml
+     <key>CFBundleURLTypes</key>
+     <array>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>YOUR_DOT_REVERSED_IOS_CLIENT_ID</string>
+        </array>
+      </dict>
+     </array>
+     ```
+   
+   - Now, you want to change the `YOUR_DOT_REVERSED_IOS_CLIENT_ID` to the value copied in the previous step
+     
+     You want it to look like this:
+     ![](./assets/xcode_plist_final.png)
+     
+     **WARNING:** Ensure that this value **STARTS** with `com.googleusercontent.apps`
+   
+   - Save the file with `Command + S`
 
-- At the bottom of your `Plist` file, you will see a `</dict>` tag.
-  ![](./assets/xcode_dict_tag.png)
+3. Modify the `AppDelegate`
+   Although not strictly required, it's recommended by Google.
+   
+   - Open the AppDelegate
+     ![](./assets/xcode_app_deleg.png)
+   
+   - Insert `import GoogleSignIn` before the first line
+     ![](./assets/xcode_app_deleg_google_sign_in.png)
+   
+   - Find the `func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:])` function. It should look like this
+     ![](./assets/xcode_app_deleg_app_fn.png)
+   
+   - Modify the function to look like this
+     
+     ```swift
+     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+         // Called when the app was launched with a url. Feel free to add additional processing here,
+         // but if you want the App API to support tracking app url opens, make sure to keep this call
+     
+         var handled: Bool
+     
+         handled = GIDSignIn.sharedInstance.handle(url)
+         if handled {
+           return true
+         }
+     
+         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+     }
+     ```
+     
+     ![](./assets/xcode_app_deleg_app_fn_mod.png)
+   
+   - Save the file with `Command + S`
 
-- You want to insert the following fragment just before it, just like this
-  ![](./assets/xcode_plist_inserted.png)
-  
-  ```xml
-  <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLSchemes</key>
-      <array>
-        <string>YOUR_DOT_REVERSED_IOS_CLIENT_ID</string>
-      </array>
-    </dict>
-  </array>
-  ```
-
-- Now, you want to change the `YOUR_DOT_REVERSED_IOS_CLIENT_ID` to the value copied in the previous step
-  
-  You want it to look like this:
-  ![](./assets/xcode_plist_final.png)
-  
-  **WARNING:** Ensure that this value **STARTS** with `com.googleusercontent.apps`
-
-- Save the file with `Command + S`
-
-- Save the file with `Command + S`
 4. Now, you should be ready to setup Google login in JS.
    
    - First, you need import `SocialLogin` AND `Capacitor`
@@ -237,14 +271,8 @@ In this part, you will learn how to setup Google login in Android
    - Now, open the terminal. Make sure that you are in the `android` folder of your app and run `./gradlew signInReport`
      ![](./assets/term_sign_report.png)
    
-   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from google PLAY console for production releases.
+   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from Google Play console for production releases.
      Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
-   
-   - The SHA1 certificate fingerprint is crucial for Android app security and authentication. Google uses it to verify your app's identity when making API calls. This is why:
-     
-     1. It ensures only your app can use your Google API credentials.
-     2. It prevents unauthorized use of your Google services.
-     3. It's required for certain Google APIs, including Google Sign-In.
    
    - Now, scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
    
@@ -264,43 +292,7 @@ In this part, you will learn how to setup Google login in Android
    - Copy the client ID, you'll use this as the `webClientId` in your JS/TS code
      ![](./assets/google_cons_copy_web_client_id.png)
 
-3. Modify the `AppDelegate`
-   Although not strictly required, it's recommended by Google.
-   
-   
-   - Open the AppDelegate
-     ![](./assets/xcode_app_deleg.png)
-   
-   - Insert `import GoogleSignIn` before the first line
-     ![](./assets/xcode_app_deleg_google_sign_in.png)
-   
-   - Find the `func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:])` function. It should look like this
-     ![](./assets/xcode_app_deleg_app_fn.png)
-   
-   - Modify the function to look like this
-     
-     ```swift
-     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-         // Called when the app was launched with a url. Feel free to add additional processing here,
-         // but if you want the App API to support tracking app url opens, make sure to keep this call
-     
-         var handled: Bool
-     
-         handled = GIDSignIn.sharedInstance.handle(url)
-         if handled {
-           return true
-         }
-     
-         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-     }
-     
-     ```
-     
-     ![](./assets/xcode_app_deleg_app_fn_mod.png)
-   
-   - Save the file with `Command + S`
-
-4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+3. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
    
    - First, you need import `SocialLogin` AND `Capacitor`
      
