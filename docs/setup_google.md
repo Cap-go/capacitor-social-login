@@ -58,16 +58,18 @@ This step is required regardless of which the platform you decide to use. In thi
      ![](./assets/google_cons_cons_sav_cont.png)
 
 4. Next, please configure the scopes
-  - **Warning**: In the current stage, this plugin **DOES NOT** support custom scopes for Google. Please add **ONLY** the scopes shown in this tutorial
+   
+   - **Warning**: In the current stage, this plugin **DOES NOT** support custom scopes for Google. Please add **ONLY** the scopes shown in this tutorial
+   
+   - Click on `add or remove scopes` 
+     ![](./assets/google_cons_add_rm_sco.png)
+   
+   - Select the following scopes and click `update`
+     ![](./assets/google_cons_update_scope.png)
+   
+   - Click `save and continue`
+     ![](./assets/google_cons_scope_save.png)
 
-  - Click on `add or remove scopes` 
-    ![](./assets/google_cons_add_rm_sco.png)
-
-  - Select the following scopes and click `update`
-    ![](./assets/google_cons_update_scope.png)
-
-  - Click `save and continue`
-    ![](./assets/google_cons_scope_save.png)
 5. Now, you need to add a test user.
    
    - Click on `add users`
@@ -292,7 +294,45 @@ In this part, you will learn how to setup Google login in Android
    - Copy the client ID, you'll use this as the `webClientId` in your JS/TS code
      ![](./assets/google_cons_copy_web_client_id.png)
 
-3. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+3. Now, you need to modify your `MainActivity`
+   
+   - Please open your app in Android Studio. You can run `cap open android`
+   
+   - Please find `MainActivity.java`
+     
+     - Open the `app` folder
+       ![](./assets/studio_app_folder.png)
+     
+     - Find `java`
+       ![](./assets/studio_app_java.png)
+     
+     - Find your `MainActivity.java` and click on it**![](./assets/studio_app_java_activity_main.png)
+
+  
+  - Now, you have to modify `MainActivity.java`. Please add the following code
+
+    ```java
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+      super.onActivityResult(requestCode, resultCode, data);
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
+          PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
+          if (pluginHandle == null) {
+              Log.i("Google Activity Result", "SocialLogin login handle is null");
+              return;
+          }
+          Plugin plugin = pluginHandle.getInstance();
+          if (!(plugin instanceof SocialLoginPlugin)) {
+              Log.i("Google Activity Result", "SocialLogin plugin instance is not SocialLoginPlugin");
+              return;
+          }
+          ((SocialLoginPlugin) plugin).handleGoogleLoginIntent(requestCode, data);
+      }
+    }
+    ```
+  - Please save the file
+4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
    
    - First, you need import `SocialLogin` AND `Capacitor`
      
@@ -326,39 +366,39 @@ In this part, you will learn how to setup Google login in Android
      popoutStore.popout("Google login", JSON.stringify(response))
      ```
 
-4- Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
-
-- First, go into `Device manager` and click the plus button
-  ![](./assets/studio_device_man.png)
-
-- Create a virtual device
-  ![](./assets/studio_create_virt_dev.png)
-
-- Select any device with a `Play Store` icon
-  ![](./assets/studio_new_dev_select_hardware.png)
-  
-  As you can see, the `pixel 8` supports the `Play Store` services
-
-- Click `next`
-  ![](./assets/studio_new_dev_next_1.png)
-
-- Next, **MAKE SURE** that the OS image is of type `Google Play`. **IT MUST** be of type `Google Play`
-  ![](./assets/studio_new_dev_google_play_dev_type.png)
-
-- Click next
-  ![](./assets/studio_new_dev_next_1.png)
-
-- Confirm your device. I will name my emulator `Tutorial phone`
-  ![](./assets/studio_new_dev_next_3.png)
-
-- Next, go into `Device Manager` and boot up your simulator
-  ![](./assets/studio_dev_manager.png)
-
-- After the simulator boots up, please go into it's settings
-  ![](./assets/emul_and_settings_1.png)
-
-- Now, go into `Google Play`
-  ![](./assets/emul_and_settings_2.png)
-
-- Click `Update` and wait about 60 seconds
-  ![](./assets/emul_and_settings_update_play_store.png)
+5. Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
+   
+   - First, go into `Device manager` and click the plus button
+     ![](./assets/studio_device_man.png)
+   
+   - Create a virtual device
+     ![](./assets/studio_create_virt_dev.png)
+   
+   - Select any device with a `Play Store` icon
+     ![](./assets/studio_new_dev_select_hardware.png)
+     
+     As you can see, the `pixel 8` supports the `Play Store` services
+   
+   - Click `next`
+     ![](./assets/studio_new_dev_next_1.png)
+   
+   - Next, **MAKE SURE** that the OS image is of type `Google Play`. **IT MUST** be of type `Google Play`
+     ![](./assets/studio_new_dev_google_play_dev_type.png)
+   
+   - Click next
+     ![](./assets/studio_new_dev_next_1.png)
+   
+   - Confirm your device. I will name my emulator `Tutorial phone`
+     ![](./assets/studio_new_dev_next_3.png)
+   
+   - Next, go into `Device Manager` and boot up your simulator
+     ![](./assets/studio_dev_manager.png)
+   
+   - After the simulator boots up, please go into it's settings
+     ![](./assets/emul_and_settings_1.png)
+   
+   - Now, go into `Google Play`
+     ![](./assets/emul_and_settings_2.png)
+   
+   - Click `Update` and wait about 60 seconds
+     ![](./assets/emul_and_settings_update_play_store.png)
