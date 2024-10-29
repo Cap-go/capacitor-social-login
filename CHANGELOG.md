@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.66](https://github.com/Cap-go/capacitor-social-login/compare/0.0.65...0.0.66) (2024-10-29)
+
+
+### Bug Fixes
+
+* apple provider ([59f2a94](https://github.com/Cap-go/capacitor-social-login/commit/59f2a949ca9bf7b924cd50b4c37c7d0be7b9db81))
+* licence ([9860d3a](https://github.com/Cap-go/capacitor-social-login/commit/9860d3a5879fcec02b91688ba3e199269e04f44c))
+
 ### [0.0.65](https://github.com/Cap-go/capacitor-social-login/compare/0.0.64...0.0.65) (2024-10-29)
 
 
