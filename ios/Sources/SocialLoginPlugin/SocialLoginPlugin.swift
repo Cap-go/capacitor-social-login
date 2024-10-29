@@ -270,7 +270,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "accessToken": accessTokenObject ?? NSNull(),
                     "profile": profileObject,
                     "idToken": appleResponse.idToken ?? "",
-                    "authorizationCode": appleResponse.authorizationCode ?? ""
                 ]
                 
                 call.resolve([

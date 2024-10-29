@@ -7,7 +7,6 @@ struct AppleProviderResponse: Codable {
     let accessToken: AccessTokenApple?
     let profile: AppleProfile
     let idToken: String?
-    let authorizationCode: String?
 }
 
 struct AppleProfile: Codable {
@@ -236,7 +235,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
             // Create proper access token
             let accessToken = AccessTokenApple(
-                token: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? "",
+                token: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8),
                 expiresIn: 3600, // Default 1 hour
                 refreshToken: nil // Apple doesn't provide refresh token directly
             )
@@ -250,8 +249,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                         givenName: fullName?.givenName ?? savedUserInfo?.profile.givenName,
                         familyName: fullName?.familyName ?? savedUserInfo?.profile.familyName
                     ),
-                    idToken: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8),
-                    authorizationCode: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8)
+                    idToken: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
                 )
 
                 // Persist user info
@@ -382,8 +380,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                             givenName: nil,
                                             familyName: nil
                                         ),
-                                        idToken: idToken,
-                                        authorizationCode: ""
+                                        idToken: idToken
                                     )
                                     completion(.success(appleResponse))
                                     return
@@ -406,8 +403,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                         givenName: firstName,
                                         familyName: lastName
                                     ),
-                                    idToken: identityToken,
-                                    authorizationCode: code
+                                    idToken: identityToken
                                 )
 
                                 do {
@@ -510,8 +506,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                 givenName: nil,
                                 familyName: nil
                             ),
-                            idToken: idToken,
-                            authorizationCode: code
+                            idToken: idToken
                         )
 
                         // Log the tokens (replace with your logging mechanism)
