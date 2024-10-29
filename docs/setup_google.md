@@ -307,65 +307,63 @@ In this part, you will learn how to setup Google login in Android
        ![](./assets/studio_app_java.png)
      
      - Find your `MainActivity.java` and click on it**![](./assets/studio_app_java_activity_main.png)
-
+- Now, you have to modify `MainActivity.java`. Please add the following code
   
-  - Now, you have to modify `MainActivity.java`. Please add the following code
-
-    ```java
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-      super.onActivityResult(requestCode, resultCode, data);
-
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
-          PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
-          if (pluginHandle == null) {
-              Log.i("Google Activity Result", "SocialLogin login handle is null");
-              return;
-          }
-          Plugin plugin = pluginHandle.getInstance();
-          if (!(plugin instanceof SocialLoginPlugin)) {
-              Log.i("Google Activity Result", "SocialLogin plugin instance is not SocialLoginPlugin");
-              return;
-          }
-          ((SocialLoginPlugin) plugin).handleGoogleLoginIntent(requestCode, data);
-      }
+  ```java
+  @Override
+  public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+  
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
+        PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
+        if (pluginHandle == null) {
+            Log.i("Google Activity Result", "SocialLogin login handle is null");
+            return;
+        }
+        Plugin plugin = pluginHandle.getInstance();
+        if (!(plugin instanceof SocialLoginPlugin)) {
+            Log.i("Google Activity Result", "SocialLogin plugin instance is not SocialLoginPlugin");
+            return;
+        }
+        ((SocialLoginPlugin) plugin).handleGoogleLoginIntent(requestCode, data);
     }
-    ```
-  - Please save the file
-4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
-   
-   - First, you need import `SocialLogin` AND `Capacitor`
-     
-     ```typescript
-     import { SocialLogin } from '@capgo/capacitor-social-login';
-     import { Capacitor } from '@capacitor/core';
-     ```
-   
-   - Then, you want to call initialize. I recommend calling this ONLY once.
-     
-     ```ts
-     // onMounted is Vue specific
-     // webClientId is the client ID you got in the web client creation step not the android client ID.
-     onMounted(() => {
-       SocialLogin.initialize({
-         google: {
-           webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
-         }
-       })
-     })
-     ```
-     
-     Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
-     
-     ```ts
-     const res = await SocialLogin.login({
-       provider: 'google',
-       options: {}
-     })
-     // handle the response. popoutStore is specific to my app
-     popoutStore.popout("Google login", JSON.stringify(response))
-     ```
+  }
+  ```
 
+- Please save the file
+  
+  4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+  - First, you need import `SocialLogin` AND `Capacitor`
+    
+    ```typescript
+    import { SocialLogin } from '@capgo/capacitor-social-login';
+    import { Capacitor } from '@capacitor/core';
+    ```
+  
+  - Then, you want to call initialize. I recommend calling this ONLY once.
+    
+    ```ts
+    // onMounted is Vue specific
+    // webClientId is the client ID you got in the web client creation step not the android client ID.
+    onMounted(() => {
+     SocialLogin.initialize({
+       google: {
+         webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+       }
+     })
+    })
+    ```
+    
+    Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
+    
+    ```ts
+    const res = await SocialLogin.login({
+     provider: 'google',
+     options: {}
+    })
+    // handle the response. popoutStore is specific to my app
+    popoutStore.popout("Google login", JSON.stringify(response))
+    ```
 5. Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
    
    - First, go into `Device manager` and click the plus button
@@ -402,3 +400,43 @@ In this part, you will learn how to setup Google login in Android
    
    - Click `Update` and wait about 60 seconds
      ![](./assets/emul_and_settings_update_play_store.png)
+
+### Difference between online access and offline access
+
+|                         | Online access | Offline access |
+|:-----------------------:|:-------------:|:--------------:|
+| Requires a backend      | ❌             | ✅              |
+| Long-lived access token | ✅             | ❌              |
+| Easy setup              | ✅             | ❌              |
+
+📝 Long lived access tokens allow the backend to call Google API's even when the user is not present
+
+
+
+If you still do not know which one you should choose, please consider the following scenarios:
+
+
+
+1. You want the user to login, immediately after you are going to issue him a custom JWT. Your app will NOT call Google APIs
+   
+   
+   In this case, choose online access.
+
+2. Your app will call some Google APIs from the client, but never from the backend
+   
+   
+   In this case, choose online access
+   
+   
+
+3. Your app will call some google APIs from the backend, but only when the user is actively using the app
+   
+   In this case, choose online access
+
+4. Your app will periodically check the user's calendar, even when he is not actively using the app
+   
+   In this case, choose offline access
+
+### An example backend for online access
+
+In this part of the tutorial, I will show how to validate the user on your backend. 
