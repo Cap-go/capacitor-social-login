@@ -321,10 +321,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
               familyName: res.user?.name?.lastName || null,
             },
             accessToken: {
-              token:  "", // TODO: to fix and find the correct token
+              token:  res.authorization.code , // TODO: to fix and find the correct token
             },
             idToken: res.authorization.id_token || null,
-            authorizationCode: res.authorization.code || null,
           };
           resolve({ provider: "apple", result });
         })
@@ -416,7 +415,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                     hometown: null,
                     profileURL: null,
                   },
-                  authenticationToken: null,
+                  idToken: null,
                 };
                 resolve({ provider: "facebook", result });
               },

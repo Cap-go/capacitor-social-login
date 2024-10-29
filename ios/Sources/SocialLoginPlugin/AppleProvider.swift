@@ -1,6 +1,7 @@
 import Foundation
 import AuthenticationServices
 import Alamofire
+import UIKit
 
 struct AppleProviderResponse: Codable {
     let accessToken: AccessTokenApple?
@@ -18,7 +19,14 @@ struct AppleProfile: Codable {
 
 struct AccessTokenApple: Codable {
     let token: String
-    // Add other fields if needed
+    let expiresIn: Int?
+    let refreshToken: String?
+    
+    init(token: String, expiresIn: Int? = nil, refreshToken: String? = nil) {
+        self.token = token
+        self.expiresIn = expiresIn
+        self.refreshToken = refreshToken
+    }
 }
 
 // Define the Decodable structs for the response
@@ -226,9 +234,16 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             let fullName = appleIDCredential.fullName
             let email = appleIDCredential.email
 
+            // Create proper access token
+            let accessToken = AccessTokenApple(
+                token: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? "",
+                expiresIn: 3600, // Default 1 hour
+                refreshToken: nil // Apple doesn't provide refresh token directly
+            )
+
             retrieveUserInfo { savedUserInfo in
                 let response = AppleProviderResponse(
-                    accessToken: AccessTokenApple(token: ""), // You might need to implement this
+                    accessToken: accessToken,
                     profile: AppleProfile(
                         user: userIdentifier,
                         email: email ?? savedUserInfo?.profile.email,
@@ -356,15 +371,19 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                 do {
                                     try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
                                     let appleResponse = AppleProviderResponse(
-                                        accessToken: AccessTokenApple(token: ""), // You might need to implement this
+                                        accessToken: AccessTokenApple(
+                                            token: accessToken,
+                                            expiresIn: 3600,  // Default 1 hour
+                                            refreshToken: refreshToken
+                                        ),
                                         profile: AppleProfile(
-                                            user: "", // We don't have this information at this point
-                                            email: nil, // We don't have this information at this point
-                                            givenName: nil, // We don't have this information at this point
-                                            familyName: nil // We don't have this information at this point
+                                            user: "",
+                                            email: nil,
+                                            givenName: nil,
+                                            familyName: nil
                                         ),
                                         idToken: idToken,
-                                        authorizationCode: "" // We don't have this information at this point
+                                        authorizationCode: ""
                                     )
                                     completion(.success(appleResponse))
                                     return
@@ -376,9 +395,13 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
                             if (pathComponents.filter { $0.name == "ios_no_code" }).first != nil {
                                 let appleResponse = AppleProviderResponse(
-                                    accessToken: AccessTokenApple(token: ""), // You might need to implement this
+                                    accessToken: AccessTokenApple(
+                                        token: "",
+                                        expiresIn: 3600,  // Default 1 hour
+                                        refreshToken: nil
+                                    ),
                                     profile: AppleProfile(
-                                        user: "", // You might want to extract this from the identityToken
+                                        user: "",
                                         email: email,
                                         givenName: firstName,
                                         familyName: lastName
@@ -480,7 +503,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                        let userId = userData["sub"] as? String {
                         // Create the response object
                         let appleResponse = AppleProviderResponse(
-                            accessToken: AccessTokenApple(token: accessToken),
+                            accessToken: AccessTokenApple(token: accessToken, expiresIn: expiresIn, refreshToken: refreshToken),
                             profile: AppleProfile(
                                 user: userId,
                                 email: nil, // You might want to extract this from the idToken if available

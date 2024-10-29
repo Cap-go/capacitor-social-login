@@ -304,7 +304,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 let facebookResult: [String: Any] = [
                     "accessToken": facebookResponse.accessToken,
                     "profile": facebookResponse.profile,
-                    "authenticationToken": facebookResponse.authenticationToken ?? ""
+                    "idToken": facebookResponse.idToken ?? ""
                 ]
                 call.resolve([
                     "provider": "facebook",
