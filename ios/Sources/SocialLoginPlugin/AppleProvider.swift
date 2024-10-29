@@ -235,7 +235,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
             // Create proper access token
             let accessToken = AccessTokenApple(
-                token: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8),
+                token: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
                 expiresIn: 3600, // Default 1 hour
                 refreshToken: nil // Apple doesn't provide refresh token directly
             )
@@ -259,7 +259,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                     let firstName = fullName?.givenName ?? ""
                     let lastName = fullName?.familyName ?? ""
 
-                    self.sendRequest(code: response.authorizationCode ?? "", identityToken: response.idToken ?? "", email: email ?? "", firstName: firstName, lastName: lastName, completion: { result in
+                    self.sendRequest(code: response.accessToken?.token ?? "", identityToken: response.idToken ?? "", email: email ?? "", firstName: firstName, lastName: lastName, completion: { result in
                         switch result {
                         case .success(let appleResponse):
                             self.completion?(.success(appleResponse))
