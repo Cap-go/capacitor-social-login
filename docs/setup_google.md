@@ -426,8 +426,6 @@ If you still do not know which one you should choose, please consider the follow
    
    
    In this case, choose online access
-   
-   
 
 3. Your app will call some google APIs from the backend, but only when the user is actively using the app
    
@@ -440,3 +438,32 @@ If you still do not know which one you should choose, please consider the follow
 ### An example backend for online access
 
 In this part of the tutorial, I will show how to validate the user on your backend. 
+
+This example will be very simple and it will be based on the following technologies:
+
+- [Typescript](https://www.typescriptlang.org/)
+
+- [Hono](https://hono.dev/)
+
+- [Javascript's fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch)
+
+
+You can find the code for this example [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/141c01d93a85240e31a0d488a89df13c842708b1/index.ts#L135-L153)
+
+As you can see:
+
+![](./assets/vscode_auth_google.png)
+
+The idea is rather simple. You send a simple `GET` request to `https://www.googleapis.com/oauth2/v3/tokeninfo` and this returns you whether the token is valid or not and if it it is, it gives you the email of the user. It also gives you some other info about the user token
+![](./assets/google_auth_playground_token_info.png)
+
+For there, you could issue the user with your own JWT or issue some sort of session cookie. The possibilities are endless, for the final auth implementation.
+
+If you do want to call Google API's, I would strongly recommend at [Google's OAuth 2.0 Playground](https://developers.google.com/oauthplayground). From there you can easily see what APIs you can call.
+
+
+
+
+### An example backend for offline access
+
+Offline access it not currently implemented in the plugin.
