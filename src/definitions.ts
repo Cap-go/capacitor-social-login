@@ -122,14 +122,13 @@ export interface AppleProviderOptions {
 
 export interface AppleProviderResponse {
   accessToken: AccessToken | null;
+  idToken: string | null;
   profile: {
     user: string;
     email: string | null;
     givenName: string | null;
     familyName: string | null;
   };
-  idToken: string | null;
-  authorizationCode: string | null;
 }
 
 export interface LoginOptions {
@@ -172,6 +171,7 @@ export interface AccessToken {
 
 export interface FacebookLoginResponse {
   accessToken: AccessToken | null;
+  idToken: string | null;
   profile: {
     userID: string;
     email: string | null;
@@ -185,7 +185,6 @@ export interface FacebookLoginResponse {
     name: string | null;
     imageURL: string | null;
   };
-  authenticationToken: string | null;
 }
 
 export interface AuthorizationCode {

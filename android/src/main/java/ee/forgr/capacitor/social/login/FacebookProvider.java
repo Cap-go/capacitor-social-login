@@ -99,7 +99,7 @@ public class FacebookProvider implements SocialProvider {
               result.put("accessToken", createAccessTokenObject(accessToken));
               result.put("profile", createProfileObject(accessToken));
               result.put(
-                "authenticationToken",
+                "idToken",
                 loginResult.getAuthenticationToken() != null
                   ? loginResult.getAuthenticationToken().getToken()
                   : null

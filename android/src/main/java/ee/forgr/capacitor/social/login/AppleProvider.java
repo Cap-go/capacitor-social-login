@@ -264,7 +264,6 @@ public class AppleProvider implements SocialProvider {
           result.put("accessToken", createAccessTokenObject(accessToken));
           result.put("profile", createProfileObject(idToken));
           result.put("idToken", idToken);
-          result.put("authorizationCode", ""); // Apple doesn't provide this in the response
 
           JSObject response = new JSObject();
           response.put("provider", "apple");

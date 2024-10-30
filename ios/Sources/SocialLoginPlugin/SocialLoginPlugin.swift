@@ -270,7 +270,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "accessToken": accessTokenObject ?? NSNull(),
                     "profile": profileObject,
                     "idToken": appleResponse.idToken ?? "",
-                    "authorizationCode": appleResponse.authorizationCode ?? ""
                 ]
                 
                 call.resolve([
@@ -304,7 +303,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 let facebookResult: [String: Any] = [
                     "accessToken": facebookResponse.accessToken,
                     "profile": facebookResponse.profile,
-                    "authenticationToken": facebookResponse.authenticationToken ?? ""
+                    "idToken": facebookResponse.idToken ?? ""
                 ]
                 call.resolve([
                     "provider": "facebook",

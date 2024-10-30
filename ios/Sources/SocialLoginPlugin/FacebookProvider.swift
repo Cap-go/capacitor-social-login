@@ -9,7 +9,7 @@ import FacebookLogin
 struct FacebookLoginResponse {
     let accessToken: [String: Any]
     let profile: [String: Any]
-    let authenticationToken: String?
+    let idToken: String?
 }
 
 class FacebookProvider {
@@ -88,7 +88,7 @@ class FacebookProvider {
             "isExpired": AccessToken.current?.isExpired ?? false,
             "refreshDate": AccessToken.current?.refreshDate ?? Date(),
             "permissions": AccessToken.current?.permissions.map { $0.name } ?? [],
-            "accessToken": AccessToken.current?.tokenString ?? "",
+            "token": AccessToken.current?.tokenString ?? "",
             "userID": AccessToken.current?.userID ?? ""
         ]
 
@@ -109,7 +109,7 @@ class FacebookProvider {
         return FacebookLoginResponse(
             accessToken: accessToken,
             profile: profileData,
-            authenticationToken: authToken?.tokenString
+            idToken: authToken?.tokenString
         )
     }
 

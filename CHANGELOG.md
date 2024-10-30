@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.67](https://github.com/Cap-go/capacitor-social-login/compare/0.0.66...0.0.67) (2024-10-29)
+
+
+### Bug Fixes
+
+* build ([fabd7f6](https://github.com/Cap-go/capacitor-social-login/commit/fabd7f62d2e67d5cd9cef9af29210e98bef8ab80))
+
+### [0.0.66](https://github.com/Cap-go/capacitor-social-login/compare/0.0.65...0.0.66) (2024-10-29)
+
+
+### Bug Fixes
+
+* apple provider ([59f2a94](https://github.com/Cap-go/capacitor-social-login/commit/59f2a949ca9bf7b924cd50b4c37c7d0be7b9db81))
+* licence ([9860d3a](https://github.com/Cap-go/capacitor-social-login/commit/9860d3a5879fcec02b91688ba3e199269e04f44c))
+
+### [0.0.65](https://github.com/Cap-go/capacitor-social-login/compare/0.0.64...0.0.65) (2024-10-29)
+
+
+### Bug Fixes
+
+* problem with naming ([0e95ff0](https://github.com/Cap-go/capacitor-social-login/commit/0e95ff0dc9dce81f3876404e3f8155225d1698f9))
+
+### [0.0.64](https://github.com/Cap-go/capacitor-social-login/compare/0.0.63...0.0.64) (2024-10-26)
+
+
+### Bug Fixes
+
+* issue with data format ([4410c7a](https://github.com/Cap-go/capacitor-social-login/commit/4410c7a0d5e3bff61a3081ee137d28907485dbc5))
+
 ### [0.0.63](https://github.com/Cap-go/capacitor-social-login/compare/0.0.62...0.0.63) (2024-10-26)
 
 

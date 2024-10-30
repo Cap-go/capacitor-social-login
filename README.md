@@ -357,11 +357,11 @@ Refresh the access token
 
 #### FacebookLoginResponse
 
-| Prop                      | Type                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`accessToken`**         | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                                                                                                                                                                                                                                                                     |
-| **`profile`**             | <code>{ userID: string; email: string \| null; friendIDs: string[]; birthday: string \| null; ageRange: { min?: number; max?: number; } \| null; gender: string \| null; location: { id: string; name: string; } \| null; hometown: { id: string; name: string; } \| null; profileURL: string \| null; name: string \| null; imageURL: string \| null; }</code> |
-| **`authenticationToken`** | <code>string \| null</code>                                                                                                                                                                                                                                                                                                                                     |
+| Prop              | Type                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`accessToken`** | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                                                                                                                                                                                                                                                                     |
+| **`idToken`**     | <code>string \| null</code>                                                                                                                                                                                                                                                                                                                                     |
+| **`profile`**     | <code>{ userID: string; email: string \| null; friendIDs: string[]; birthday: string \| null; ageRange: { min?: number; max?: number; } \| null; gender: string \| null; location: { id: string; name: string; } \| null; hometown: { id: string; name: string; } \| null; profileURL: string \| null; name: string \| null; imageURL: string \| null; }</code> |
 
 
 #### AccessToken
@@ -390,12 +390,11 @@ Refresh the access token
 
 #### AppleProviderResponse
 
-| Prop                    | Type                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **`accessToken`**       | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                  |
-| **`profile`**           | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> |
-| **`idToken`**           | <code>string \| null</code>                                                                                  |
-| **`authorizationCode`** | <code>string \| null</code>                                                                                  |
+| Prop              | Type                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| **`accessToken`** | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                  |
+| **`idToken`**     | <code>string \| null</code>                                                                                  |
+| **`profile`**     | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> |
 
 
 #### LoginOptions
