@@ -11,11 +11,14 @@ import type {
   AuthorizationCodeOptions,
   FacebookLoginOptions,
   FacebookLoginResponse,
+  GoogleLoginOptions
 } from "./definitions";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const AppleID: any;
 
 declare const FB: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   init(options: any): void;
   login(
     callback: (response: {
@@ -28,6 +31,7 @@ declare const FB: {
   api(
     path: string,
     params: { fields: string },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (response: any) => void,
   ): void;
   getLoginStatus(
@@ -138,7 +142,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can check if there's a valid token
-        const googleAccessToken = this.getGoogleState();
+        { const googleAccessToken = this.getGoogleState();
         if (!googleAccessToken) {
           return Promise.reject("User is not logged in");
         }
@@ -158,7 +162,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           }
         } catch (e) {
           return Promise.reject(e);
-        }
+        } }
       case "apple":
         // Apple doesn't provide a method to check login status on web
         console.log("Apple login status should be managed on the client side");
@@ -182,7 +186,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can check if there's a valid token
-        const googleAccessToken = this.getGoogleState();
+        { const googleAccessToken = this.getGoogleState();
         if (!googleAccessToken) {
           return Promise.reject("User is not logged in");
         }
@@ -202,7 +206,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           }
         } catch (e) {
           return Promise.reject(e);
-        }
+        } }
       case "apple":
         // Apple authorization code should be obtained during login
         console.log("Apple authorization code should be stored during login");
@@ -300,6 +304,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       }
 
       // Parse the response body as JSON
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let jsonObject: any;
       try {
         jsonObject = JSON.parse(responseBody);
@@ -313,7 +318,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       }
 
       // Extract the 'expires_in' field
-      let expiresInStr = jsonObject["expires_in"];
+      const expiresInStr = jsonObject["expires_in"];
 
       if (expiresInStr === undefined || expiresInStr === null) {
         console.error(
@@ -348,7 +353,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
-  private async loginWithGoogle(options: any): Promise<LoginResult> {
+  private async loginWithGoogle(options: GoogleLoginOptions): Promise<LoginResult> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
@@ -367,112 +372,134 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     return new Promise((resolve, reject) => {
-      const auth2 = google.accounts.oauth2.initTokenClient({
-        client_id: this.googleClientId!,
-        scope: scopes.join(" "),
-        callback: async (response) => {
-          if (response.error) {
-            reject(response.error);
-          } else {
-            // Process the response similar to One Tap
-            const accessToken = response.access_token;
-            try {
-              const profileRes = await fetch(
-                "https://openidconnect.googleapis.com/v1/userinfo",
-                {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                  },
-                },
-              );
-
-              if (!profileRes.ok) {
-                reject(
-                  new Error(
-                    `Profile response is not OK. Status: ${profileRes.status}`,
-                  ),
-                );
-                return;
-              }
-
-              function isString(value: any): value is string {
-                return typeof value === "string";
-              }
-
-              const jsonObject = await profileRes.json();
-              // Assuming jsonObject is of type any or a specific interface
-              let name: string;
-              let givenName: string;
-              let familyName: string;
-              let picture: string;
-              let email: string;
-              let sub: string;
-
-              if (isString(jsonObject.name)) {
-                name = jsonObject.name;
-              } else {
-                throw new Error('Invalid or missing "name" property.');
-              }
-
-              if (isString(jsonObject.given_name)) {
-                givenName = jsonObject.given_name;
-              } else {
-                throw new Error('Invalid or missing "given_name" property.');
-              }
-
-              if (isString(jsonObject.family_name)) {
-                familyName = jsonObject.family_name;
-              } else {
-                throw new Error('Invalid or missing "family_name" property.');
-              }
-
-              if (isString(jsonObject.picture)) {
-                picture = jsonObject.picture;
-              } else {
-                throw new Error('Invalid or missing "picture" property.');
-              }
-
-              if (isString(jsonObject.email)) {
-                email = jsonObject.email;
-              } else {
-                throw new Error('Invalid or missing "email" property.');
-              }
-
-              if (isString(jsonObject.sub)) {
-                sub = jsonObject.sub;
-              } else {
-                throw new Error('Invalid or missing "sub" property.');
-              }
-
-              // Assuming profile is an object of a specific interface or type
-              const profile = {
-                email: email,
-                familyName: familyName,
-                givenName: givenName,
-                id: sub,
-                name: name,
-                imageUrl: picture,
-              };
-
-              this.persistStateGoogle(accessToken);
+      if (options.grantOfflineAccess) {
+        const auth2 = google.accounts.oauth2.initCodeClient({
+          client_id: this.googleClientId!,
+          scope: scopes.join(" "),
+          ux_mode: 'popup',
+          callback: async (response) => {
+            if (response.error) {
+              reject(response.error);
+            } else {
               resolve({
-                provider: "google",
+                provider: 'google',
                 result: {
-                  accessToken: {
-                    token: accessToken,
-                    expires: response.expires_in, //expires_in = seconds until the token expirers
-                  },
-                  profile,
-                  serverAuthCode: null,
-                },
-              });
-            } catch (e) {
-              reject(e);
+                  'responseType': 'offline',
+                  serverAuthCode: response.code
+                }
+              })
             }
           }
-        },
-      });
-      auth2.requestAccessToken();
+        })
+        auth2.requestCode()
+      } else {
+        const auth2 = google.accounts.oauth2.initTokenClient({
+          client_id: this.googleClientId!,
+          scope: scopes.join(" "),
+          callback: async (response) => {
+            if (response.error) {
+              reject(response.error);
+            } else {
+              // Process the response similar to One Tap
+              const accessToken = response.access_token;
+              try {
+                const profileRes = await fetch(
+                  "https://openidconnect.googleapis.com/v1/userinfo",
+                  {
+                    headers: {
+                      Authorization: `Bearer ${accessToken}`,
+                    },
+                  },
+                );
+  
+                if (!profileRes.ok) {
+                  reject(
+                    new Error(
+                      `Profile response is not OK. Status: ${profileRes.status}`,
+                    ),
+                  );
+                  return;
+                }
+  
+                function isString(value: unknown): value is string {
+                  return typeof value === "string";
+                }
+  
+                const jsonObject = await profileRes.json();
+                // Assuming jsonObject is of type any or a specific interface
+                let name: string;
+                let givenName: string;
+                let familyName: string;
+                let picture: string;
+                let email: string;
+                let sub: string;
+  
+                if (isString(jsonObject.name)) {
+                  name = jsonObject.name;
+                } else {
+                  throw new Error('Invalid or missing "name" property.');
+                }
+  
+                if (isString(jsonObject.given_name)) {
+                  givenName = jsonObject.given_name;
+                } else {
+                  throw new Error('Invalid or missing "given_name" property.');
+                }
+  
+                if (isString(jsonObject.family_name)) {
+                  familyName = jsonObject.family_name;
+                } else {
+                  throw new Error('Invalid or missing "family_name" property.');
+                }
+  
+                if (isString(jsonObject.picture)) {
+                  picture = jsonObject.picture;
+                } else {
+                  throw new Error('Invalid or missing "picture" property.');
+                }
+  
+                if (isString(jsonObject.email)) {
+                  email = jsonObject.email;
+                } else {
+                  throw new Error('Invalid or missing "email" property.');
+                }
+  
+                if (isString(jsonObject.sub)) {
+                  sub = jsonObject.sub;
+                } else {
+                  throw new Error('Invalid or missing "sub" property.');
+                }
+  
+                // Assuming profile is an object of a specific interface or type
+                const profile = {
+                  email: email,
+                  familyName: familyName,
+                  givenName: givenName,
+                  id: sub,
+                  name: name,
+                  imageUrl: picture,
+                };
+  
+                this.persistStateGoogle(accessToken);
+                resolve({
+                  provider: "google",
+                  result: {
+                    accessToken: {
+                      token: accessToken,
+                      expires: response.expires_in, //expires_in = seconds until the token expirers
+                    },
+                    profile,
+                    responseType: 'online',
+                  },
+                });
+              } catch (e) {
+                reject(e);
+              }
+            }
+          },
+        });
+        auth2.requestAccessToken();
+      }
     });
   }
 

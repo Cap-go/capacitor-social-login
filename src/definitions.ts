@@ -87,9 +87,9 @@ export interface GoogleLoginOptions {
   grantOfflineAccess?: boolean;
 }
 
-export interface GoogleLoginResponse {
+export interface GoogleLoginOnlineResponse {
   accessToken: AccessToken | null;
-  serverAuthCode: string | null;
+  responseType: 'online';
   profile: {
     email: string | null;
     familyName: string | null;
@@ -98,6 +98,11 @@ export interface GoogleLoginResponse {
     name: string | null;
     imageUrl: string | null;
   } | null;
+}
+
+export interface GoogleLoginOfflineResponse {
+  serverAuthCode: string,
+  responseType: 'offline'
 }
 
 export interface AppleProviderOptions {
@@ -154,7 +159,7 @@ export interface LoginResult {
    * Payload
    * @description payload to login with
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleProviderResponse;
+  result: FacebookLoginResponse | GoogleLoginOfflineResponse | GoogleLoginOnlineResponse | AppleProviderResponse;
 }
 
 export interface AccessToken {
