@@ -333,11 +333,10 @@ In this part, you will learn how to setup Google login in Android
 - Please save the file
   
   4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
-  - First, you need import `SocialLogin` AND `Capacitor`
+  - First, you need import `SocialLogin`
     
     ```typescript
-    import { SocialLogin } from '@capgo/capacitor-social-login';
-    import { Capacitor } from '@capacitor/core';
+    import { ScialLogin } from '@capgo/capacitor-social-login';
     ```
   
   - Then, you want to call initialize. I recommend calling this ONLY once.
@@ -401,6 +400,75 @@ In this part, you will learn how to setup Google login in Android
    - Click `Update` and wait about 60 seconds
      ![](./assets/emul_and_settings_update_play_store.png)
 
+### Using Google login on the web
+
+Using the google login on the web is rather simple.
+In order to use it, you have to do the following:
+
+1. Create a web client in the Google Console.
+   
+   - Please follow step 2 of the `Using Google login on Android` if you have not configured it already
+
+2- Configure the web client in the Google Console
+   
+   - Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
+     ![](./assets/google_cons_open_web_client_id.png)
+   
+   - Now, please add the `Authorized JavaScript origins`. This should include all the addresses that you might use for your app. In might case, I will **ONLY** use localhost, but since I use a custom port I have to add both `http://localhost` and `http://localhost:5173`
+     
+     - Please click on `add URI`
+       ![](./assets/google_cons_authorized_js_add_btn.png)
+     
+     - Please type your URL
+       ![](./assets/google_cons_authorized_js_typed_url.png)
+     
+     - Please repeat until you added all the URLs
+     
+     - When you finish, your screen should look something like this
+       ![](./assets/google_cons_authorized_js_final.png)
+   
+   - Now, please click **ENSURE** that you do not have any `Authorized redirect URIs` added. 
+     
+     
+     
+     **THIS IS CRITICAL** and if you do not follow this step, the Google Login on the web **WILL NOT** work
+   
+   - Click `save`
+     ![](./assets/google_cons_web_app_save.png)
+
+3- Now, you should be ready to call `login` from JavaScript like so:
+   
+   - First, you need import `SocialLogin`
+     
+     ```typescript
+     import { ScialLogin } from '@capgo/capacitor-social-login';
+     ```
+   
+   - Then, you want to call initialize. I recommend calling this ONLY once.
+     
+     ```ts
+     // onMounted is Vue specific
+     // webClientId is the client ID you got in the web client creation step not the android client ID.
+     onMounted(() => {
+      SocialLogin.initialize({
+        google: {
+          webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+        }
+      })
+     })
+     ```
+     
+     Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
+     
+     ```ts
+     const res = await SocialLogin.login({
+      provider: 'google',
+      options: {}
+     })
+     // handle the response. popoutStore is specific to my app
+     popoutStore.popout("Google login", JSON.stringify(response))
+     ```
+
 ### Difference between online access and offline access
 
 |                         | Online access | Offline access |
@@ -411,20 +479,14 @@ In this part, you will learn how to setup Google login in Android
 
 📝 Long lived access tokens allow the backend to call Google API's even when the user is not present
 
-
-
 If you still do not know which one you should choose, please consider the following scenarios:
 
-
-
 1. You want the user to login, immediately after you are going to issue him a custom JWT. Your app will NOT call Google APIs
-   
-   
+
    In this case, choose online access.
 
 2. Your app will call some Google APIs from the client, but never from the backend
-   
-   
+
    In this case, choose online access
 
 3. Your app will call some google APIs from the backend, but only when the user is actively using the app
@@ -447,7 +509,6 @@ This example will be very simple and it will be based on the following technolog
 
 - [Javascript's fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch)
 
-
 You can find the code for this example [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/141c01d93a85240e31a0d488a89df13c842708b1/index.ts#L135-L153)
 
 As you can see:
@@ -461,9 +522,6 @@ For there, you could issue the user with your own JWT or issue some sort of sess
 
 If you do want to call Google API's, I would strongly recommend at [Google's OAuth 2.0 Playground](https://developers.google.com/oauthplayground). From there you can easily see what APIs you can call.
 
-
-
-
-### An example backend for offline access
+### Using offline access
 
 Offline access it not currently implemented in the plugin.
