@@ -56,11 +56,6 @@ public class SocialLoginPlugin extends Plugin {
 
     JSObject google = call.getObject("google");
     if (google != null) {
-      if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.N) {
-        call.reject("Android version to small");
-        return;
-      }
-
       GoogleProvider googleProvider = new GoogleProvider(
         this.getActivity(),
         this.getContext()
