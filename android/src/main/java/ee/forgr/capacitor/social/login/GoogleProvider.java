@@ -9,6 +9,7 @@ import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.credentials.ClearCredentialStateRequest;
 import androidx.credentials.Credential;
 import androidx.credentials.CredentialManager;
@@ -29,6 +30,7 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+import com.google.common.util.concurrent.ListenableFuture;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
 import java.time.Instant;
@@ -55,7 +57,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
-@RequiresApi(api = Build.VERSION_CODES.N)
 public class GoogleProvider implements SocialProvider {
 
   private static final String LOG_TAG = "GoogleProvider";
@@ -78,9 +79,9 @@ public class GoogleProvider implements SocialProvider {
   private CredentialManager credentialManager;
   private String clientId;
   private String[] scopes;
-  private List<CompletableFuture<AccessToken>> futuresList = new ArrayList<>(
-    FUTURE_LIST_LENGTH
-  );
+  private List<
+    CallbackToFutureAdapter.Completer<GoogleProvider.AccessToken>
+  > futuresList = new ArrayList<>(FUTURE_LIST_LENGTH);
 
   private String savedAccessToken = null;
 
@@ -220,7 +221,7 @@ public class GoogleProvider implements SocialProvider {
 
           // Use ExecutorService to retrieve the access token
           ExecutorService executor = Executors.newSingleThreadExecutor();
-          CompletableFuture<AccessToken> future = getAccessToken(call);
+          ListenableFuture<AccessToken> future = getAccessToken(call);
 
           executor.execute(
             new Runnable() {
@@ -236,159 +237,162 @@ public class GoogleProvider implements SocialProvider {
                     .addHeader("Authorization", "Bearer " + accessToken.token)
                     .build();
 
-                  CompletableFuture<Date> tokenExpiresIn =
-                    new CompletableFuture<>();
-                  Request tokenRequest = new Request.Builder()
-                    .url(
-                      TOKEN_REQUEST_URL +
-                      "?" +
-                      "access_token=" +
-                      accessToken.token
-                    )
-                    .get()
-                    .build();
+                  ListenableFuture<Date> tokenExpiresIn =
+                    CallbackToFutureAdapter.getFuture(completer -> {
+                      Request tokenRequest = new Request.Builder()
+                        .url(
+                          TOKEN_REQUEST_URL +
+                          "?" +
+                          "access_token=" +
+                          accessToken.token
+                        )
+                        .get()
+                        .build();
 
-                  client
-                    .newCall(tokenRequest)
-                    .enqueue(
-                      new Callback() {
-                        @Override
-                        public void onFailure(
-                          @NonNull Call call,
-                          @NonNull IOException e
-                        ) {}
+                      client
+                        .newCall(tokenRequest)
+                        .enqueue(
+                          new Callback() {
+                            @Override
+                            public void onFailure(
+                              @NonNull Call call,
+                              @NonNull IOException e
+                            ) {}
 
-                        @Override
-                        public void onResponse(
-                          @NonNull Call httpCall,
-                          @NonNull Response httpResponse
-                        ) throws IOException {
-                          if (!httpResponse.isSuccessful()) {
-                            tokenExpiresIn.completeExceptionally(
-                              new RuntimeException(
-                                String.format(
-                                  "Invalid response from %s. Response not successful. Status code: %s",
-                                  TOKEN_REQUEST_URL,
-                                  httpResponse.code()
-                                )
-                              )
-                            );
-                            Log.e(
-                              LOG_TAG,
-                              String.format(
-                                "Invalid response from %s. Response not successful. Status code: %s",
-                                TOKEN_REQUEST_URL,
-                                httpResponse.code()
-                              )
-                            );
-                            return;
+                            @Override
+                            public void onResponse(
+                              @NonNull Call httpCall,
+                              @NonNull Response httpResponse
+                            ) throws IOException {
+                              if (!httpResponse.isSuccessful()) {
+                                completer.setException(
+                                  new RuntimeException(
+                                    String.format(
+                                      "Invalid response from %s. Response not successful. Status code: %s",
+                                      TOKEN_REQUEST_URL,
+                                      httpResponse.code()
+                                    )
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response not successful. Status code: %s",
+                                    TOKEN_REQUEST_URL,
+                                    httpResponse.code()
+                                  )
+                                );
+                                return;
+                              }
+
+                              ResponseBody responseBody = httpResponse.body();
+                              if (responseBody == null) {
+                                completer.setException(
+                                  new RuntimeException(
+                                    String.format(
+                                      "Invalid response from %s. Response body is null",
+                                      TOKEN_REQUEST_URL
+                                    )
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response body is null",
+                                    TOKEN_REQUEST_URL
+                                  )
+                                );
+                                return;
+                              }
+
+                              String responseString = responseBody.string();
+                              JSONObject jsonObject;
+                              try {
+                                jsonObject = (JSONObject) new JSONTokener(
+                                  responseString
+                                ).nextValue();
+                              } catch (JSONException e) {
+                                completer.setException(
+                                  new RuntimeException(
+                                    String.format(
+                                      "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                      TOKEN_REQUEST_URL,
+                                      e
+                                    )
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                    TOKEN_REQUEST_URL,
+                                    e
+                                  )
+                                );
+                                return;
+                              }
+
+                              String expiresIn;
+                              try {
+                                expiresIn = jsonObject.getString("expires_in");
+                              } catch (JSONException e) {
+                                completer.setException(
+                                  new RuntimeException(
+                                    String.format(
+                                      "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                                      TOKEN_REQUEST_URL,
+                                      e
+                                    )
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                                    TOKEN_REQUEST_URL,
+                                    e
+                                  )
+                                );
+                                return;
+                              }
+
+                              int expressInInt;
+                              try {
+                                expressInInt = Integer.parseInt(expiresIn);
+                              } catch (Exception e) {
+                                completer.setException(
+                                  new RuntimeException(
+                                    String.format(
+                                      "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                                      TOKEN_REQUEST_URL,
+                                      expiresIn,
+                                      e
+                                    )
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                                    TOKEN_REQUEST_URL,
+                                    expiresIn,
+                                    e
+                                  )
+                                );
+                                return;
+                              }
+
+                              Date instant = new Date();
+                              Calendar calendar = Calendar.getInstance();
+                              calendar.setTime(instant);
+                              calendar.add(Calendar.SECOND, expressInInt);
+                              completer.set(calendar.getTime());
+                            }
                           }
+                        );
 
-                          ResponseBody responseBody = httpResponse.body();
-                          if (responseBody == null) {
-                            tokenExpiresIn.completeExceptionally(
-                              new RuntimeException(
-                                String.format(
-                                  "Invalid response from %s. Response body is null",
-                                  TOKEN_REQUEST_URL
-                                )
-                              )
-                            );
-                            Log.e(
-                              LOG_TAG,
-                              String.format(
-                                "Invalid response from %s. Response body is null",
-                                TOKEN_REQUEST_URL
-                              )
-                            );
-                            return;
-                          }
-
-                          String responseString = responseBody.string();
-                          JSONObject jsonObject;
-                          try {
-                            jsonObject = (JSONObject) new JSONTokener(
-                              responseString
-                            ).nextValue();
-                          } catch (JSONException e) {
-                            tokenExpiresIn.completeExceptionally(
-                              new RuntimeException(
-                                String.format(
-                                  "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                                  TOKEN_REQUEST_URL,
-                                  e
-                                )
-                              )
-                            );
-                            Log.e(
-                              LOG_TAG,
-                              String.format(
-                                "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                                TOKEN_REQUEST_URL,
-                                e
-                              )
-                            );
-                            return;
-                          }
-
-                          String expiresIn;
-                          try {
-                            expiresIn = jsonObject.getString("expires_in");
-                          } catch (JSONException e) {
-                            tokenExpiresIn.completeExceptionally(
-                              new RuntimeException(
-                                String.format(
-                                  "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
-                                  TOKEN_REQUEST_URL,
-                                  e
-                                )
-                              )
-                            );
-                            Log.e(
-                              LOG_TAG,
-                              String.format(
-                                "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
-                                TOKEN_REQUEST_URL,
-                                e
-                              )
-                            );
-                            return;
-                          }
-
-                          Integer expressInInt;
-                          try {
-                            expressInInt = Integer.parseInt(expiresIn);
-                          } catch (Exception e) {
-                            tokenExpiresIn.completeExceptionally(
-                              new RuntimeException(
-                                String.format(
-                                  "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
-                                  TOKEN_REQUEST_URL,
-                                  expiresIn,
-                                  e
-                                )
-                              )
-                            );
-                            Log.e(
-                              LOG_TAG,
-                              String.format(
-                                "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
-                                TOKEN_REQUEST_URL,
-                                expiresIn,
-                                e
-                              )
-                            );
-                            return;
-                          }
-
-                          Date instant = new Date();
-                          Calendar calendar = Calendar.getInstance();
-                          calendar.setTime(instant);
-                          calendar.add(Calendar.SECOND, expressInInt);
-                          tokenExpiresIn.complete(calendar.getTime());
-                        }
-                      }
-                    );
+                      return "TokenExpiresInOperationTag";
+                    });
 
                   client
                     .newCall(request)
@@ -582,7 +586,7 @@ public class GoogleProvider implements SocialProvider {
     }
   }
 
-  private CompletableFuture<AccessToken> getAccessToken(PluginCall call) {
+  private ListenableFuture<AccessToken> getAccessToken(PluginCall call) {
     //      Account account = new Account(credential.getId(), "com.google");
     //      String scopesString = "oauth2:" + TextUtils.join(" ", this.scopes);
     //      String token = GoogleAuthUtil.getToken(
@@ -598,89 +602,94 @@ public class GoogleProvider implements SocialProvider {
     //
     //      return accessToken;
 
-    CompletableFuture<AccessToken> future = new CompletableFuture<>();
-    List<Scope> scopes = Arrays.asList(
-      new Scope(Scopes.EMAIL),
-      new Scope(Scopes.PROFILE),
-      new Scope(Scopes.OPEN_ID)
-    );
-    AuthorizationRequest authorizationRequest = AuthorizationRequest.builder()
-      .setRequestedScopes(scopes)
-      // .requestOfflineAccess(this.clientId)
-      .build();
-
-    Identity.getAuthorizationClient(context)
-      .authorize(authorizationRequest)
-      .addOnSuccessListener(authorizationResult -> {
-        if (authorizationResult.hasResolution()) {
-          // Access needs to be granted by the user
-          PendingIntent pendingIntent = authorizationResult.getPendingIntent();
-          if (pendingIntent == null) {
-            future.completeExceptionally(
-              new RuntimeException("pendingIntent is null")
-            );
-            Log.e(LOG_TAG, "pendingIntent is null");
-            return;
-          }
-
-          // Find an index to put the future into.
-          int fututeIndex = -1;
-          for (int i = 0; i < futuresList.size(); i++) {
-            if (futuresList.get(i) == null) {
-              fututeIndex = i;
-              break;
-            }
-          }
-
-          if (fututeIndex == -1) {
-            future.completeExceptionally(
-              new RuntimeException("Cannot find index for future")
-            );
-            Log.e(
-              LOG_TAG,
-              "Cannot find index for future. Too many login requests??"
-            );
-            return;
-          }
-
-          futuresList.set(fututeIndex, future);
-
-          try {
-            activity.startIntentSenderForResult(
-              pendingIntent.getIntentSender(),
-              GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN + fututeIndex,
-              null,
-              0,
-              0,
-              0,
-              null
-            );
-          } catch (IntentSender.SendIntentException e) {
-            Log.e(
-              LOG_TAG,
-              "Couldn't start Authorization UI: " + e.getLocalizedMessage()
-            );
-            future.completeExceptionally(e);
-          }
-        } else {
-          // Access already granted, continue with user action
-          //saveToDriveAppFolder(authorizationResult);
-          assert authorizationResult.getAccessToken() != null;
-          Log.i("TAG", authorizationResult.getAccessToken());
-          //                  if (authorizationResult.getServerAuthCode() != null)
-          //                    Log.i("TAG", authorizationResult.getServerAuthCode());
-
-          AccessToken accessToken = new AccessToken();
-          accessToken.token = authorizationResult.getAccessToken();
-          future.complete(accessToken);
-        }
-      })
-      .addOnFailureListener(e -> {
-        future.completeExceptionally(
-          new RuntimeException("Failed to authorize")
+    ListenableFuture<AccessToken> future = CallbackToFutureAdapter.getFuture(
+      completer -> {
+        List<Scope> scopes = Arrays.asList(
+          new Scope(Scopes.EMAIL),
+          new Scope(Scopes.PROFILE),
+          new Scope(Scopes.OPEN_ID)
         );
-        Log.e("TAG", "Failed to authorize", e);
-      });
+        AuthorizationRequest authorizationRequest =
+          AuthorizationRequest.builder()
+            .setRequestedScopes(scopes)
+            // .requestOfflineAccess(this.clientId)
+            .build();
+
+        Identity.getAuthorizationClient(context)
+          .authorize(authorizationRequest)
+          .addOnSuccessListener(authorizationResult -> {
+            if (authorizationResult.hasResolution()) {
+              // Access needs to be granted by the user
+              PendingIntent pendingIntent =
+                authorizationResult.getPendingIntent();
+              if (pendingIntent == null) {
+                completer.setException(
+                  new RuntimeException("pendingIntent is null")
+                );
+                Log.e(LOG_TAG, "pendingIntent is null");
+                return;
+              }
+
+              // Find an index to put the future into.
+              int fututeIndex = -1;
+              for (int i = 0; i < futuresList.size(); i++) {
+                if (futuresList.get(i) == null) {
+                  fututeIndex = i;
+                  break;
+                }
+              }
+
+              if (fututeIndex == -1) {
+                completer.setException(
+                  new RuntimeException("Cannot find index for future")
+                );
+                Log.e(
+                  LOG_TAG,
+                  "Cannot find index for future. Too many login requests??"
+                );
+                return;
+              }
+
+              futuresList.set(fututeIndex, completer);
+
+              try {
+                activity.startIntentSenderForResult(
+                  pendingIntent.getIntentSender(),
+                  GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN + fututeIndex,
+                  null,
+                  0,
+                  0,
+                  0,
+                  null
+                );
+              } catch (IntentSender.SendIntentException e) {
+                Log.e(
+                  LOG_TAG,
+                  "Couldn't start Authorization UI: " + e.getLocalizedMessage()
+                );
+                completer.setException(e);
+              }
+            } else {
+              // Access already granted, continue with user action
+              //saveToDriveAppFolder(authorizationResult);
+              assert authorizationResult.getAccessToken() != null;
+              Log.i("TAG", authorizationResult.getAccessToken());
+              //                  if (authorizationResult.getServerAuthCode() != null)
+              //                    Log.i("TAG", authorizationResult.getServerAuthCode());
+
+              AccessToken accessToken = new AccessToken();
+              accessToken.token = authorizationResult.getAccessToken();
+              completer.set(accessToken);
+            }
+          })
+          .addOnFailureListener(e -> {
+            completer.setException(new RuntimeException("Failed to authorize"));
+            Log.e("TAG", "Failed to authorize", e);
+          });
+
+        return "GetAccessTokenOperationTag";
+      }
+    );
 
     return future;
   }
@@ -701,7 +710,9 @@ public class GoogleProvider implements SocialProvider {
       return;
     }
 
-    CompletableFuture<AccessToken> future = futuresList.get(futureIndex);
+    CallbackToFutureAdapter.Completer<AccessToken> future = futuresList.get(
+      futureIndex
+    );
 
     try {
       AuthorizationResult authorizationResult = Identity.getAuthorizationClient(
@@ -709,10 +720,10 @@ public class GoogleProvider implements SocialProvider {
       ).getAuthorizationResultFromIntent(data);
       AccessToken accessToken = new AccessToken();
       accessToken.token = authorizationResult.getAccessToken();
-      future.complete(accessToken);
+      future.set(accessToken);
     } catch (ApiException e) {
       Log.e(LOG_TAG, "Cannot get getAuthorizationResultFromIntent", e);
-      future.completeExceptionally(
+      future.setException(
         new RuntimeException("Cannot get getAuthorizationResultFromIntent")
       );
     }
@@ -774,143 +785,143 @@ public class GoogleProvider implements SocialProvider {
     );
   }
 
-  public CompletableFuture<Boolean> accessTokenIsValid(String accessToken) {
-    CompletableFuture<Boolean> accessTokenIsValid = new CompletableFuture<>();
+  public ListenableFuture<Boolean> accessTokenIsValid(String accessToken) {
+    return CallbackToFutureAdapter.getFuture(completer -> {
+      OkHttpClient client = new OkHttpClient();
+      Request tokenRequest = new Request.Builder()
+        .url(TOKEN_REQUEST_URL + "?" + "access_token=" + accessToken)
+        .get()
+        .build();
 
-    OkHttpClient client = new OkHttpClient();
-    Request tokenRequest = new Request.Builder()
-      .url(TOKEN_REQUEST_URL + "?" + "access_token=" + accessToken)
-      .get()
-      .build();
+      client
+        .newCall(tokenRequest)
+        .enqueue(
+          new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {}
 
-    client
-      .newCall(tokenRequest)
-      .enqueue(
-        new Callback() {
-          @Override
-          public void onFailure(@NonNull Call call, @NonNull IOException e) {}
+            @Override
+            public void onResponse(
+              @NonNull Call httpCall,
+              @NonNull Response httpResponse
+            ) throws IOException {
+              if (!httpResponse.isSuccessful()) {
+                completer.set(false);
+                Log.i(
+                  LOG_TAG,
+                  String.format(
+                    "Invalid response from %s. Response not successful. Status code: %s. Assuming that the token is not valid",
+                    TOKEN_REQUEST_URL,
+                    httpResponse.code()
+                  )
+                );
+                return;
+              }
 
-          @Override
-          public void onResponse(
-            @NonNull Call httpCall,
-            @NonNull Response httpResponse
-          ) throws IOException {
-            if (!httpResponse.isSuccessful()) {
-              accessTokenIsValid.complete(false);
-              Log.i(
-                LOG_TAG,
-                String.format(
-                  "Invalid response from %s. Response not successful. Status code: %s. Assuming that the token is not valid",
-                  TOKEN_REQUEST_URL,
-                  httpResponse.code()
-                )
-              );
-              return;
-            }
-
-            ResponseBody responseBody = httpResponse.body();
-            if (responseBody == null) {
-              accessTokenIsValid.completeExceptionally(
-                new RuntimeException(
+              ResponseBody responseBody = httpResponse.body();
+              if (responseBody == null) {
+                completer.setException(
+                  new RuntimeException(
+                    String.format(
+                      "Invalid response from %s. Response body is null",
+                      TOKEN_REQUEST_URL
+                    )
+                  )
+                );
+                Log.e(
+                  LOG_TAG,
                   String.format(
                     "Invalid response from %s. Response body is null",
                     TOKEN_REQUEST_URL
                   )
-                )
-              );
-              Log.e(
-                LOG_TAG,
-                String.format(
-                  "Invalid response from %s. Response body is null",
-                  TOKEN_REQUEST_URL
-                )
-              );
-              return;
-            }
+                );
+                return;
+              }
 
-            String responseString = responseBody.string();
-            JSONObject jsonObject;
-            try {
-              jsonObject = (JSONObject) new JSONTokener(
-                responseString
-              ).nextValue();
-            } catch (JSONException e) {
-              accessTokenIsValid.completeExceptionally(
-                new RuntimeException(
+              String responseString = responseBody.string();
+              JSONObject jsonObject;
+              try {
+                jsonObject = (JSONObject) new JSONTokener(
+                  responseString
+                ).nextValue();
+              } catch (JSONException e) {
+                completer.setException(
+                  new RuntimeException(
+                    String.format(
+                      "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                      TOKEN_REQUEST_URL,
+                      e
+                    )
+                  )
+                );
+                Log.e(
+                  LOG_TAG,
                   String.format(
                     "Invalid response from %s. Response body is not a valid JSON. Error: %s",
                     TOKEN_REQUEST_URL,
                     e
                   )
-                )
-              );
-              Log.e(
-                LOG_TAG,
-                String.format(
-                  "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                  TOKEN_REQUEST_URL,
-                  e
-                )
-              );
-              return;
-            }
+                );
+                return;
+              }
 
-            String expiresIn;
-            try {
-              expiresIn = jsonObject.getString("expires_in");
-            } catch (JSONException e) {
-              accessTokenIsValid.completeExceptionally(
-                new RuntimeException(
+              String expiresIn;
+              try {
+                expiresIn = jsonObject.getString("expires_in");
+              } catch (JSONException e) {
+                completer.setException(
+                  new RuntimeException(
+                    String.format(
+                      "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                      TOKEN_REQUEST_URL,
+                      e
+                    )
+                  )
+                );
+                Log.e(
+                  LOG_TAG,
                   String.format(
                     "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
                     TOKEN_REQUEST_URL,
                     e
                   )
-                )
-              );
-              Log.e(
-                LOG_TAG,
-                String.format(
-                  "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
-                  TOKEN_REQUEST_URL,
-                  e
-                )
-              );
-              return;
-            }
+                );
+                return;
+              }
 
-            Integer expressInInt;
-            try {
-              expressInInt = Integer.parseInt(expiresIn);
-            } catch (Exception e) {
-              accessTokenIsValid.completeExceptionally(
-                new RuntimeException(
+              Integer expressInInt;
+              try {
+                expressInInt = Integer.parseInt(expiresIn);
+              } catch (Exception e) {
+                completer.setException(
+                  new RuntimeException(
+                    String.format(
+                      "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                      TOKEN_REQUEST_URL,
+                      expiresIn,
+                      e
+                    )
+                  )
+                );
+                Log.e(
+                  LOG_TAG,
                   String.format(
                     "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
                     TOKEN_REQUEST_URL,
                     expiresIn,
                     e
                   )
-                )
-              );
-              Log.e(
-                LOG_TAG,
-                String.format(
-                  "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
-                  TOKEN_REQUEST_URL,
-                  expiresIn,
-                  e
-                )
-              );
-              return;
+                );
+                return;
+              }
+
+              completer.set(expressInInt > 5);
             }
-
-            accessTokenIsValid.complete(expressInInt > 5);
           }
-        }
-      );
+        );
 
-    return accessTokenIsValid;
+      return "AccessTokenIsValidOperationTag";
+    });
   }
 
   @Override
@@ -919,7 +930,7 @@ public class GoogleProvider implements SocialProvider {
       call.reject("User is not logged in");
       return;
     }
-    CompletableFuture<Boolean> isAccessTokenValid = accessTokenIsValid(
+    ListenableFuture<Boolean> isAccessTokenValid = accessTokenIsValid(
       GoogleProvider.this.savedAccessToken
     );
     try {
@@ -962,7 +973,7 @@ public class GoogleProvider implements SocialProvider {
       call.resolve(new JSObject().put("isLoggedIn", false));
       return;
     }
-    CompletableFuture<Boolean> isAccessTokenValid = accessTokenIsValid(
+    ListenableFuture<Boolean> isAccessTokenValid = accessTokenIsValid(
       GoogleProvider.this.savedAccessToken
     );
     try {
