@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.68-alpha.1](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.0...0.0.68-alpha.1) (2024-11-05)
+
+
+### Bug Fixes
+
+* fix build (add types) ([c3699aa](https://github.com/Cap-go/capacitor-social-login/commit/c3699aa063ea0321a7460e9ab6bbe62f1e31dc2a))
+* pnpm lock ([e51bbd3](https://github.com/Cap-go/capacitor-social-login/commit/e51bbd3eda05de7bca7bcc707ac70426f19f3378))
+
 ### [0.0.68-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.67...0.0.68-alpha.0) (2024-11-05)
 
 
