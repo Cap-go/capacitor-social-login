@@ -6,8 +6,6 @@ In this guide, you will learn how to setup Google Login with Capgo Social Login.
 
 - A Google account
 
-Please note, that unlike the Apple guide, this guide will NOT help you setup backend. Please use the `getAuthorizationCode` function to get the `JWT` and send it to your server.
-
 ### General setup
 
 This step is required regardless of which the platform you decide to use. In this part, you will setup the login screen displayed by Google. 
@@ -39,7 +37,7 @@ This step is required regardless of which the platform you decide to use. In thi
    - Configure the consent screen. I will assume that you are developing an app open to the public, so I will use the  `external`  user type. Please select the user type that suits you the best AND click `create`
      ![](./assets/google_cons_oauth_const_scr.png)
    
-   - Now, I you have a lot of informations to fill
+   - Now, you have a lot of informations to fill
      
      - Let's start with the `App Information`
        ![](./assets/google_cons_app_inf.png)
@@ -60,16 +58,18 @@ This step is required regardless of which the platform you decide to use. In thi
      ![](./assets/google_cons_cons_sav_cont.png)
 
 4. Next, please configure the scopes
-- **Warning**: In the current stage, this plugin **DOES NOT** support custom scopes for Google. Please add **ONLY** the scopes shown in this tutorial
+   
+   - **Warning**: In the current stage, this plugin **DOES NOT** support custom scopes for Google. Please add **ONLY** the scopes shown in this tutorial
+   
+   - Click on `add or remove scopes` 
+     ![](./assets/google_cons_add_rm_sco.png)
+   
+   - Select the following scopes and click `update`
+     ![](./assets/google_cons_update_scope.png)
+   
+   - Click `save and continue`
+     ![](./assets/google_cons_scope_save.png)
 
-- Click on `add or remove scopes` 
-  ![](./assets/google_cons_add_rm_sco.png)
-
-- Select the following scopes and click `update`
-  ![](./assets/google_cons_update_scope.png)
-
-- Click `save and continue`
-  ![](./assets/google_cons_scope_save.png)
 5. Now, you need to add a test user.
    
    - Click on `add users`
@@ -140,40 +140,76 @@ In this part, you will learn how to setup Google login in IOS
      
      The `nr. 1` in this image will later become the `iOSClientId` in the `initialize` call
      The `nr. 2` in this image will later become `YOUR_DOT_REVERSED_IOS_CLIENT_ID`
-- Please open Xcode and find the `Info` file
-  ![](./assets/xcode_info_file.png)
 
-- Now, you want to right click this file and open it as source code
-  ![](./assets/xcode_open_as_src_code.png)
+2. Now, you need to modify your app's plist.
+   
+   - Please open Xcode and find the `Info` file
+     ![](./assets/xcode_info_file.png)
+   
+   - Now, you want to right click this file and open it as source code
+     ![](./assets/xcode_open_as_src_code.png)
+   
+   - At the bottom of your `Plist` file, you will see a `</dict>` tag.
+     ![](./assets/xcode_dict_tag.png)
+   
+   - You want to insert the following fragment just before it, just like this
+     ![](./assets/xcode_plist_inserted.png)
+     
+     ```xml
+     <key>CFBundleURLTypes</key>
+     <array>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>YOUR_DOT_REVERSED_IOS_CLIENT_ID</string>
+        </array>
+      </dict>
+     </array>
+     ```
+   
+   - Now, you want to change the `YOUR_DOT_REVERSED_IOS_CLIENT_ID` to the value copied in the previous step
+     
+     You want it to look like this:
+     ![](./assets/xcode_plist_final.png)
+     
+     **WARNING:** Ensure that this value **STARTS** with `com.googleusercontent.apps`
+   
+   - Save the file with `Command + S`
 
-- At the bottom of your `Plist` file, you will see a `</dict>` tag.
-  ![](./assets/xcode_dict_tag.png)
+3. Modify the `AppDelegate`
+   Although not strictly required, it's recommended by Google.
+   
+   - Open the AppDelegate
+     ![](./assets/xcode_app_deleg.png)
+   
+   - Insert `import GoogleSignIn` before the first line
+     ![](./assets/xcode_app_deleg_google_sign_in.png)
+   
+   - Find the `func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:])` function. It should look like this
+     ![](./assets/xcode_app_deleg_app_fn.png)
+   
+   - Modify the function to look like this
+     
+     ```swift
+     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+         // Called when the app was launched with a url. Feel free to add additional processing here,
+         // but if you want the App API to support tracking app url opens, make sure to keep this call
+     
+         var handled: Bool
+     
+         handled = GIDSignIn.sharedInstance.handle(url)
+         if handled {
+           return true
+         }
+     
+         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+     }
+     ```
+     
+     ![](./assets/xcode_app_deleg_app_fn_mod.png)
+   
+   - Save the file with `Command + S`
 
-- You want to insert the following fragment just before it, just like this
-  ![](./assets/xcode_plist_inserted.png)
-  
-  ```xml
-  <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLSchemes</key>
-      <array>
-        <string>YOUR_DOT_REVERSED_IOS_CLIENT_ID</string>
-      </array>
-    </dict>
-  </array>
-  ```
-
-- Now, you want to change the `YOUR_DOT_REVERSED_IOS_CLIENT_ID` to the value copied in the previous step
-  
-  You want it to look like this:
-  ![](./assets/xcode_plist_final.png)
-  
-  **WARNING:** Ensure that this value **STARTS** with `com.googleusercontent.apps`
-
-- Save the file with `Command + S`
-
-- Save the file with `Command + S`
 4. Now, you should be ready to setup Google login in JS.
    
    - First, you need import `SocialLogin` AND `Capacitor`
@@ -237,14 +273,8 @@ In this part, you will learn how to setup Google login in Android
    - Now, open the terminal. Make sure that you are in the `android` folder of your app and run `./gradlew signInReport`
      ![](./assets/term_sign_report.png)
    
-   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from google PLAY console for production releases.
+   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from Google Play console for production releases.
      Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
-   
-   - The SHA1 certificate fingerprint is crucial for Android app security and authentication. Google uses it to verify your app's identity when making API calls. This is why:
-     
-     1. It ensures only your app can use your Google API credentials.
-     2. It prevents unauthorized use of your Google services.
-     3. It's required for certain Google APIs, including Google Sign-In.
    
    - Now, scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
    
@@ -264,49 +294,154 @@ In this part, you will learn how to setup Google login in Android
    - Copy the client ID, you'll use this as the `webClientId` in your JS/TS code
      ![](./assets/google_cons_copy_web_client_id.png)
 
-3. Modify the `AppDelegate`
-   Although not strictly required, it's recommended by Google.
+3. Now, you need to modify your `MainActivity`
    
+   - Please open your app in Android Studio. You can run `cap open android`
    
-   - Open the AppDelegate
-     ![](./assets/xcode_app_deleg.png)
-   
-   - Insert `import GoogleSignIn` before the first line
-     ![](./assets/xcode_app_deleg_google_sign_in.png)
-   
-   - Find the `func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:])` function. It should look like this
-     ![](./assets/xcode_app_deleg_app_fn.png)
-   
-   - Modify the function to look like this
+   - Please find `MainActivity.java`
      
-     ```swift
-     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-         // Called when the app was launched with a url. Feel free to add additional processing here,
-         // but if you want the App API to support tracking app url opens, make sure to keep this call
+     - Open the `app` folder
+       ![](./assets/studio_app_folder.png)
      
-         var handled: Bool
+     - Find `java`
+       ![](./assets/studio_app_java.png)
      
-         handled = GIDSignIn.sharedInstance.handle(url)
-         if handled {
-           return true
-         }
-     
-         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-     }
-     
-     ```
-     
-     ![](./assets/xcode_app_deleg_app_fn_mod.png)
-   
-   - Save the file with `Command + S`
+     - Find your `MainActivity.java` and click on it**![](./assets/studio_app_java_activity_main.png)
+- Now, you have to modify `MainActivity.java`. Please add the following code
+  
+  ```java
+  @Override
+  public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+  
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
+        PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
+        if (pluginHandle == null) {
+            Log.i("Google Activity Result", "SocialLogin login handle is null");
+            return;
+        }
+        Plugin plugin = pluginHandle.getInstance();
+        if (!(plugin instanceof SocialLoginPlugin)) {
+            Log.i("Google Activity Result", "SocialLogin plugin instance is not SocialLoginPlugin");
+            return;
+        }
+        ((SocialLoginPlugin) plugin).handleGoogleLoginIntent(requestCode, data);
+    }
+  }
+  ```
 
-4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+- Please save the file
+  
+  4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+  - First, you need import `SocialLogin`
+    
+    ```typescript
+    import { ScialLogin } from '@capgo/capacitor-social-login';
+    ```
+  
+  - Then, you want to call initialize. I recommend calling this ONLY once.
+    
+    ```ts
+    // onMounted is Vue specific
+    // webClientId is the client ID you got in the web client creation step not the android client ID.
+    onMounted(() => {
+     SocialLogin.initialize({
+       google: {
+         webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+       }
+     })
+    })
+    ```
+    
+    Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
+    
+    ```ts
+    const res = await SocialLogin.login({
+     provider: 'google',
+     options: {}
+    })
+    // handle the response. popoutStore is specific to my app
+    popoutStore.popout("Google login", JSON.stringify(response))
+    ```
+5. Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
    
-   - First, you need import `SocialLogin` AND `Capacitor`
+   - First, go into `Device manager` and click the plus button
+     ![](./assets/studio_device_man.png)
+   
+   - Create a virtual device
+     ![](./assets/studio_create_virt_dev.png)
+   
+   - Select any device with a `Play Store` icon
+     ![](./assets/studio_new_dev_select_hardware.png)
+     
+     As you can see, the `pixel 8` supports the `Play Store` services
+   
+   - Click `next`
+     ![](./assets/studio_new_dev_next_1.png)
+   
+   - Next, **MAKE SURE** that the OS image is of type `Google Play`. **IT MUST** be of type `Google Play`
+     ![](./assets/studio_new_dev_google_play_dev_type.png)
+   
+   - Click next
+     ![](./assets/studio_new_dev_next_1.png)
+   
+   - Confirm your device. I will name my emulator `Tutorial phone`
+     ![](./assets/studio_new_dev_next_3.png)
+   
+   - Next, go into `Device Manager` and boot up your simulator
+     ![](./assets/studio_dev_manager.png)
+   
+   - After the simulator boots up, please go into it's settings
+     ![](./assets/emul_and_settings_1.png)
+   
+   - Now, go into `Google Play`
+     ![](./assets/emul_and_settings_2.png)
+   
+   - Click `Update` and wait about 60 seconds
+     ![](./assets/emul_and_settings_update_play_store.png)
+
+### Using Google login on the web
+
+Using the google login on the web is rather simple.
+In order to use it, you have to do the following:
+
+1. Create a web client in the Google Console.
+   
+   - Please follow step 2 of the `Using Google login on Android` if you have not configured it already
+
+2- Configure the web client in the Google Console
+   
+   - Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
+     ![](./assets/google_cons_open_web_client_id.png)
+   
+   - Now, please add the `Authorized JavaScript origins`. This should include all the addresses that you might use for your app. In might case, I will **ONLY** use localhost, but since I use a custom port I have to add both `http://localhost` and `http://localhost:5173`
+     
+     - Please click on `add URI`
+       ![](./assets/google_cons_authorized_js_add_btn.png)
+     
+     - Please type your URL
+       ![](./assets/google_cons_authorized_js_typed_url.png)
+     
+     - Please repeat until you added all the URLs
+     
+     - When you finish, your screen should look something like this
+       ![](./assets/google_cons_authorized_js_final.png)
+   
+   - Now, please click **ENSURE** that you do not have any `Authorized redirect URIs` added. 
+     
+     
+     
+     **THIS IS CRITICAL** and if you do not follow this step, the Google Login on the web **WILL NOT** work
+   
+   - Click `save`
+     ![](./assets/google_cons_web_app_save.png)
+
+3- Now, you should be ready to call `login` from JavaScript like so:
+   
+   - First, you need import `SocialLogin`
      
      ```typescript
-     import { SocialLogin } from '@capgo/capacitor-social-login';
-     import { Capacitor } from '@capacitor/core';
+     import { ScialLogin } from '@capgo/capacitor-social-login';
      ```
    
    - Then, you want to call initialize. I recommend calling this ONLY once.
@@ -315,11 +450,11 @@ In this part, you will learn how to setup Google login in Android
      // onMounted is Vue specific
      // webClientId is the client ID you got in the web client creation step not the android client ID.
      onMounted(() => {
-       SocialLogin.initialize({
-         google: {
-           webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
-         }
-       })
+      SocialLogin.initialize({
+        google: {
+          webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+        }
+      })
      })
      ```
      
@@ -327,46 +462,66 @@ In this part, you will learn how to setup Google login in Android
      
      ```ts
      const res = await SocialLogin.login({
-       provider: 'google',
-       options: {}
+      provider: 'google',
+      options: {}
      })
      // handle the response. popoutStore is specific to my app
      popoutStore.popout("Google login", JSON.stringify(response))
      ```
 
-4- Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
+### Difference between online access and offline access
 
-- First, go into `Device manager` and click the plus button
-  ![](./assets/studio_device_man.png)
+|                         | Online access | Offline access |
+|:-----------------------:|:-------------:|:--------------:|
+| Requires a backend      | ❌             | ✅              |
+| Long-lived access token | ✅             | ❌              |
+| Easy setup              | ✅             | ❌              |
 
-- Create a virtual device
-  ![](./assets/studio_create_virt_dev.png)
+📝 Long lived access tokens allow the backend to call Google API's even when the user is not present
 
-- Select any device with a `Play Store` icon
-  ![](./assets/studio_new_dev_select_hardware.png)
-  
-  As you can see, the `pixel 8` supports the `Play Store` services
+If you still do not know which one you should choose, please consider the following scenarios:
 
-- Click `next`
-  ![](./assets/studio_new_dev_next_1.png)
+1. You want the user to login, immediately after you are going to issue him a custom JWT. Your app will NOT call Google APIs
 
-- Next, **MAKE SURE** that the OS image is of type `Google Play`. **IT MUST** be of type `Google Play`
-  ![](./assets/studio_new_dev_google_play_dev_type.png)
+   In this case, choose online access.
 
-- Click next
-  ![](./assets/studio_new_dev_next_1.png)
+2. Your app will call some Google APIs from the client, but never from the backend
 
-- Confirm your device. I will name my emulator `Tutorial phone`
-  ![](./assets/studio_new_dev_next_3.png)
+   In this case, choose online access
 
-- Next, go into `Device Manager` and boot up your simulator
-  ![](./assets/studio_dev_manager.png)
+3. Your app will call some google APIs from the backend, but only when the user is actively using the app
+   
+   In this case, choose online access
 
-- After the simulator boots up, please go into it's settings
-  ![](./assets/emul_and_settings_1.png)
+4. Your app will periodically check the user's calendar, even when he is not actively using the app
+   
+   In this case, choose offline access
 
-- Now, go into `Google Play`
-  ![](./assets/emul_and_settings_2.png)
+### An example backend for online access
 
-- Click `Update` and wait about 60 seconds
-  ![](./assets/emul_and_settings_update_play_store.png)
+In this part of the tutorial, I will show how to validate the user on your backend. 
+
+This example will be very simple and it will be based on the following technologies:
+
+- [Typescript](https://www.typescriptlang.org/)
+
+- [Hono](https://hono.dev/)
+
+- [Javascript's fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch)
+
+You can find the code for this example [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/141c01d93a85240e31a0d488a89df13c842708b1/index.ts#L135-L153)
+
+As you can see:
+
+![](./assets/vscode_auth_google.png)
+
+The idea is rather simple. You send a simple `GET` request to `https://www.googleapis.com/oauth2/v3/tokeninfo` and this returns you whether the token is valid or not and if it it is, it gives you the email of the user. It also gives you some other info about the user token
+![](./assets/google_auth_playground_token_info.png)
+
+For there, you could issue the user with your own JWT or issue some sort of session cookie. The possibilities are endless, for the final auth implementation.
+
+If you do want to call Google API's, I would strongly recommend at [Google's OAuth 2.0 Playground](https://developers.google.com/oauthplayground). From there you can easily see what APIs you can call.
+
+### Using offline access
+
+Offline access it not currently implemented in the plugin.

@@ -89,7 +89,7 @@ export interface GoogleLoginOptions {
 
 export interface GoogleLoginResponse {
   accessToken: AccessToken | null;
-  idToken: string | null;
+  serverAuthCode: string | null;
   profile: {
     email: string | null;
     familyName: string | null;
@@ -97,7 +97,7 @@ export interface GoogleLoginResponse {
     id: string | null;
     name: string | null;
     imageUrl: string | null;
-  };
+  } | null;
 }
 
 export interface AppleProviderOptions {
@@ -192,7 +192,12 @@ export interface AuthorizationCode {
    * Jwt
    * @description A JSON web token
    */
-  jwt: string;
+  jwt?: string | null;
+  /**
+   * accessToken
+   * @description An accessToken. It is NOT a JSON Web Token
+   */
+  accessToken?: string | null;
 }
 
 export interface AuthorizationCodeOptions {

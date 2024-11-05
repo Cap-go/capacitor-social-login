@@ -84,7 +84,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             self.google.getAuthorizationCode { res in
                 do {
                     let authorizationCode = try res.get()
-                    call.resolve([ "jwt": authorizationCode ])
+                    call.resolve([ "accessToken": authorizationCode ])
                 } catch {
                     call.reject(error.localizedDescription)
                 }
@@ -278,23 +278,23 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {
                 let accessToken: [String: Any] = [
-                    "token": googleResponse.authentication.accessToken,
-                    "refreshToken": googleResponse.authentication.refreshToken as Any,
-                    "userId": googleResponse.id ?? ""
+                    "token": googleResponse.accessToken.token,
+                    "expires": String(describing: googleResponse.accessToken.expires)
                 ]
-                let profile: [String: Any] = [
-                    "email": googleResponse.email ?? "",
-                    "familyName": googleResponse.familyName ?? "",
-                    "givenName": googleResponse.givenName ?? "",
-                    "id": googleResponse.id ?? "",
-                    "name": googleResponse.name ?? "",
-                    "imageUrl": googleResponse.imageUrl ?? ""
-                ]
-                let googleResult: [String: Any] = [
+                let profile: [String: Any]? = googleResponse.profile != nil ? [
+                    "email": googleResponse.profile!.email,
+                    "familyName": googleResponse.profile!.familyName,
+                    "givenName": googleResponse.profile!.givenName,
+                    "id": googleResponse.profile!.id,
+                    "name": googleResponse.profile!.name,
+                    "imageUrl": googleResponse.profile!.imageUrl
+                ] : nil
+                var googleResult: [String: Any] = [
                     "accessToken": accessToken,
-                    "idToken": googleResponse.authentication.idToken ?? "",
-                    "profile": profile
                 ]
+                if let profile = profile {
+                    googleResult["profile"] = profile
+                }
                 call.resolve([
                     "provider": "google",
                     "result": googleResult

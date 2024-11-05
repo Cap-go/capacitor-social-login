@@ -1,11 +1,25 @@
 import Foundation
 import GoogleSignIn
+import Alamofire
+
+// Define the Decodable structs for the response
+struct GoogleUserinfoResponse: Decodable {
+    let sub: String
+    let name: String
+    let given_name: String
+    let family_name: String
+    let picture: String
+    let email: String
+    let email_verified: Bool?
+}
 
 class GoogleProvider {
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
     var defaultGrantedScopes = ["email", "profile", "openid"]
+    var USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+    var TOKEN_REQUEST_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo"
 
     func initialize(clientId: String, serverClientId: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
@@ -38,7 +52,7 @@ class GoogleProvider {
                         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
                         return
                     }
-                    completion(.success(self.createLoginResponse(user: result.user)))
+                    self.createLoginResponse(user: result.user, completion: completion)
                 }
             }
             
@@ -49,7 +63,7 @@ class GoogleProvider {
                         login()
                         return
                     }
-                    completion(.success(self.createLoginResponse(user: user!)))
+                    self.createLoginResponse(user: user!, completion: completion)
                 }
             } else {
                 login()
@@ -86,9 +100,20 @@ class GoogleProvider {
 
     func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
         DispatchQueue.main.async {
-            if let currentUser = GIDSignIn.sharedInstance.currentUser, let idToken = currentUser.idToken?.tokenString {
-                completion(.success(idToken))
-                return
+            if let user = GIDSignIn.sharedInstance.currentUser {
+                user.refreshTokensIfNeeded { user, error in
+                    guard error == nil else {
+                        completion(.failure(error!))
+                        return
+                    }
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User guard failed??"])))
+                        return
+                    }
+                    
+                    completion(.success(user.accessToken.tokenString))
+                    return
+                }
             }
             if GIDSignIn.sharedInstance.hasPreviousSignIn() {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
@@ -96,32 +121,61 @@ class GoogleProvider {
                         completion(.failure(error))
                         return
                     }
-                    if let user = user, let idToken = user.idToken?.tokenString {
-                        completion(.success(idToken))
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "2nd User guard failed??"])))
                         return
                     }
-                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                    
+                    user.refreshTokensIfNeeded { user, error in
+                        guard error == nil else {
+                            completion(.failure(error!))
+                            return
+                        }
+                        guard let user = user else {
+                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "3rd user guard failed??"])))
+                            return
+                        }
+                        
+                        completion(.success(user.accessToken.tokenString))
+                        return
+                    }
                 }
             } else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User is not logged in"])))
             }
         }
     }
+    
+//    func accessTokenIsValid(accessToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+//        AF.request(
+//            "\(TOKEN_REQUEST_URL)?access_token=\(accessToken)",
+//            method: .get
+//        )
+//        .validate(statusCode: 200..<300) // Ensure the response status code is in the 200-299 range
+//        .responseDecodable(of: GoogleTokenInfoResponse.self) { response in
+//            switch response.result {
+//                
+//            case .success(let result):
+//                guard let expires_in = Int64(result.expires_in) else {
+//                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "expires_in is not a number"])))
+//                    return
+//                }
+//                completion(.success(expires_in > 5))
+//            case .failure(let err):
+//                if let statusCode = response.response?.statusCode {
+//                    if statusCode != 200 {
+//                        print("[GoogleProvider] Invalid response from %s. Response not successful. Status code: \(statusCode). Assuming that the token is not valid")
+//                        completion(.success(true))
+//                        return
+//                    }
+//                }
+//                completion(.failure(err))
+//            }
+//        };
+//    }
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
-        DispatchQueue.main.async {
-            guard let currentUser = GIDSignIn.sharedInstance.currentUser else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])))
-                return
-            }
-            currentUser.refreshTokensIfNeeded { _, error in
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-                completion(.success(()))
-            }
-        }
+        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"])))
     }
 
     private func getServerClientIdValue() -> String? {
@@ -129,35 +183,56 @@ class GoogleProvider {
         return nil
     }
 
-    private func createLoginResponse(user: GIDGoogleUser) -> GoogleLoginResponse {
-        return GoogleLoginResponse(
-            authentication: GoogleLoginResponse.Authentication(
-                accessToken: user.accessToken.tokenString,
-                idToken: user.idToken?.tokenString,
-                refreshToken: user.refreshToken.tokenString
-            ),
-            email: user.profile?.email,
-            familyName: user.profile?.familyName,
-            givenName: user.profile?.givenName,
-            id: user.userID,
-            name: user.profile?.name,
-            imageUrl: user.profile?.imageURL(withDimension: 100)?.absoluteString
+    private func createLoginResponse(user: GIDGoogleUser, completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
+        // For platform consistency sake, I will fetch the userinfo API, but it's really not needed
+        AF.request(
+            USERINFO_URL,
+            method: .get,
+            headers: ["Authorization": "Bearer \(user.accessToken.tokenString)"]
         )
+        .validate(statusCode: 200..<300) // Ensure the response status code is in the 200-299 range
+        .responseDecodable(of: GoogleUserinfoResponse.self) { response in
+            switch response.result {
+                
+            case .success(let result):
+                var expires = abs((user.accessToken.expirationDate ?? Date()).timeIntervalSince(Date()))
+                completion(.success(GoogleLoginResponse(accessToken: GoogleLoginResponse.Authentication(token: user.accessToken.tokenString, expires: Int64(expires)), profile: GoogleLoginResponse.Profile(email: result.email, familyName: result.family_name, givenName: result.given_name, id: result.sub, name: result.name, imageUrl: result.picture))))
+            case .failure(let err):
+                completion(.failure(err))
+            }
+        };
+                
+//        return GoogleLoginResponse(
+//            authentication: GoogleLoginResponse.Authentication(
+//                accessToken: user.accessToken.tokenString,
+//                idToken: user.idToken?.tokenString,
+//                refreshToken: user.refreshToken.tokenString
+//            ),
+//            email: user.profile?.email,
+//            familyName: user.profile?.familyName,
+//            givenName: user.profile?.givenName,
+//            id: user.userID,
+//            name: user.profile?.name,
+//            imageUrl: user.profile?.imageURL(withDimension: 100)?.absoluteString
+//        )
     }
 }
 
 struct GoogleLoginResponse {
-    let authentication: Authentication
-    let email: String?
-    let familyName: String?
-    let givenName: String?
-    let id: String?
-    let name: String?
-    let imageUrl: String?
+    let accessToken: Authentication
+    let profile: Profile?
 
     struct Authentication {
-        let accessToken: String
-        let idToken: String?
-        let refreshToken: String?
+        let token: String
+        let expires: Int64
+    }
+    
+    struct Profile {
+        let email: String
+        let familyName: String
+        let givenName: String
+        let id: String
+        let name: String
+        let imageUrl: String
     }
 }
