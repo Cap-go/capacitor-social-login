@@ -32,6 +32,9 @@ importers:
       '@ionic/swiftlint-config':
         specifier: ^2.0.0
         version: 2.0.0
+      '@types/gsi':
+        specifier: ^0.0.4
+        version: 0.0.4
       '@types/node':
         specifier: ^20.12.12
         version: 20.16.14
@@ -1310,6 +1313,9 @@ packages:
 
   '@types/fs-extra@8.1.5':
     resolution: {integrity: sha512-0dzKcwO+S8s2kuF5Z9oUWatQJj5Uq/iqphEtE3GQJVRRYm/tD1LglU2UnXi2A8jLq5umkGouOXOR9y0n613ZwQ==}
+
+  '@types/gsi@0.0.4':
+    resolution: {integrity: sha512-RnQ8fEi7Uzbkd5T8Q2aI5rtJAlZeUG/qhHGnHFql2VAxHdtMAjEVDk14M0Jt5D9mkdB5gsxtCLgDXl0Vy9dilA==}
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
@@ -4892,6 +4898,8 @@ snapshots:
   '@types/fs-extra@8.1.5':
     dependencies:
       '@types/node': 22.7.8
+
+  '@types/gsi@0.0.4': {}
 
   '@types/json-schema@7.0.15': {}
 
