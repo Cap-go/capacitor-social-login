@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.68-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.67...0.0.68-alpha.0) (2024-11-05)
+
+
+### Features
+
+* accessToken.expires ([58a2711](https://github.com/Cap-go/capacitor-social-login/commit/58a27117acbe9850de7c65228b48de0dc30ac129))
+* finish web + better getAccessToken iOS ([d2f776f](https://github.com/Cap-go/capacitor-social-login/commit/d2f776fa3c5fa0b7bb44f61bd797d63b9c43386c))
+* getAuthorizationCode + isLoggedIn for Google Login (Android) ([9d48647](https://github.com/Cap-go/capacitor-social-login/commit/9d486472f9e5587eec744da1551a98b029f636e3))
+* isLoggedIn Google (web) + bug fixes ([e4e68bd](https://github.com/Cap-go/capacitor-social-login/commit/e4e68bd6c94d39ea063e1121150a0e4e65667b31))
+
+
+### Bug Fixes
+
+* android isLoggedIn bug ([d073c9b](https://github.com/Cap-go/capacitor-social-login/commit/d073c9bea3e9debeda4fce8dfe2b8bff2d5c39d8))
+* getAuthorizationCode iOS (google) ([cb74698](https://github.com/Cap-go/capacitor-social-login/commit/cb7469887679b717965b2ba06ffe1c991aacfdb3))
+* google (android) ([f12ab50](https://github.com/Cap-go/capacitor-social-login/commit/f12ab503a83f0851963d7ec0791aa5333262ddc3))
+* Google (iOS) ([7acb7bc](https://github.com/Cap-go/capacitor-social-login/commit/7acb7bc7189e02df550048a216f57d7d929d7ddf))
+* Google web ([4d73fbb](https://github.com/Cap-go/capacitor-social-login/commit/4d73fbbe180d8e5e414ca22805f798a53df7a8c9))
+* **google,andorid:** remove androidMinVersion 24 ([4e89ada](https://github.com/Cap-go/capacitor-social-login/commit/4e89adaaf4cdd2e1442412001a23da04e5b9c1ed))
+* **google,android:** better futute ([cffde90](https://github.com/Cap-go/capacitor-social-login/commit/cffde90bca3ba708fccc56c285733f64b22e4732))
+* remove refresh ([0a64350](https://github.com/Cap-go/capacitor-social-login/commit/0a64350145c675461f63b09a689cfad43143e7e0))
+
 ### [0.0.67](https://github.com/Cap-go/capacitor-social-login/compare/0.0.66...0.0.67) (2024-10-29)
 
 
