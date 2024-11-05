@@ -95,7 +95,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (tokenValid === true) {
       return new Promise<void>((resolve, reject) => {
         try {
-          google.accounts.oauth2.revoke(accessToken, async () => {
+          (google.accounts as any).oauth2.revoke(accessToken, async () => {
             this.clearStateGoogle();
             resolve();
           });
@@ -367,10 +367,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     return new Promise((resolve, reject) => {
-      const auth2 = google.accounts.oauth2.initTokenClient({
+      const auth2 = (google.accounts as any).oauth2.initTokenClient({
         client_id: this.googleClientId!,
         scope: scopes.join(" "),
-        callback: async (response) => {
+        callback: async (response: any) => {
           if (response.error) {
             reject(response.error);
           } else {
