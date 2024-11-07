@@ -52,7 +52,7 @@ async function loginApple() {
     options: {}
   })
   // token = the JWT returned by Apple
-  const token = res.result.identityToken
+  const token = res.result.idToken
   // Send the token to your backend.... 
 }
 ```
