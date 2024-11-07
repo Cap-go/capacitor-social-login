@@ -274,7 +274,7 @@ Given everything that I said in this tutorial, here is how the `env` section wou
 ANDROID_SERVICE_ID = Service ID
 IOS_SERVICE_ID = App ID
 
-```json
+```js
 env: {
   PRIVATE_KEY_FILE: "AuthKey_U93M8LBQK3.p8",
   KEY_ID: "U93M8LBQK3",
@@ -284,7 +284,7 @@ env: {
   PORT: 3000,
   REDIRECT_URI: "https://xyz.wcaleniewolny.me/login/callback",
   BASE_REDIRECT_URL: "capgo-demo-app://path"
- }
+}
 ```
 
 #### Using the plugin
