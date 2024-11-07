@@ -173,7 +173,6 @@ In this part, you will learn how to setup Google login in IOS
 
 - Save the file with `Command + S`
 
-- Save the file with `Command + S`
 4. Now, you should be ready to setup Google login in JS.
    
    - First, you need import `SocialLogin` AND `Capacitor`
