@@ -257,7 +257,7 @@ As you saw in the diagram, the backend performs a step called `Redirect back to 
 
 #### Backend configuration
 
-A backend is required for Android, but configuring a backend will also imact IOS. An example backend is provided [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/main/index.ts)
+A backend is required for Android, but configuring a backend will also impact IOS. An example backend is provided [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/main/index.ts)
 
 This example provides the following:
 
