@@ -30,11 +30,11 @@ declare const google: {
         client_id: string;
         callback: (response: any) => void;
         auto_select?: boolean;
-        scope: string
+        scope: string;
       }): {
         requestAccessToken(): void;
       };
-    }
+    };
   };
 };
 
@@ -244,7 +244,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             resolve({ provider: "google", result });
           }
         },
-        auto_select: true
+        auto_select: true,
       });
 
       google.accounts.id.prompt((notification) => {
@@ -314,14 +314,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           const result: AppleProviderResponse = {
             profile: {
               user: res.user?.name?.firstName
-              ? `${res.user.name.firstName} ${res.user.name.lastName}`
-              : "",
+                ? `${res.user.name.firstName} ${res.user.name.lastName}`
+                : "",
               email: res.user?.email || null,
               givenName: res.user?.name?.firstName || null,
               familyName: res.user?.name?.lastName || null,
             },
             accessToken: {
-              token:  res.authorization.code , // TODO: to fix and find the correct token
+              token: res.authorization.code, // TODO: to fix and find the correct token
             },
             idToken: res.authorization.id_token || null,
           };
@@ -429,11 +429,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     });
   }
 
-  private async fallbackToTraditionalOAuth(scopes: string[]): Promise<LoginResult> {
+  private async fallbackToTraditionalOAuth(
+    scopes: string[],
+  ): Promise<LoginResult> {
     return new Promise((resolve, reject) => {
       const auth2 = google.accounts.oauth2.initTokenClient({
         client_id: this.googleClientId!,
-        scope: scopes.join(' '),
+        scope: scopes.join(" "),
         callback: (response) => {
           if (response.error) {
             reject(response.error);
@@ -442,7 +444,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             const payload = this.parseJwt(response.access_token);
             const result: GoogleLoginResponse = {
               accessToken: {
-                token: response.access_token
+                token: response.access_token,
               },
               idToken: null, // Traditional OAuth doesn't provide id_token by default
               profile: {
