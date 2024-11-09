@@ -32,6 +32,10 @@ export interface InitializeOptions {
      * @since 3.1.0
      */
     webClientId?: string;
+    /**
+     * Whether the app requires offline (serverAuthCode) or not 
+     */
+    mode?: 'online' | 'offline'
   };
   apple?: {
     /**
@@ -87,7 +91,8 @@ export interface GoogleLoginOptions {
   grantOfflineAccess?: boolean;
 }
 
-export interface GoogleLoginResponse {
+export interface GoogleLoginOnlineResponse {
+  responseType: 'online'
   accessToken: AccessToken | null;
   serverAuthCode: string | null;
   profile: {
@@ -98,6 +103,11 @@ export interface GoogleLoginResponse {
     name: string | null;
     imageUrl: string | null;
   } | null;
+}
+
+export interface GoogleLoginOfflineResponse {
+  serverAuthCode: string,
+  responseType: 'offline'
 }
 
 export interface AppleProviderOptions {
@@ -154,7 +164,7 @@ export interface LoginResult {
    * Payload
    * @description payload to login with
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleProviderResponse;
+  result: FacebookLoginResponse | GoogleLoginOfflineResponse | GoogleLoginOnlineResponse | AppleProviderResponse;
 }
 
 export interface AccessToken {

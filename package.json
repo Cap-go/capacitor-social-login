@@ -67,7 +67,7 @@
     "rollup": "^4.24.0",
     "swiftlint": "^2.0.0",
     "typescript": "^5.6.3",
-    "@types/gsi": "^0.0.4"
+    "@types/google.accounts": "0.0.15"
   },
   "peerDependencies": {
     "@capacitor/core": "^6.0.0"
