@@ -528,7 +528,7 @@ If you do want to call Google API's, I would strongly recommend at [Google's OAu
 
 In order to use offline access you will need the following:
 
-- A HTTP server
+- An HTTP server
 
 In this example, I will be using the following technologies to provide the offline access in my app:
 
