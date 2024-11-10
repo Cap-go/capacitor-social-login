@@ -159,16 +159,30 @@ public class GoogleProvider implements SocialProvider {
         this.scopes[i] = scopesArray.optString(i);
       }
 
-      if (arrayFind(this.scopes, "https://www.googleapis.com/auth/userinfo.email") == null) {
+      if (
+        arrayFind(
+          this.scopes,
+          "https://www.googleapis.com/auth/userinfo.email"
+        ) ==
+        null
+      ) {
         String[] newScopes = new String[this.scopes.length + 1];
         System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
-        newScopes[this.scopes.length] = "https://www.googleapis.com/auth/userinfo.email";
+        newScopes[this.scopes.length] =
+          "https://www.googleapis.com/auth/userinfo.email";
         this.scopes = newScopes;
       }
-      if (arrayFind(this.scopes, "https://www.googleapis.com/auth/userinfo.profile") == null) {
+      if (
+        arrayFind(
+          this.scopes,
+          "https://www.googleapis.com/auth/userinfo.profile"
+        ) ==
+        null
+      ) {
         String[] newScopes = new String[this.scopes.length + 1];
         System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
-        newScopes[this.scopes.length] = "https://www.googleapis.com/auth/userinfo.profile";
+        newScopes[this.scopes.length] =
+          "https://www.googleapis.com/auth/userinfo.profile";
         this.scopes = newScopes;
       }
       if (arrayFind(this.scopes, "openid") == null) {
@@ -177,10 +191,13 @@ public class GoogleProvider implements SocialProvider {
         newScopes[this.scopes.length] = "openid";
         this.scopes = newScopes;
       }
-
     } else {
       // Default scopes if not provided
-      this.scopes = new String[] { "https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid" };
+      this.scopes = new String[] {
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "openid",
+      };
     }
 
     GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
