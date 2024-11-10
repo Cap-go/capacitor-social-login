@@ -133,6 +133,15 @@ public class GoogleProvider implements SocialProvider {
     }
   }
 
+  public String arrayFind(String[] array, String search) {
+    for (int i = 0; i < array.length; i++) {
+      if (array[i].equals(search)) {
+        return array[i];
+      }
+    }
+    return null;
+  }
+
   @Override
   public void login(PluginCall call, JSONObject config) {
     if (this.clientId == null || this.clientId.isEmpty()) {
@@ -149,9 +158,46 @@ public class GoogleProvider implements SocialProvider {
       for (int i = 0; i < scopesArray.length(); i++) {
         this.scopes[i] = scopesArray.optString(i);
       }
+
+      if (
+        arrayFind(
+          this.scopes,
+          "https://www.googleapis.com/auth/userinfo.email"
+        ) ==
+        null
+      ) {
+        String[] newScopes = new String[this.scopes.length + 1];
+        System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
+        newScopes[this.scopes.length] =
+          "https://www.googleapis.com/auth/userinfo.email";
+        this.scopes = newScopes;
+      }
+      if (
+        arrayFind(
+          this.scopes,
+          "https://www.googleapis.com/auth/userinfo.profile"
+        ) ==
+        null
+      ) {
+        String[] newScopes = new String[this.scopes.length + 1];
+        System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
+        newScopes[this.scopes.length] =
+          "https://www.googleapis.com/auth/userinfo.profile";
+        this.scopes = newScopes;
+      }
+      if (arrayFind(this.scopes, "openid") == null) {
+        String[] newScopes = new String[this.scopes.length + 1];
+        System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
+        newScopes[this.scopes.length] = "openid";
+        this.scopes = newScopes;
+      }
     } else {
       // Default scopes if not provided
-      this.scopes = new String[] { "profile", "email" };
+      this.scopes = new String[] {
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+        "openid",
+      };
     }
 
     GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
@@ -638,11 +684,10 @@ public class GoogleProvider implements SocialProvider {
 
     ListenableFuture<AuthorizationResult> future =
       CallbackToFutureAdapter.getFuture(completer -> {
-        List<Scope> scopes = Arrays.asList(
-          new Scope(Scopes.EMAIL),
-          new Scope(Scopes.PROFILE),
-          new Scope(Scopes.OPEN_ID)
-        );
+        List<Scope> scopes = new ArrayList<>(this.scopes.length);
+        for (int i = 0; i < this.scopes.length; i++) {
+          scopes.add(new Scope(this.scopes[i]));
+        }
         AuthorizationRequest.Builder authorizationRequestBuilder =
           AuthorizationRequest.builder().setRequestedScopes(scopes);
         // .requestOfflineAccess(this.clientId)

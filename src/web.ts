@@ -11,6 +11,7 @@ import type {
   AuthorizationCodeOptions,
   FacebookLoginOptions,
   FacebookLoginResponse,
+  GoogleLoginOptions,
 } from "./definitions";
 
 declare const AppleID: any;
@@ -368,7 +369,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
-  private async loginWithGoogle(options: any): Promise<LoginResult> {
+  private async loginWithGoogle(
+    options: GoogleLoginOptions,
+  ): Promise<LoginResult> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
@@ -377,7 +380,17 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
     if (scopes.length > 0) {
       // If scopes are provided, directly use the traditional OAuth flow
-      return Promise.reject("Not yet implemented");
+      if (!scopes.includes("https://www.googleapis.com/auth/userinfo.email")) {
+        scopes.push("https://www.googleapis.com/auth/userinfo.email");
+      }
+      if (
+        !scopes.includes("https://www.googleapis.com/auth/userinfo.profile")
+      ) {
+        scopes.push("https://www.googleapis.com/auth/userinfo.profile");
+      }
+      if (!scopes.includes("openid")) {
+        scopes.push("openid");
+      }
     } else {
       scopes = [
         "https://www.googleapis.com/auth/userinfo.email",

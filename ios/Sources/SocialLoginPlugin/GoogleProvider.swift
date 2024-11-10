@@ -36,17 +36,28 @@ class GoogleProvider {
     }
 
     func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
+        var scopes = payload["scopes"] as? [String] ?? self.defaultGrantedScopes
+        if (!scopes.contains(where: { $0 == "https://www.googleapis.com/auth/userinfo.email" })) {
+            scopes.append("https://www.googleapis.com/auth/userinfo.email")
+        }
+        if (!scopes.contains(where: { $0 == "https://www.googleapis.com/auth/userinfo.profile" })) {
+            scopes.append("https://www.googleapis.com/auth/userinfo.profile")
+        }
+        if (!scopes.contains(where: { $0 == "openid" })) {
+            scopes.append("openid")
+        }
+        
         DispatchQueue.main.async {
+
             func login() {
                 guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
                     completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                     return
                 }
-
                 GIDSignIn.sharedInstance.signIn(
                     withPresenting: presentingVc,
                     hint: nil,
-                    additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes
+                    additionalScopes: scopes
                 ) { result, error in
                     if let error = error {
                         completion(.failure(error))
@@ -69,6 +80,21 @@ class GoogleProvider {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                     if let error = error {
                         // completion(.failure(error))
+                        login()
+                        return
+                    }
+                    guard let grantedScopes = user?.grantedScopes else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "grantedScopes is null (?)"])))
+                        return
+                    }
+                    var sharedScopes = 0;
+                    for scope in scopes {
+                        if (grantedScopes.contains(scope)) {
+                            sharedScopes += 1
+                        }
+                    }
+                    // scopes do not match. Perhaps the user has requested an additional scope
+                    if (sharedScopes != scopes.count) {
                         login()
                         return
                     }
