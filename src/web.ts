@@ -40,7 +40,7 @@ declare const FB: {
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private googleClientId: string | null = null;
-  private googleLoginType: 'online' | 'offline' = 'online'
+  private googleLoginType: "online" | "offline" = "online";
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
   private appleScriptLoaded = false;
@@ -55,7 +55,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (options.google?.webClientId) {
       this.googleClientId = options.google.webClientId;
       if (options.google.mode) {
-        this.googleLoginType = options.google.mode
+        this.googleLoginType = options.google.mode;
       }
 
       await this.loadGoogleScript();
@@ -121,8 +121,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       case "google":
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
-        if (this.googleLoginType === 'offline') {
-          return Promise.reject("Logout is not implemented when using offline mode")
+        if (this.googleLoginType === "offline") {
+          return Promise.reject(
+            "Logout is not implemented when using offline mode",
+          );
         }
         return this.rawLogoutGoogle(this.getGoogleState());
       case "apple":
@@ -145,8 +147,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<{ isLoggedIn: boolean }> {
     switch (options.provider) {
       case "google":
-        if (this.googleLoginType === 'offline') {
-          return Promise.reject('isLoggedIn is not implemented when using offline mode')
+        if (this.googleLoginType === "offline") {
+          return Promise.reject(
+            "isLoggedIn is not implemented when using offline mode",
+          );
         }
         // For Google, we can check if there's a valid token
         const googleAccessToken = this.getGoogleState();
@@ -192,8 +196,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<AuthorizationCode> {
     switch (options.provider) {
       case "google":
-        if (this.googleLoginType === 'offline') {
-          return Promise.reject('getAuthorizationCode is not implemented when using offline mode')
+        if (this.googleLoginType === "offline") {
+          return Promise.reject(
+            "getAuthorizationCode is not implemented when using offline mode",
+          );
         }
         // For Google, we can check if there's a valid token
         const googleAccessToken = this.getGoogleState();
@@ -380,7 +386,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       ];
     }
 
-    if (this.googleLoginType === 'online') {
+    if (this.googleLoginType === "online") {
       return new Promise((resolve, reject) => {
         const auth2 = (google.accounts as any).oauth2.initTokenClient({
           client_id: this.googleClientId!,
@@ -400,7 +406,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                     },
                   },
                 );
-  
+
                 if (!profileRes.ok) {
                   reject(
                     new Error(
@@ -409,11 +415,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                   );
                   return;
                 }
-  
+
                 function isString(value: any): value is string {
                   return typeof value === "string";
                 }
-  
+
                 const jsonObject = await profileRes.json();
                 // Assuming jsonObject is of type any or a specific interface
                 let name: string;
@@ -422,43 +428,43 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                 let picture: string;
                 let email: string;
                 let sub: string;
-  
+
                 if (isString(jsonObject.name)) {
                   name = jsonObject.name;
                 } else {
                   throw new Error('Invalid or missing "name" property.');
                 }
-  
+
                 if (isString(jsonObject.given_name)) {
                   givenName = jsonObject.given_name;
                 } else {
                   throw new Error('Invalid or missing "given_name" property.');
                 }
-  
+
                 if (isString(jsonObject.family_name)) {
                   familyName = jsonObject.family_name;
                 } else {
                   throw new Error('Invalid or missing "family_name" property.');
                 }
-  
+
                 if (isString(jsonObject.picture)) {
                   picture = jsonObject.picture;
                 } else {
                   throw new Error('Invalid or missing "picture" property.');
                 }
-  
+
                 if (isString(jsonObject.email)) {
                   email = jsonObject.email;
                 } else {
                   throw new Error('Invalid or missing "email" property.');
                 }
-  
+
                 if (isString(jsonObject.sub)) {
                   sub = jsonObject.sub;
                 } else {
                   throw new Error('Invalid or missing "sub" property.');
                 }
-  
+
                 // Assuming profile is an object of a specific interface or type
                 const profile = {
                   email: email,
@@ -468,12 +474,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                   name: name,
                   imageUrl: picture,
                 };
-  
+
                 this.persistStateGoogle(accessToken);
                 resolve({
                   provider: "google",
                   result: {
-                    responseType: 'online',
+                    responseType: "online",
                     accessToken: {
                       token: accessToken,
                       expires: response.expires_in, //expires_in = seconds until the token expirers
@@ -496,22 +502,22 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           scope: scopes.join(" "),
           callback: async (response) => {
             if (response.error) {
-              reject(response.error)
-              return
+              reject(response.error);
+              return;
             } else {
               resolve({
-                provider: 'google',
+                provider: "google",
                 result: {
-                  responseType: 'offline',
-                  serverAuthCode: response.code
-                }
-              })
+                  responseType: "offline",
+                  serverAuthCode: response.code,
+                },
+              });
             }
-          }
-        })
+          },
+        });
 
-        auth2.requestCode()
-      })
+        auth2.requestCode();
+      });
     }
   }
 

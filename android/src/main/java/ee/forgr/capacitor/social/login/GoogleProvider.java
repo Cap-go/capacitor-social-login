@@ -88,7 +88,7 @@ public class GoogleProvider implements SocialProvider {
 
   public enum GoogleProviderLoginType {
     ONLINE,
-    OFFLINE
+    OFFLINE,
   }
 
   public GoogleProvider(Activity activity, Context context) {
@@ -228,7 +228,8 @@ public class GoogleProvider implements SocialProvider {
 
           // Use ExecutorService to retrieve the access token
           ExecutorService executor = Executors.newSingleThreadExecutor();
-          ListenableFuture<AuthorizationResult> future = getAuthorizationResult();
+          ListenableFuture<AuthorizationResult> future =
+            getAuthorizationResult();
 
           executor.execute(
             new Runnable() {
@@ -237,345 +238,351 @@ public class GoogleProvider implements SocialProvider {
                 try {
                   // AccessToken accessToken = future.get();
                   AuthorizationResult result = future.get();
-                  if (GoogleProvider.this.mode == GoogleProviderLoginType.ONLINE) {
+                  if (
+                    GoogleProvider.this.mode == GoogleProviderLoginType.ONLINE
+                  ) {
                     AccessToken accessToken = new AccessToken();
                     accessToken.token = result.getAccessToken();
 
                     OkHttpClient client = new OkHttpClient();
                     Request request = new Request.Builder()
-                        .url(USERINFO_URL)
-                        .get()
-                        .addHeader("Authorization", "Bearer " + accessToken.token)
-                        .build();
+                      .url(USERINFO_URL)
+                      .get()
+                      .addHeader("Authorization", "Bearer " + accessToken.token)
+                      .build();
 
                     ListenableFuture<Date> tokenExpiresIn =
-                        CallbackToFutureAdapter.getFuture(completer -> {
-                          Request tokenRequest = new Request.Builder()
-                              .url(
-                                  TOKEN_REQUEST_URL +
-                                      "?" +
-                                      "access_token=" +
-                                      accessToken.token
-                              )
-                              .get()
-                              .build();
+                      CallbackToFutureAdapter.getFuture(completer -> {
+                        Request tokenRequest = new Request.Builder()
+                          .url(
+                            TOKEN_REQUEST_URL +
+                            "?" +
+                            "access_token=" +
+                            accessToken.token
+                          )
+                          .get()
+                          .build();
 
-                          client
-                              .newCall(tokenRequest)
-                              .enqueue(
-                                  new Callback() {
-                                    @Override
-                                    public void onFailure(
-                                        @NonNull Call call,
-                                        @NonNull IOException e
-                                    ) {}
-
-                                    @Override
-                                    public void onResponse(
-                                        @NonNull Call httpCall,
-                                        @NonNull Response httpResponse
-                                    ) throws IOException {
-                                      if (!httpResponse.isSuccessful()) {
-                                        completer.setException(
-                                            new RuntimeException(
-                                                String.format(
-                                                    "Invalid response from %s. Response not successful. Status code: %s",
-                                                    TOKEN_REQUEST_URL,
-                                                    httpResponse.code()
-                                                )
-                                            )
-                                        );
-                                        Log.e(
-                                            LOG_TAG,
-                                            String.format(
-                                                "Invalid response from %s. Response not successful. Status code: %s",
-                                                TOKEN_REQUEST_URL,
-                                                httpResponse.code()
-                                            )
-                                        );
-                                        return;
-                                      }
-
-                                      ResponseBody responseBody = httpResponse.body();
-                                      if (responseBody == null) {
-                                        completer.setException(
-                                            new RuntimeException(
-                                                String.format(
-                                                    "Invalid response from %s. Response body is null",
-                                                    TOKEN_REQUEST_URL
-                                                )
-                                            )
-                                        );
-                                        Log.e(
-                                            LOG_TAG,
-                                            String.format(
-                                                "Invalid response from %s. Response body is null",
-                                                TOKEN_REQUEST_URL
-                                            )
-                                        );
-                                        return;
-                                      }
-
-                                      String responseString = responseBody.string();
-                                      JSONObject jsonObject;
-                                      try {
-                                        jsonObject = (JSONObject) new JSONTokener(
-                                            responseString
-                                        ).nextValue();
-                                      } catch (JSONException e) {
-                                        completer.setException(
-                                            new RuntimeException(
-                                                String.format(
-                                                    "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                                                    TOKEN_REQUEST_URL,
-                                                    e
-                                                )
-                                            )
-                                        );
-                                        Log.e(
-                                            LOG_TAG,
-                                            String.format(
-                                                "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                                                TOKEN_REQUEST_URL,
-                                                e
-                                            )
-                                        );
-                                        return;
-                                      }
-
-                                      String expiresIn;
-                                      try {
-                                        expiresIn = jsonObject.getString("expires_in");
-                                      } catch (JSONException e) {
-                                        completer.setException(
-                                            new RuntimeException(
-                                                String.format(
-                                                    "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
-                                                    TOKEN_REQUEST_URL,
-                                                    e
-                                                )
-                                            )
-                                        );
-                                        Log.e(
-                                            LOG_TAG,
-                                            String.format(
-                                                "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
-                                                TOKEN_REQUEST_URL,
-                                                e
-                                            )
-                                        );
-                                        return;
-                                      }
-
-                                      int expressInInt;
-                                      try {
-                                        expressInInt = Integer.parseInt(expiresIn);
-                                      } catch (Exception e) {
-                                        completer.setException(
-                                            new RuntimeException(
-                                                String.format(
-                                                    "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
-                                                    TOKEN_REQUEST_URL,
-                                                    expiresIn,
-                                                    e
-                                                )
-                                            )
-                                        );
-                                        Log.e(
-                                            LOG_TAG,
-                                            String.format(
-                                                "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
-                                                TOKEN_REQUEST_URL,
-                                                expiresIn,
-                                                e
-                                            )
-                                        );
-                                        return;
-                                      }
-
-                                      Date instant = new Date();
-                                      Calendar calendar = Calendar.getInstance();
-                                      calendar.setTime(instant);
-                                      calendar.add(Calendar.SECOND, expressInInt);
-                                      completer.set(calendar.getTime());
-                                    }
-                                  }
-                              );
-
-                          return "TokenExpiresInOperationTag";
-                        });
-
-                    client
-                        .newCall(request)
-                        .enqueue(
+                        client
+                          .newCall(tokenRequest)
+                          .enqueue(
                             new Callback() {
                               @Override
-                              public void onResponse(
-                                  @NonNull Call httpCall,
-                                  @NonNull Response httpResponse
-                              ) throws IOException {
-                                try {
-                                  if (!httpResponse.isSuccessful()) {
-                                    call.reject(
-                                        String.format(
-                                            "Invalid response from %s. Response not successful. Status code: %s",
-                                            USERINFO_URL,
-                                            httpResponse.code()
-                                        )
-                                    );
-                                    Log.e(
-                                        LOG_TAG,
-                                        String.format(
-                                            "Invalid response from %s. Response not successful. Status code: %s",
-                                            USERINFO_URL,
-                                            httpResponse.code()
-                                        )
-                                    );
-                                    return;
-                                  }
-                                  ResponseBody responseBody = httpResponse.body();
-                                  if (responseBody == null) {
-                                    call.reject(
-                                        String.format(
-                                            "Invalid response from %s. Response body is null",
-                                            USERINFO_URL
-                                        )
-                                    );
-                                    Log.e(
-                                        LOG_TAG,
-                                        String.format(
-                                            "Invalid response from %s. Response body is null",
-                                            USERINFO_URL
-                                        )
-                                    );
-                                    return;
-                                  }
-
-                                  String responseString = responseBody.string();
-                                  JSONObject jsonObject;
-                                  try {
-                                    jsonObject = (JSONObject) new JSONTokener(
-                                        responseString
-                                    ).nextValue();
-                                  } catch (JSONException e) {
-                                    call.reject(
-                                        String.format(
-                                            "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                                            USERINFO_URL,
-                                            e
-                                        )
-                                    );
-                                    Log.e(
-                                        LOG_TAG,
-                                        String.format(
-                                            "Invalid response from %s. Response body is not a valid JSON. Error: %s",
-                                            USERINFO_URL,
-                                            e
-                                        )
-                                    );
-                                    return;
-                                  }
-
-                                  try {
-                                    String name = jsonObject.getString("name");
-                                    String givenName = jsonObject.getString(
-                                        "given_name"
-                                    );
-                                    String familyName = jsonObject.getString(
-                                        "family_name"
-                                    );
-                                    String picture = jsonObject.getString("picture");
-                                    String email = jsonObject.getString("email");
-                                    String sub = jsonObject.getString("sub");
-
-                                    // now, let's try to get the expiry
-                                    try {
-                                      Date expiryDate = tokenExpiresIn.get(
-                                          5,
-                                          TimeUnit.SECONDS
-                                      );
-                                      long seconds =
-                                          (expiryDate.getTime() -
-                                              (new Date()).getTime()) /
-                                              1000;
-                                      accessToken.expires = String.valueOf(seconds);
-                                    } catch (
-                                        ExecutionException
-                                        | InterruptedException
-                                        | TimeoutException e
-                                    ) {
-                                      Log.e(LOG_TAG, "Cannot get expiry date", e);
-                                      // it's a non-fatal error
-                                    }
-
-                                    profile.put("email", email);
-                                    profile.put("familyName", familyName);
-                                    profile.put("givenName", givenName);
-                                    profile.put("id", sub);
-                                    profile.put("name", name);
-                                    profile.put("imageUrl", picture);
-
-                                    JSObject accessTokenObj = new JSObject();
-                                    accessTokenObj.put("token", accessToken.token);
-                                    if (accessToken.expires != null) {
-                                      accessTokenObj.put(
-                                          "expires",
-                                          accessToken.expires
-                                      );
-                                    }
-
-                                    resultObj.put("accessToken", accessTokenObj);
-                                    resultObj.put("profile", profile);
-                                    response.put("result", resultObj);
-                                    resultObj.put("responseType", "online");
-                                    persistState(accessToken.token);
-                                    call.resolve(response);
-                                  } catch (JSONException e) {
-                                    call.reject(
-                                        String.format(
-                                            "Invalid response from %s. Could not get some value from JSON. Error: %s",
-                                            USERINFO_URL,
-                                            e
-                                        )
-                                    );
-                                    Log.e(
-                                        LOG_TAG,
-                                        String.format(
-                                            "Invalid response from %s. Could not get some value from JSON. Error: %s",
-                                            USERINFO_URL,
-                                            e
-                                        )
-                                    );
-                                    return;
-                                  }
-                                } finally {
-                                  httpResponse.close();
-                                }
-                              }
+                              public void onFailure(
+                                @NonNull Call call,
+                                @NonNull IOException e
+                              ) {}
 
                               @Override
-                              public void onFailure(
-                                  @NonNull Call httpCall,
-                                  @NonNull IOException e
-                              ) {
-                                call.reject(
-                                    String.format(
-                                        "Invalid response from %s. Error: %s",
-                                        USERINFO_URL,
-                                        e
+                              public void onResponse(
+                                @NonNull Call httpCall,
+                                @NonNull Response httpResponse
+                              ) throws IOException {
+                                if (!httpResponse.isSuccessful()) {
+                                  completer.setException(
+                                    new RuntimeException(
+                                      String.format(
+                                        "Invalid response from %s. Response not successful. Status code: %s",
+                                        TOKEN_REQUEST_URL,
+                                        httpResponse.code()
+                                      )
                                     )
-                                );
-                                Log.e(
+                                  );
+                                  Log.e(
                                     LOG_TAG,
                                     String.format(
-                                        "Invalid response from %s",
-                                        USERINFO_URL
-                                    ),
-                                    e
-                                );
+                                      "Invalid response from %s. Response not successful. Status code: %s",
+                                      TOKEN_REQUEST_URL,
+                                      httpResponse.code()
+                                    )
+                                  );
+                                  return;
+                                }
+
+                                ResponseBody responseBody = httpResponse.body();
+                                if (responseBody == null) {
+                                  completer.setException(
+                                    new RuntimeException(
+                                      String.format(
+                                        "Invalid response from %s. Response body is null",
+                                        TOKEN_REQUEST_URL
+                                      )
+                                    )
+                                  );
+                                  Log.e(
+                                    LOG_TAG,
+                                    String.format(
+                                      "Invalid response from %s. Response body is null",
+                                      TOKEN_REQUEST_URL
+                                    )
+                                  );
+                                  return;
+                                }
+
+                                String responseString = responseBody.string();
+                                JSONObject jsonObject;
+                                try {
+                                  jsonObject = (JSONObject) new JSONTokener(
+                                    responseString
+                                  ).nextValue();
+                                } catch (JSONException e) {
+                                  completer.setException(
+                                    new RuntimeException(
+                                      String.format(
+                                        "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                        TOKEN_REQUEST_URL,
+                                        e
+                                      )
+                                    )
+                                  );
+                                  Log.e(
+                                    LOG_TAG,
+                                    String.format(
+                                      "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                      TOKEN_REQUEST_URL,
+                                      e
+                                    )
+                                  );
+                                  return;
+                                }
+
+                                String expiresIn;
+                                try {
+                                  expiresIn = jsonObject.getString(
+                                    "expires_in"
+                                  );
+                                } catch (JSONException e) {
+                                  completer.setException(
+                                    new RuntimeException(
+                                      String.format(
+                                        "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                                        TOKEN_REQUEST_URL,
+                                        e
+                                      )
+                                    )
+                                  );
+                                  Log.e(
+                                    LOG_TAG,
+                                    String.format(
+                                      "Invalid response from %s. Response JSON does not include expires_in. Error: %s",
+                                      TOKEN_REQUEST_URL,
+                                      e
+                                    )
+                                  );
+                                  return;
+                                }
+
+                                int expressInInt;
+                                try {
+                                  expressInInt = Integer.parseInt(expiresIn);
+                                } catch (Exception e) {
+                                  completer.setException(
+                                    new RuntimeException(
+                                      String.format(
+                                        "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                                        TOKEN_REQUEST_URL,
+                                        expiresIn,
+                                        e
+                                      )
+                                    )
+                                  );
+                                  Log.e(
+                                    LOG_TAG,
+                                    String.format(
+                                      "Invalid response from %s. expires_in: %s is not a valid int. Error: %s",
+                                      TOKEN_REQUEST_URL,
+                                      expiresIn,
+                                      e
+                                    )
+                                  );
+                                  return;
+                                }
+
+                                Date instant = new Date();
+                                Calendar calendar = Calendar.getInstance();
+                                calendar.setTime(instant);
+                                calendar.add(Calendar.SECOND, expressInInt);
+                                completer.set(calendar.getTime());
                               }
                             }
-                        );
+                          );
+
+                        return "TokenExpiresInOperationTag";
+                      });
+
+                    client
+                      .newCall(request)
+                      .enqueue(
+                        new Callback() {
+                          @Override
+                          public void onResponse(
+                            @NonNull Call httpCall,
+                            @NonNull Response httpResponse
+                          ) throws IOException {
+                            try {
+                              if (!httpResponse.isSuccessful()) {
+                                call.reject(
+                                  String.format(
+                                    "Invalid response from %s. Response not successful. Status code: %s",
+                                    USERINFO_URL,
+                                    httpResponse.code()
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response not successful. Status code: %s",
+                                    USERINFO_URL,
+                                    httpResponse.code()
+                                  )
+                                );
+                                return;
+                              }
+                              ResponseBody responseBody = httpResponse.body();
+                              if (responseBody == null) {
+                                call.reject(
+                                  String.format(
+                                    "Invalid response from %s. Response body is null",
+                                    USERINFO_URL
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response body is null",
+                                    USERINFO_URL
+                                  )
+                                );
+                                return;
+                              }
+
+                              String responseString = responseBody.string();
+                              JSONObject jsonObject;
+                              try {
+                                jsonObject = (JSONObject) new JSONTokener(
+                                  responseString
+                                ).nextValue();
+                              } catch (JSONException e) {
+                                call.reject(
+                                  String.format(
+                                    "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                    USERINFO_URL,
+                                    e
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Response body is not a valid JSON. Error: %s",
+                                    USERINFO_URL,
+                                    e
+                                  )
+                                );
+                                return;
+                              }
+
+                              try {
+                                String name = jsonObject.getString("name");
+                                String givenName = jsonObject.getString(
+                                  "given_name"
+                                );
+                                String familyName = jsonObject.getString(
+                                  "family_name"
+                                );
+                                String picture = jsonObject.getString(
+                                  "picture"
+                                );
+                                String email = jsonObject.getString("email");
+                                String sub = jsonObject.getString("sub");
+
+                                // now, let's try to get the expiry
+                                try {
+                                  Date expiryDate = tokenExpiresIn.get(
+                                    5,
+                                    TimeUnit.SECONDS
+                                  );
+                                  long seconds =
+                                    (expiryDate.getTime() -
+                                      (new Date()).getTime()) /
+                                    1000;
+                                  accessToken.expires = String.valueOf(seconds);
+                                } catch (
+                                  ExecutionException
+                                  | InterruptedException
+                                  | TimeoutException e
+                                ) {
+                                  Log.e(LOG_TAG, "Cannot get expiry date", e);
+                                  // it's a non-fatal error
+                                }
+
+                                profile.put("email", email);
+                                profile.put("familyName", familyName);
+                                profile.put("givenName", givenName);
+                                profile.put("id", sub);
+                                profile.put("name", name);
+                                profile.put("imageUrl", picture);
+
+                                JSObject accessTokenObj = new JSObject();
+                                accessTokenObj.put("token", accessToken.token);
+                                if (accessToken.expires != null) {
+                                  accessTokenObj.put(
+                                    "expires",
+                                    accessToken.expires
+                                  );
+                                }
+
+                                resultObj.put("accessToken", accessTokenObj);
+                                resultObj.put("profile", profile);
+                                response.put("result", resultObj);
+                                resultObj.put("responseType", "online");
+                                persistState(accessToken.token);
+                                call.resolve(response);
+                              } catch (JSONException e) {
+                                call.reject(
+                                  String.format(
+                                    "Invalid response from %s. Could not get some value from JSON. Error: %s",
+                                    USERINFO_URL,
+                                    e
+                                  )
+                                );
+                                Log.e(
+                                  LOG_TAG,
+                                  String.format(
+                                    "Invalid response from %s. Could not get some value from JSON. Error: %s",
+                                    USERINFO_URL,
+                                    e
+                                  )
+                                );
+                                return;
+                              }
+                            } finally {
+                              httpResponse.close();
+                            }
+                          }
+
+                          @Override
+                          public void onFailure(
+                            @NonNull Call httpCall,
+                            @NonNull IOException e
+                          ) {
+                            call.reject(
+                              String.format(
+                                "Invalid response from %s. Error: %s",
+                                USERINFO_URL,
+                                e
+                              )
+                            );
+                            Log.e(
+                              LOG_TAG,
+                              String.format(
+                                "Invalid response from %s",
+                                USERINFO_URL
+                              ),
+                              e
+                            );
+                          }
+                        }
+                      );
                   } else {
                     String serverAuthCode = result.getServerAuthCode();
                     resultObj.put("serverAuthCode", serverAuthCode);
@@ -621,23 +628,24 @@ public class GoogleProvider implements SocialProvider {
     //
     //      return accessToken;
 
-    ListenableFuture<AuthorizationResult> future = CallbackToFutureAdapter.getFuture(
-      completer -> {
+    ListenableFuture<AuthorizationResult> future =
+      CallbackToFutureAdapter.getFuture(completer -> {
         List<Scope> scopes = Arrays.asList(
           new Scope(Scopes.EMAIL),
           new Scope(Scopes.PROFILE),
           new Scope(Scopes.OPEN_ID)
         );
         AuthorizationRequest.Builder authorizationRequestBuilder =
-          AuthorizationRequest.builder()
-            .setRequestedScopes(scopes);
-            // .requestOfflineAccess(this.clientId)
+          AuthorizationRequest.builder().setRequestedScopes(scopes);
+        // .requestOfflineAccess(this.clientId)
 
         if (GoogleProvider.this.mode == GoogleProviderLoginType.OFFLINE) {
-          authorizationRequestBuilder = authorizationRequestBuilder.requestOfflineAccess(this.clientId);
+          authorizationRequestBuilder =
+            authorizationRequestBuilder.requestOfflineAccess(this.clientId);
         }
 
-        AuthorizationRequest authorizationRequest = authorizationRequestBuilder.build();
+        AuthorizationRequest authorizationRequest =
+          authorizationRequestBuilder.build();
 
         Identity.getAuthorizationClient(context)
           .authorize(authorizationRequest)
@@ -701,8 +709,8 @@ public class GoogleProvider implements SocialProvider {
               //                  if (authorizationResult.getServerAuthCode() != null)
               //                    Log.i("TAG", authorizationResult.getServerAuthCode());
 
-//              AccessToken accessToken = new AccessToken();
-//              accessToken.token = authorizationResult.getAccessToken();
+              //              AccessToken accessToken = new AccessToken();
+              //              accessToken.token = authorizationResult.getAccessToken();
               completer.set(authorizationResult);
             }
           })
@@ -712,8 +720,7 @@ public class GoogleProvider implements SocialProvider {
           });
 
         return "GetAccessTokenOperationTag";
-      }
-    );
+      });
 
     return future;
   }
@@ -734,16 +741,15 @@ public class GoogleProvider implements SocialProvider {
       return;
     }
 
-    CallbackToFutureAdapter.Completer<AuthorizationResult> future = futuresList.get(
-      futureIndex
-    );
+    CallbackToFutureAdapter.Completer<AuthorizationResult> future =
+      futuresList.get(futureIndex);
 
     try {
       AuthorizationResult authorizationResult = Identity.getAuthorizationClient(
         this.activity
       ).getAuthorizationResultFromIntent(data);
-//      AccessToken accessToken = new AccessToken();
-//      accessToken.token = authorizationResult.getAccessToken();
+      //      AccessToken accessToken = new AccessToken();
+      //      accessToken.token = authorizationResult.getAccessToken();
       future.set(authorizationResult);
     } catch (ApiException e) {
       Log.e(LOG_TAG, "Cannot get getAuthorizationResultFromIntent", e);
@@ -955,7 +961,9 @@ public class GoogleProvider implements SocialProvider {
   @Override
   public void getAuthorizationCode(PluginCall call) {
     if (this.mode == GoogleProviderLoginType.OFFLINE) {
-      call.reject("getAuthorizationCode is not implemented when using offline mode");
+      call.reject(
+        "getAuthorizationCode is not implemented when using offline mode"
+      );
       return;
     }
     if (GoogleProvider.this.savedAccessToken == null) {
