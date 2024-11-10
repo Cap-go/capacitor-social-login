@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.68-alpha.7](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.6...0.0.68-alpha.7) (2024-11-10)
+
+
+### Bug Fixes
+
+* typo ([c64482b](https://github.com/Cap-go/capacitor-social-login/commit/c64482bd3398ce42a6871aeac99883606fe165b0))
+
 ### [0.0.68-alpha.6](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.5...0.0.68-alpha.6) (2024-11-10)
 
 
