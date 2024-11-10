@@ -32,6 +32,10 @@ export interface InitializeOptions {
      * @since 3.1.0
      */
     webClientId?: string;
+    /**
+     * Whether the app requires offline (serverAuthCode) or not
+     */
+    mode?: "online" | "offline";
   };
   apple?: {
     /**
@@ -78,18 +82,17 @@ export interface GoogleLoginOptions {
    */
   nonce?: string;
   /**
-   * Set if your application needs to refresh access tokens when the user is not present at the browser.
-   * In response use `serverAuthCode` key
+   * Set if your application requires to force the refreshToken [Android only]
    *
    * @default false
    * @since 3.1.0
    * */
-  grantOfflineAccess?: boolean;
+  forceRefreshToken?: boolean;
 }
 
-export interface GoogleLoginResponse {
+export interface GoogleLoginOnlineResponse {
+  responseType: "online";
   accessToken: AccessToken | null;
-  serverAuthCode: string | null;
   profile: {
     email: string | null;
     familyName: string | null;
@@ -98,6 +101,11 @@ export interface GoogleLoginResponse {
     name: string | null;
     imageUrl: string | null;
   } | null;
+}
+
+export interface GoogleLoginOfflineResponse {
+  serverAuthCode: string;
+  responseType: "offline";
 }
 
 export interface AppleProviderOptions {
@@ -154,7 +162,11 @@ export interface LoginResult {
    * Payload
    * @description payload to login with
    */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleProviderResponse;
+  result:
+    | FacebookLoginResponse
+    | GoogleLoginOfflineResponse
+    | GoogleLoginOnlineResponse
+    | AppleProviderResponse;
 }
 
 export interface AccessToken {

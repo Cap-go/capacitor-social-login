@@ -34,12 +34,25 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         if let googleSettings = call.getObject("google") {
             let iOSClientId = googleSettings["iOSClientId"] as? String
             let iOSServerClientId = googleSettings["iOSServerClientId"] as? String
+            let modeStr = googleSettings["mode"] as? String
+            var mode = GoogleProviderLoginType.ONLINE
+            if let modeStr = modeStr {
+                switch (modeStr) {
+                    case "online":
+                        mode = GoogleProviderLoginType.ONLINE
+                    case "offline":
+                        mode = GoogleProviderLoginType.OFFLINE
+                case _:
+                    call.reject("google.mode != (online || offline)")
+                    return
+                }
+            }
 
             if let clientId = iOSClientId {
                 if let serverClientId = iOSServerClientId {
-                    google.initialize(clientId: clientId, serverClientId: serverClientId)
+                    google.initialize(clientId: clientId, mode: mode, serverClientId: serverClientId)
                 } else {
-                    google.initialize(clientId: clientId, serverClientId: nil)
+                    google.initialize(clientId: clientId, mode: mode, serverClientId: nil)
                 }
                 initialized = true
             }
@@ -277,28 +290,46 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "result": appleResult
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {
-                let accessToken: [String: Any] = [
-                    "token": googleResponse.accessToken.token,
-                    "expires": String(describing: googleResponse.accessToken.expires)
-                ]
-                let profile: [String: Any]? = googleResponse.profile != nil ? [
-                    "email": googleResponse.profile!.email,
-                    "familyName": googleResponse.profile!.familyName,
-                    "givenName": googleResponse.profile!.givenName,
-                    "id": googleResponse.profile!.id,
-                    "name": googleResponse.profile!.name,
-                    "imageUrl": googleResponse.profile!.imageUrl
-                ] : nil
-                var googleResult: [String: Any] = [
-                    "accessToken": accessToken,
-                ]
-                if let profile = profile {
-                    googleResult["profile"] = profile
+                if let accessToken = googleResponse.accessToken {
+                    let accessToken: [String: Any] = [
+                        "token": accessToken.token,
+                        "expires": String(describing: accessToken.expires)
+                    ]
+                    let profile: [String: Any]? = googleResponse.profile != nil ? [
+                        "email": googleResponse.profile!.email,
+                        "familyName": googleResponse.profile!.familyName,
+                        "givenName": googleResponse.profile!.givenName,
+                        "id": googleResponse.profile!.id,
+                        "name": googleResponse.profile!.name,
+                        "imageUrl": googleResponse.profile!.imageUrl
+                    ] : nil
+                    var googleResult: [String: Any] = [
+                        "accessToken": accessToken,
+                        "responseType": "online"
+                    ]
+                    if let profile = profile {
+                        googleResult["profile"] = profile
+                    }
+                    call.resolve([
+                        "provider": "google",
+                        "result": googleResult
+                    ])
+                    return
+                } else if let serverAuthCode = googleResponse.serverAuthCode {
+                    var googleResult: [String: Any] = [
+                        "serverAuthCode": serverAuthCode,
+                        "responseType": "offline"
+                    ]
+                    call.resolve([
+                        "provider": "google",
+                        "result": googleResult
+                    ])
+                    return
+                } else {
+                    call.reject("neither serverAuthCode or access token not found when serializing GoogleLoginResponse")
+                    return
                 }
-                call.resolve([
-                    "provider": "google",
-                    "result": googleResult
-                ])
+
             } else if let facebookResponse = response as? FacebookLoginResponse {
                 let facebookResult: [String: Any] = [
                     "accessToken": facebookResponse.accessToken,
