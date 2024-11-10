@@ -100,7 +100,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (tokenValid === true) {
       return new Promise<void>((resolve, reject) => {
         try {
-          (google.accounts as any).oauth2.revoke(accessToken, async () => {
+          google.accounts.oauth2.revoke(accessToken, async () => {
             this.clearStateGoogle();
             resolve();
           });
@@ -121,6 +121,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       case "google":
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
+        if (this.googleLoginType === 'offline') {
+          return Promise.reject("Logout is not implemented when using offline mode")
+        }
         return this.rawLogoutGoogle(this.getGoogleState());
       case "apple":
         // Apple doesn't provide a logout method for web
@@ -142,6 +145,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<{ isLoggedIn: boolean }> {
     switch (options.provider) {
       case "google":
+        if (this.googleLoginType === 'offline') {
+          return Promise.reject('isLoggedIn is not implemented when using offline mode')
+        }
         // For Google, we can check if there's a valid token
         const googleAccessToken = this.getGoogleState();
         if (!googleAccessToken) {
@@ -186,6 +192,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<AuthorizationCode> {
     switch (options.provider) {
       case "google":
+        if (this.googleLoginType === 'offline') {
+          return Promise.reject('getAuthorizationCode is not implemented when using offline mode')
+        }
         // For Google, we can check if there's a valid token
         const googleAccessToken = this.getGoogleState();
         if (!googleAccessToken) {
@@ -470,7 +479,6 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                       expires: response.expires_in, //expires_in = seconds until the token expirers
                     },
                     profile,
-                    serverAuthCode: null,
                   },
                 });
               } catch (e) {

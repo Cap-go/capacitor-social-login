@@ -94,7 +94,6 @@ export interface GoogleLoginOptions {
 export interface GoogleLoginOnlineResponse {
   responseType: 'online'
   accessToken: AccessToken | null;
-  serverAuthCode: string | null;
   profile: {
     email: string | null;
     familyName: string | null;
