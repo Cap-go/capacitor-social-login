@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.68-alpha.3](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.2...0.0.68-alpha.3) (2024-11-10)
+
+
+### Features
+
+* docs + forceRefreshToken ([7df9e7b](https://github.com/Cap-go/capacitor-social-login/commit/7df9e7b6ab75024b60de8ca71e22089f66d9b221))
+* offline_mode on Android ([336b32c](https://github.com/Cap-go/capacitor-social-login/commit/336b32c7575ac70c8df1a0675ab35e654e077c60))
+* offline_mode on ios ([83b9944](https://github.com/Cap-go/capacitor-social-login/commit/83b994491e907ebe67dac8ab59175981ee6da49a))
+* switch to bun ([a27b1c1](https://github.com/Cap-go/capacitor-social-login/commit/a27b1c1f9b93b8e9cd76e4c750c45cc3ad3da5ed))
+
+
+### Bug Fixes
+
+* reimplement offline access (web) ([edf89ff](https://github.com/Cap-go/capacitor-social-login/commit/edf89ffdb80531aede56ee2198329dd158feb43b))
+* web impl for offline access ([989831f](https://github.com/Cap-go/capacitor-social-login/commit/989831fd02a76e6f0c847e9c93a91c5067b270cf))
+
 ### [0.0.68-alpha.2](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.1...0.0.68-alpha.2) (2024-11-05)
 
 
