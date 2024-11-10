@@ -310,11 +310,15 @@ In this part, you will learn how to setup Google login in Android
 - Now, you have to modify `MainActivity.java`. Please add the following code
   
   ```java
+  import ee.forgr.capacitor.social.login.GoogleProvider;
+  import ee.forgr.capacitor.social.login.SocialLoginPlugin
+  import android.content.Intent;
+  
   @Override
   public void onActivityResult(int requestCode, int resultCode, Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
   
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
+    if (requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
         PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
         if (pluginHandle == null) {
             Log.i("Google Activity Result", "SocialLogin login handle is null");
@@ -410,64 +414,62 @@ In order to use it, you have to do the following:
    - Please follow step 2 of the `Using Google login on Android` if you have not configured it already
 
 2- Configure the web client in the Google Console
-   
-   - Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
-     ![](./assets/google_cons_open_web_client_id.png)
-   
-   - Now, please add the `Authorized JavaScript origins`. This should include all the addresses that you might use for your app. In might case, I will **ONLY** use localhost, but since I use a custom port I have to add both `http://localhost` and `http://localhost:5173`
-     
-     - Please click on `add URI`
-       ![](./assets/google_cons_authorized_js_add_btn.png)
-     
-     - Please type your URL
-       ![](./assets/google_cons_authorized_js_typed_url.png)
-     
-     - Please repeat until you added all the URLs
-     
-     - When you finish, your screen should look something like this
-       ![](./assets/google_cons_authorized_js_final.png)
-   
-   - Now, please click **ENSURE** that you do not have any `Authorized redirect URIs` added. 
-     
-     
-     
+
+- Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
+  ![](./assets/google_cons_open_web_client_id.png)
+
+- Now, please add the `Authorized JavaScript origins`. This should include all the addresses that you might use for your app. In might case, I will **ONLY** use localhost, but since I use a custom port I have to add both `http://localhost` and `http://localhost:5173`
+  
+  - Please click on `add URI`
+    ![](./assets/google_cons_authorized_js_add_btn.png)
+  
+  - Please type your URL
+    ![](./assets/google_cons_authorized_js_typed_url.png)
+  
+  - Please repeat until you added all the URLs
+  
+  - When you finish, your screen should look something like this
+    ![](./assets/google_cons_authorized_js_final.png)
+
+- Now, please click **ENSURE** that you do not have any `Authorized redirect URIs` added. 
+
      **THIS IS CRITICAL** and if you do not follow this step, the Google Login on the web **WILL NOT** work
-   
-   - Click `save`
-     ![](./assets/google_cons_web_app_save.png)
+
+- Click `save`
+  ![](./assets/google_cons_web_app_save.png)
 
 3- Now, you should be ready to call `login` from JavaScript like so:
-   
-   - First, you need import `SocialLogin`
-     
-     ```typescript
-     import { ScialLogin } from '@capgo/capacitor-social-login';
-     ```
-   
-   - Then, you want to call initialize. I recommend calling this ONLY once.
-     
-     ```ts
-     // onMounted is Vue specific
-     // webClientId is the client ID you got in the web client creation step not the android client ID.
-     onMounted(() => {
-      SocialLogin.initialize({
-        google: {
-          webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
-        }
-      })
-     })
-     ```
-     
-     Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
-     
-     ```ts
-     const res = await SocialLogin.login({
-      provider: 'google',
-      options: {}
-     })
-     // handle the response. popoutStore is specific to my app
-     popoutStore.popout("Google login", JSON.stringify(response))
-     ```
+
+- First, you need import `SocialLogin`
+  
+  ```typescript
+  import { ScialLogin } from '@capgo/capacitor-social-login';
+  ```
+
+- Then, you want to call initialize. I recommend calling this ONLY once.
+  
+  ```ts
+  // onMounted is Vue specific
+  // webClientId is the client ID you got in the web client creation step not the android client ID.
+  onMounted(() => {
+   SocialLogin.initialize({
+     google: {
+       webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
+     }
+   })
+  })
+  ```
+  
+  Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
+  
+  ```ts
+  const res = await SocialLogin.login({
+   provider: 'google',
+   options: {}
+  })
+  // handle the response. popoutStore is specific to my app
+  popoutStore.popout("Google login", JSON.stringify(response))
+  ```
 
 ### Difference between online access and offline access
 
@@ -482,11 +484,11 @@ In order to use it, you have to do the following:
 If you still do not know which one you should choose, please consider the following scenarios:
 
 1. You want the user to login, immediately after you are going to issue him a custom JWT. Your app will NOT call Google APIs
-
+   
    In this case, choose online access.
 
 2. Your app will call some Google APIs from the client, but never from the backend
-
+   
    In this case, choose online access
 
 3. Your app will call some google APIs from the backend, but only when the user is actively using the app
@@ -524,4 +526,80 @@ If you do want to call Google API's, I would strongly recommend at [Google's OAu
 
 ### Using offline access
 
-Offline access it not currently implemented in the plugin.
+In order to use offline access you will need the following:
+
+- A HTTP server
+
+In this example, I will be using the following technologies to provide the offline access in my app:
+
+- [Hono](https://hono.dev/)
+
+- [Hono Zod validator](https://hono.dev/docs/guides/validation#with-zod)
+
+- [Zod](https://zod.dev/)
+
+- [Hono JWT](https://hono.dev/docs/helpers/jwt#jwt-authentication-helper)
+
+- [LowDb](https://www.npmjs.com/package/lowdb) (a simple database)
+
+The code for this example can be found [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/aac7a8c909f650a8c2cd7f88c97f5f3c594ce9ba/index.ts#L139-L287)
+
+
+
+As for the client code, it looks like this:
+
+```ts
+import { Capacitor } from '@capacitor/core';
+import { GoogleLoginOfflineResponse, SocialLogin } from '@capgo/capacitor-social-login';
+import { usePopoutStore } from '@/popoutStore'; // <-- specific to my app
+
+const baseURL = "[redacted]";
+
+async function fullLogin() {
+  await SocialLogin.initialize({
+    google: {
+      webClientId: '[redacted]',  
+      iOSClientId: '[redacted]',
+      iOSServerClientId: 'The same value as webClientId',
+      mode: 'offline' // <-- important
+    } 
+  })
+  const response = await SocialLogin.login({
+    provider: 'google',
+    options: {
+      forceRefreshToken: true // <-- important
+    }
+  })
+
+  if (response.provider === 'google') {
+    const result = response.result as GoogleLoginOfflineResponse
+    const res = await fetch(`${baseURL}/auth/google_offline`, {
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        serverAuthCode: result.serverAuthCode,
+        platform: Capacitor.getPlatform()
+      }),
+      method: "POST"
+    })
+
+    if (res.status !== 200) {
+      popoutStore.popout("Full google login failed", "check console");
+      return
+    }
+
+    const { jwt } = await res.json();
+    const userinfo = await fetch(`${baseURL}/auth/get_google_user`, {
+      headers: {
+        Authorization: `Bearer ${jwt}`
+      }
+    })
+    if (userinfo.status !== 200) {
+      popoutStore.popout("Full google (userinfo) login failed", "check console");
+      return
+    }
+    popoutStore.popout("userinfo res", await userinfo.text());
+  }
+}
+```

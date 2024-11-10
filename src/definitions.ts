@@ -82,13 +82,12 @@ export interface GoogleLoginOptions {
    */
   nonce?: string;
   /**
-   * Set if your application needs to refresh access tokens when the user is not present at the browser.
-   * In response use `serverAuthCode` key
+   * Set if your application requires to force the refreshToken [Android only]
    *
    * @default false
    * @since 3.1.0
    * */
-  grantOfflineAccess?: boolean;
+  forceRefreshToken?: boolean;
 }
 
 export interface GoogleLoginOnlineResponse {

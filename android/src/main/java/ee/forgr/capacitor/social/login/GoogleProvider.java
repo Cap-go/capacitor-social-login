@@ -228,8 +228,9 @@ public class GoogleProvider implements SocialProvider {
 
           // Use ExecutorService to retrieve the access token
           ExecutorService executor = Executors.newSingleThreadExecutor();
-          ListenableFuture<AuthorizationResult> future =
-            getAuthorizationResult();
+          JSONObject options = call.getObject("options", new JSObject());
+          Boolean forceRefreshToken = options != null && options.has("forceRefreshToken") && options.getBoolean("forceRefreshToken");
+          ListenableFuture<AuthorizationResult> future = getAuthorizationResult(forceRefreshToken);
 
           executor.execute(
             new Runnable() {
@@ -612,7 +613,7 @@ public class GoogleProvider implements SocialProvider {
     }
   }
 
-  private ListenableFuture<AuthorizationResult> getAuthorizationResult() {
+  private ListenableFuture<AuthorizationResult> getAuthorizationResult(Boolean forceRefreshToken) {
     //      Account account = new Account(credential.getId(), "com.google");
     //      String scopesString = "oauth2:" + TextUtils.join(" ", this.scopes);
     //      String token = GoogleAuthUtil.getToken(
@@ -641,7 +642,7 @@ public class GoogleProvider implements SocialProvider {
 
         if (GoogleProvider.this.mode == GoogleProviderLoginType.OFFLINE) {
           authorizationRequestBuilder =
-            authorizationRequestBuilder.requestOfflineAccess(this.clientId);
+            authorizationRequestBuilder.requestOfflineAccess(this.clientId, forceRefreshToken);
         }
 
         AuthorizationRequest authorizationRequest =
