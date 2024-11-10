@@ -57,8 +57,6 @@
     "@ionic/prettier-config": "^4.0.0",
     "@ionic/swiftlint-config": "^2.0.0",
     "@types/node": "^20.12.12",
-    "@typescript-eslint/eslint-plugin": "^8.11.0",
-    "@typescript-eslint/parser": "^8.11.0",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "prettier": "^3.3.3",
@@ -66,7 +64,7 @@
     "rimraf": "^6.0.1",
     "rollup": "^4.24.0",
     "swiftlint": "^2.0.0",
-    "typescript": "^5.6.3"
+    "typescript": "5.1.6"
   },
   "peerDependencies": {
     "@capacitor/core": "^6.0.0"

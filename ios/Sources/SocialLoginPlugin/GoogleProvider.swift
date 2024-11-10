@@ -41,7 +41,7 @@ class GoogleProvider {
                     completion(.success(self.createLoginResponse(user: result.user)))
                 }
             }
-            
+
             if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                     if let error = error {

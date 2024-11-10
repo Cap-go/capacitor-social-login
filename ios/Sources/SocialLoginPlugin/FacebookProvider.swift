@@ -54,7 +54,7 @@ class FacebookProvider {
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            
+
             // Check if a user is already logged in
             if AccessToken.current != nil {
                 // User is already logged in, return current session info
@@ -62,10 +62,10 @@ class FacebookProvider {
                 completion(.success(response))
                 return
             }
-            
+
             self.loginManager.logIn(configuration: configuration) { result in
                 switch result {
-                case .success(_, _, _):
+                case .success:
                     let response = self.createLoginResponse()
                     completion(.success(response))
                 case .failed(let error):

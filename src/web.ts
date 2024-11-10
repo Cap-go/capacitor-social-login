@@ -139,6 +139,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can check if there's a valid token
+        // eslint-disable-next-line no-case-declarations
         const googleUser = await this.getGoogleUser();
         return { isLoggedIn: !!googleUser };
       case "apple":
@@ -164,8 +165,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can use the id_token as the authorization code
+        // eslint-disable-next-line no-case-declarations
         const googleUser = await this.getGoogleUser();
-        if (googleUser && googleUser.credential) {
+        if (googleUser?.credential) {
           return { jwt: googleUser.credential };
         }
         throw new Error("No Google authorization code available");
