@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.68-alpha.6](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.5...0.0.68-alpha.6) (2024-11-10)
+
+
+### Features
+
+* **iOS,web:** implement scopes ([99b921d](https://github.com/Cap-go/capacitor-social-login/commit/99b921d51da67cc893482fad3cbbdbff8528dbe5))
+* scopes for Android ([185fa0f](https://github.com/Cap-go/capacitor-social-login/commit/185fa0fe538cc5f8c86b9bf982a70ba13810be57))
+
 ### [0.0.68-alpha.5](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.4...0.0.68-alpha.5) (2024-11-10)
 
 ### [0.0.68-alpha.4](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.3...0.0.68-alpha.4) (2024-11-10)
