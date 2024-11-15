@@ -182,27 +182,28 @@ public class AppleProvider implements SocialProvider {
 
     String nonce = null;
     if (config.has("nonce")) {
-        try {
-            nonce = config.getString("nonce");
-        } catch (JSONException e) {
-            Log.e(SocialLoginPlugin.LOG_TAG, "Error parsing nonce", e);
-        }
+      try {
+        nonce = config.getString("nonce");
+      } catch (JSONException e) {
+        Log.e(SocialLoginPlugin.LOG_TAG, "Error parsing nonce", e);
+      }
     }
 
-    this.appleAuthURLFull = AUTHURL +
-    "?client_id=" +
-    this.clientId +
-    "&redirect_uri=" +
-    this.redirectUrl +
-    "&response_type=code&scope=" +
-    scopes +
-    "&response_mode=form_post&state=" +
-    state;
+    this.appleAuthURLFull =
+      AUTHURL +
+      "?client_id=" +
+      this.clientId +
+      "&redirect_uri=" +
+      this.redirectUrl +
+      "&response_type=code&scope=" +
+      scopes +
+      "&response_mode=form_post&state=" +
+      state;
 
     if (nonce != null) {
-        this.appleAuthURLFull += "&nonce=" + nonce;
+      this.appleAuthURLFull += "&nonce=" + nonce;
     }
-    
+
     if (context == null || activity == null) {
       call.reject("Context or Activity is null");
       return;
