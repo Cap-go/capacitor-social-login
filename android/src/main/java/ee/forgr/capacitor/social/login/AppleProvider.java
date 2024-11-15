@@ -180,15 +180,16 @@ public class AppleProvider implements SocialProvider {
       }
     }
 
-    this.appleAuthURLFull = AUTHURL +
-    "?client_id=" +
-    this.clientId +
-    "&redirect_uri=" +
-    this.redirectUrl +
-    "&response_type=code&scope=" +
-    scopes +
-    "&response_mode=form_post&state=" +
-    state;
+    this.appleAuthURLFull =
+      AUTHURL +
+      "?client_id=" +
+      this.clientId +
+      "&redirect_uri=" +
+      this.redirectUrl +
+      "&response_type=code&scope=" +
+      scopes +
+      "&response_mode=form_post&state=" +
+      state;
 
     if (context == null || activity == null) {
       call.reject("Context or Activity is null");
