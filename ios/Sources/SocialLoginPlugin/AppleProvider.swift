@@ -197,6 +197,10 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             request.requestedScopes = [.fullName, .email]
         }
 
+        if let nonce = payload["nonce"] as? String {
+            request.nonce = nonce;
+        }
+
         let authorizationController = ASAuthorizationController(authorizationRequests: [request])
         authorizationController.delegate = self
         authorizationController.presentationContextProvider = self
