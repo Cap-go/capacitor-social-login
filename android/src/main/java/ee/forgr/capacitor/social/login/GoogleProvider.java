@@ -534,18 +534,24 @@ public class GoogleProvider implements SocialProvider {
                               }
 
                               try {
+                                JSObject jsObject = JSObject.fromJSONObject(
+                                  jsonObject
+                                );
                                 String name = jsonObject.getString("name");
-                                String givenName = jsonObject.getString(
-                                  "given_name"
+                                String givenName = jsObject.getString(
+                                  "given_name",
+                                  ""
                                 );
-                                String familyName = jsonObject.getString(
-                                  "family_name"
+                                String familyName = jsObject.getString(
+                                  "family_name",
+                                  ""
                                 );
-                                String picture = jsonObject.getString(
-                                  "picture"
+                                String picture = jsObject.getString(
+                                  "picture",
+                                  ""
                                 );
-                                String email = jsonObject.getString("email");
-                                String sub = jsonObject.getString("sub");
+                                String email = jsObject.getString("email", "");
+                                String sub = jsObject.getString("sub", "");
 
                                 // now, let's try to get the expiry
                                 try {
