@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.68-alpha.8](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.7...0.0.68-alpha.8) (2024-11-18)
+
+
+### Bug Fixes
+
+* **google,android:** provide default values for profile info ([f53a7cd](https://github.com/Cap-go/capacitor-social-login/commit/f53a7cda5b65bf7947f9a74c7448a97d51385947))
+
 ### [0.0.68-alpha.7](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68-alpha.6...0.0.68-alpha.7) (2024-11-10)
 
 
