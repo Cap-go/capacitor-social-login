@@ -11,17 +11,14 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: oven-sh/setup-bun@v2
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
       - name: Install dependencies
         id: install_code
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
       - name: Setup java
         uses: actions/setup-java@v3
         with:
@@ -38,20 +35,17 @@ jobs:
           xcode-version: 16
       - name: Check out
         uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: oven-sh/setup-bun@v2
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
       - name: Install dependencies
         id: install_code
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
       - name: Build
         id: build_code
-        run: pnpm verify:ios
+        run: bun run verify:ios
   deploy:
     needs: [build_android, build_ios]
     runs-on: ubuntu-latest
@@ -59,26 +53,23 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: oven-sh/setup-bun@v2
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
       - name: Install dependencies
         id: install_code
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
       # - name: Lint
       #   id: lint_code
-      #   run: pnpm lint
+      #   run: bun run lint
       - name: Build
         id: build_code
-        run: pnpm build
+        run: bun run build
       - name: Verify
         id: verify_code
-        run: pnpm verify:web
+        run: bun run verify:web
       - uses: rxfork/npm-publish@v1
         if: ${{ !contains(github.ref, '-alpha.') }}
         with:
