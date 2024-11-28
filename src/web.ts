@@ -15,30 +15,6 @@ import type {
   GoogleLoginOptions,
 } from "./definitions";
 
-// Add this declaration at the top of the file
-declare const google: {
-  accounts: {
-    id: {
-      initialize(config: {
-        client_id: string;
-        callback: (response: any) => void;
-        auto_select?: boolean;
-      }): void;
-      prompt(callback: (notification: any) => void): void;
-    };
-    oauth2: {
-      initTokenClient(config: {
-        client_id: string;
-        callback: (response: any) => void;
-        auto_select?: boolean;
-        scope: string;
-      }): {
-        requestAccessToken(): void;
-      };
-    };
-  };
-};
-
 declare const AppleID: any;
 
 declare const FB: {
@@ -228,8 +204,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         client_id: this.googleClientId!,
         callback: (response) => {
           console.log("google.accounts.id.initialize callback", response);
-          if (response.error) {
-            reject(response.error);
+          if ((response as any).error) { // we use any because type fail but we need to double check if that works
+            reject((response as any).error);
           } else {
             const payload = this.parseJwt(response.credential);
             const result: GoogleLoginResponse = {
