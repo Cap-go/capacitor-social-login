@@ -199,7 +199,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         }
 
         if let nonce = payload["nonce"] as? String {
-            request.nonce = nonce;
+            request.nonce = nonce
         }
 
         let authorizationController = ASAuthorizationController(authorizationRequests: [request])
@@ -242,12 +242,12 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             if fullName?.givenName != nil || fullName?.familyName != nil {
                 persistName(userId: userIdentifier, givenName: fullName?.givenName, familyName: fullName?.familyName)
             }
-            
+
             // Use saved name as fallback
             let savedName = retrieveName(userId: userIdentifier)
             let finalGivenName = fullName?.givenName ?? savedName?.givenName
             let finalFamilyName = fullName?.familyName ?? savedName?.familyName
-            
+
             // Create proper access token and decode JWT
             let tokenString = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
             let accessToken = AccessTokenApple(
@@ -264,7 +264,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                 if remainder > 0 {
                     base64String += String(repeating: "=", count: 4 - remainder)
                 }
-                
+
                 if let decodedData = Data(base64Encoded: base64String, options: []),
                    let payload = try? JSONSerialization.jsonObject(with: decodedData, options: []) as? [String: Any] {
                     print("payload", payload)
@@ -580,7 +580,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
     private func persistName(userId: String, givenName: String?, familyName: String?) {
         if givenName == nil && familyName == nil { return }
-        
+
         var names = UserDefaults.standard.dictionary(forKey: USER_INFO_KEY) as? [String: [String: String]] ?? [:]
         names[userId] = [
             "givenName": givenName ?? "",

@@ -24,9 +24,9 @@ class GoogleProvider {
                     completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                     return
                 }
-                
+
                 let shouldGrantOfflineAccess = payload["grantOfflineAccess"] as? Bool ?? false
-                
+
                 if shouldGrantOfflineAccess {
                     GIDSignIn.sharedInstance.signIn(
                         withPresenting: presentingVc,

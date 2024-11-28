@@ -187,7 +187,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
-  private async loginWithGoogle(options: GoogleLoginOptions): Promise<LoginResult> {
+  private async loginWithGoogle(
+    options: GoogleLoginOptions,
+  ): Promise<LoginResult> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
@@ -204,7 +206,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         client_id: this.googleClientId!,
         callback: (response) => {
           console.log("google.accounts.id.initialize callback", response);
-          if ((response as any).error) { // we use any because type fail but we need to double check if that works
+          if ((response as any).error) {
+            // we use any because type fail but we need to double check if that works
             reject((response as any).error);
           } else {
             const payload = this.parseJwt(response.credential);
@@ -412,7 +415,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     scopes: string[],
   ): Promise<LoginResult> {
     return new Promise((resolve, reject) => {
-      const uniqueScopes = [...new Set([...scopes, 'openid'])];
+      const uniqueScopes = [...new Set([...scopes, "openid"])];
       const auth2 = google.accounts.oauth2.initTokenClient({
         client_id: this.googleClientId!,
         scope: uniqueScopes.join(" "),
@@ -421,11 +424,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             reject(response.error);
           } else {
             // Get ID token from userinfo endpoint
-            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: {
-                'Authorization': `Bearer ${response.access_token}`
-              }
-            });
+            const userInfoResponse = await fetch(
+              "https://www.googleapis.com/oauth2/v3/userinfo",
+              {
+                headers: {
+                  Authorization: `Bearer ${response.access_token}`,
+                },
+              },
+            );
             const userData = await userInfoResponse.json();
 
             const result: GoogleLoginResponse = {

@@ -48,9 +48,9 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@capacitor/android": "^6.0.0",
-    "@capacitor/cli": "^6.0.0",
-    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
     "@capacitor/docgen": "^0.3.0",
     "@capacitor/ios": "^6.0.0",
     "@ionic/eslint-config": "^0.4.0",
@@ -63,7 +63,7 @@
     "prettier": "^3.3.3",
     "prettier-plugin-java": "^2.6.5",
     "rimraf": "^6.0.1",
-    "rollup": "^4.24.0",
+    "rollup": "^4.27.4",
     "swiftlint": "^2.0.0",
     "typescript": "5.1.6"
   },
