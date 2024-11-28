@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.72](https://github.com/Cap-go/capacitor-social-login/compare/0.0.71...0.0.72) (2024-11-28)
+
+
+### Bug Fixes
+
+* remove newUI not working ([ff75fc8](https://github.com/Cap-go/capacitor-social-login/commit/ff75fc8dc9e67bccfd1dc10894b2ff9a4c481dd1))
+
 ### [0.0.71](https://github.com/Cap-go/capacitor-social-login/compare/0.0.70...0.0.71) (2024-11-28)
 
 
