@@ -41,6 +41,8 @@ declare const FB: {
 };
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
+  private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
+  
   private googleClientId: string | null = null;
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
@@ -49,6 +51,48 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
   private facebookAppId: string | null = null;
   private facebookScriptLoaded = false;
+
+  constructor() {
+    super();
+    // Set up listener for OAuth redirects if we have a pending OAuth flow
+    if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
+      this.handleOAuthRedirect();
+    }
+  }
+
+  private handleOAuthRedirect() {
+    const hash = window.location.hash.substring(1);
+    console.log("handleOAuthRedirect", window.location.hash);
+    if (!hash) return;
+    console.log("handleOAuthRedirect ok");
+
+
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const idToken = params.get('id_token');
+    
+    if (accessToken && idToken) {
+      localStorage.removeItem(SocialLoginWeb.OAUTH_STATE_KEY);
+      const profile = this.parseJwt(idToken);
+      const result: GoogleLoginResponse = {
+        accessToken: {
+          token: accessToken,
+        },
+        idToken,
+        profile: {
+          email: profile.email || null,
+          familyName: profile.family_name || null,
+          givenName: profile.given_name || null,
+          id: profile.sub || null,
+          name: profile.name || null,
+          imageUrl: profile.picture || null,
+        },
+      };
+      // Emit event for pending promise to resolve
+      console.log("notifyListeners", { provider: "google", result });
+      this.notifyListeners('loginResponse', { provider: "google", result });
+    }
+  }
 
   async initialize(options: InitializeOptions): Promise<void> {
     if (options.google?.webClientId) {
@@ -414,45 +458,46 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private async fallbackToTraditionalOAuth(
     scopes: string[],
   ): Promise<LoginResult> {
-    return new Promise((resolve, reject) => {
-      const uniqueScopes = [...new Set([...scopes, "openid"])];
-      const auth2 = google.accounts.oauth2.initTokenClient({
-        client_id: this.googleClientId!,
-        scope: uniqueScopes.join(" "),
-        callback: async (response) => {
-          if (response.error) {
-            reject(response.error);
-          } else {
-            // Get ID token from userinfo endpoint
-            const userInfoResponse = await fetch(
-              "https://www.googleapis.com/oauth2/v3/userinfo",
-              {
-                headers: {
-                  Authorization: `Bearer ${response.access_token}`,
-                },
-              },
-            );
-            const userData = await userInfoResponse.json();
+    return new Promise(() => {
+      // Set up one-time listener for OAuth response
+      // const handleResponse = (response: { provider: string, result: any }) => {
+      //   this.removeListener('oauthResponse', handleResponse);
+      //   resolve(response);
+      // };
+      // this.addListener('oauthResponse', handleResponse);
 
-            const result: GoogleLoginResponse = {
-              accessToken: {
-                token: response.access_token,
-              },
-              idToken: userData.sub, // Using sub as ID token
-              profile: {
-                email: userData.email || null,
-                familyName: userData.family_name || null,
-                givenName: userData.given_name || null,
-                id: userData.sub || null,
-                name: userData.name || null,
-                imageUrl: userData.picture || null,
-              },
-            };
-            resolve({ provider: "google", result });
-          }
-        },
-      });
-      auth2.requestAccessToken();
+      // Mark OAuth flow as pending
+      localStorage.setItem(SocialLoginWeb.OAUTH_STATE_KEY, 'true');
+      
+      const uniqueScopes = [...new Set([...scopes, "openid"])];
+      
+      // Create form to request access token from Google's OAuth 2.0 server
+      const form = document.createElement('form');
+      form.setAttribute('method', 'GET');
+      form.setAttribute('action', 'https://accounts.google.com/o/oauth2/v2/auth');
+
+      // Parameters for OAuth 2.0 implicit flow
+      const params = {
+        client_id: this.googleClientId!,
+        redirect_uri: window.location.href,
+        response_type: 'token id_token',
+        scope: uniqueScopes.join(' '),
+        nonce: Math.random().toString(36).substring(2),
+        include_granted_scopes: 'true',
+      };
+
+      // Add form parameters as hidden input values
+      for (const [key, value] of Object.entries(params)) {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'hidden');
+        input.setAttribute('name', key);
+        input.setAttribute('value', value);
+        form.appendChild(input);
+      }
+
+      // Add form to page and submit it
+      document.body.appendChild(form);
+      form.submit();
     });
   }
 }

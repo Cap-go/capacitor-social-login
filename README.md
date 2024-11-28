@@ -232,6 +232,8 @@ const res = await SocialLogin.login({
 * [`isLoggedIn(...)`](#isloggedin)
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
+* [`removeAllListeners()`](#removealllisteners)
+* [`addListener('loginResponse', ...)`](#addlistenerloginresponse-)
 * [Interfaces](#interfaces)
 
 </docgen-index>
@@ -331,6 +333,39 @@ Refresh the access token
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+
+--------------------
+
+
+### removeAllListeners()
+
+```typescript
+removeAllListeners() => Promise<void>
+```
+
+Remove all listeners for this plugin.
+
+**Since:** 1.0.0
+
+--------------------
+
+
+### addListener('loginResponse', ...)
+
+```typescript
+addListener(eventName: "loginResponse", listenerFunc: (state: LoginResult) => void) => Promise<PluginListenerHandle>
+```
+
+Listen for login response event. For web only.
+
+| Param              | Type                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| **`eventName`**    | <code>'loginResponse'</code>                                            |
+| **`listenerFunc`** | <code>(state: <a href="#loginresult">LoginResult</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
+
+**Since:** 1.0.0
 
 --------------------
 
@@ -451,5 +486,12 @@ Refresh the access token
 | Prop           | Type                                           | Description |
 | -------------- | ---------------------------------------------- | ----------- |
 | **`provider`** | <code>'facebook' \| 'google' \| 'apple'</code> | Provider    |
+
+
+#### PluginListenerHandle
+
+| Prop         | Type                                      |
+| ------------ | ----------------------------------------- |
+| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
 
 </docgen-api>
