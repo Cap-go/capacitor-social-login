@@ -82,9 +82,16 @@ export interface GoogleLoginOptions {
    * In response use `serverAuthCode` key
    *
    * @default false
-   * @since 3.1.0
+   * @since 0.0.69
    * */
   grantOfflineAccess?: boolean;
+  /**
+   * New UI
+   * @description use new UI for Google login
+   * @default false
+   * @since 0.1.0
+   */
+  newUI?: boolean;
 }
 
 export interface GoogleLoginResponse {
