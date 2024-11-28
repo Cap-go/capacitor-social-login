@@ -435,27 +435,34 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     scopes: string[],
   ): Promise<LoginResult> {
     return new Promise((resolve, reject) => {
+      const uniqueScopes = [...new Set([...scopes, 'openid'])];
       const auth2 = google.accounts.oauth2.initTokenClient({
         client_id: this.googleClientId!,
-        scope: scopes.join(" "),
-        callback: (response) => {
+        scope: uniqueScopes.join(" "),
+        callback: async (response) => {
           if (response.error) {
             reject(response.error);
           } else {
-            // Process the response similar to One Tap
-            const payload = this.parseJwt(response.access_token);
+            // Get ID token from userinfo endpoint
+            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+              headers: {
+                'Authorization': `Bearer ${response.access_token}`
+              }
+            });
+            const userData = await userInfoResponse.json();
+
             const result: GoogleLoginResponse = {
               accessToken: {
                 token: response.access_token,
               },
-              idToken: null, // Traditional OAuth doesn't provide id_token by default
+              idToken: userData.sub, // Using sub as ID token
               profile: {
-                email: payload.email || null,
-                familyName: payload.family_name || null,
-                givenName: payload.given_name || null,
-                id: payload.sub || null,
-                name: payload.name || null,
-                imageUrl: payload.picture || null,
+                email: userData.email || null,
+                familyName: userData.family_name || null,
+                givenName: userData.given_name || null,
+                id: userData.sub || null,
+                name: userData.name || null,
+                imageUrl: userData.picture || null,
               },
             };
             resolve({ provider: "google", result });
