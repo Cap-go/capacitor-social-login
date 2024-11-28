@@ -247,21 +247,4 @@ export interface SocialLoginPlugin {
    * @description refresh the access token
    */
   refresh(options: LoginOptions): Promise<void>;
-
-    /**
-   * Remove all listeners for this plugin.
-   *
-   * @since 1.0.0
-   */
-    removeAllListeners(): Promise<void>;
-
-    /**
-     * Listen for login response event. For web only.
-     *
-     * @since 1.0.0
-     */
-    addListener(
-      eventName: "loginResponse",
-      listenerFunc: (state: LoginResult) => void,
-    ): Promise<PluginListenerHandle>;
 }
