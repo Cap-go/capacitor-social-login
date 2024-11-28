@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.70](https://github.com/Cap-go/capacitor-social-login/compare/0.0.69...0.0.70) (2024-11-28)
+
+
+### Features
+
+* allow idtoekn in web ([8152c48](https://github.com/Cap-go/capacitor-social-login/commit/8152c485a34a1d6ce3948d590aaffd75ea365ec8))
+* allow new UI ([34a080e](https://github.com/Cap-go/capacitor-social-login/commit/34a080ef9de19aeed02359fc5229c1dd16b5bc45))
+* offline ios ([5088171](https://github.com/Cap-go/capacitor-social-login/commit/5088171d5e23da494790840747a64b239d5f6c48))
+
+
+### Bug Fixes
+
+* always return email thanks to jwt ([40c1b50](https://github.com/Cap-go/capacitor-social-login/commit/40c1b5085c1cfd70db9f0f5b66db1102b7102722))
+* build script CICD ([04823c6](https://github.com/Cap-go/capacitor-social-login/commit/04823c6bcd92e10df49230ea21bb376af8afd719))
+* lint ([fcd19b0](https://github.com/Cap-go/capacitor-social-login/commit/fcd19b08806f5fdd86059ce5c0b8da2fe05f3547))
+* lint ([ac5749d](https://github.com/Cap-go/capacitor-social-login/commit/ac5749d4d14bc165ea87a0af64da1580c6abbb79))
+* lint issue ([a0d5669](https://github.com/Cap-go/capacitor-social-login/commit/a0d566933f486e0b185e23aee40fe53cf7e1747f))
+* types ([5c6fad7](https://github.com/Cap-go/capacitor-social-login/commit/5c6fad703fdb8a6be4e4ba5bf7eb7593d354804a))
+
 ### [0.0.69](https://github.com/Cap-go/capacitor-social-login/compare/0.0.68...0.0.69) (2024-11-08)
 
 ### [0.0.68](https://github.com/Cap-go/capacitor-social-login/compare/0.0.67...0.0.68) (2024-11-08)
