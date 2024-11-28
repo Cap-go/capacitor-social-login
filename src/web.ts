@@ -56,7 +56,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     super();
     // Set up listener for OAuth redirects if we have a pending OAuth flow
     if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
-      this.handleOAuthRedirect();
+      console.log("OAUTH_STATE_KEY found");
+      const result = this.handleOAuthRedirect();
+      if (result) {
+        window.opener?.postMessage({
+          type: 'oauth-response',
+          ...result.result
+        }, window.location.origin);
+        window.close();
+      }
     }
   }
 
@@ -66,7 +74,6 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (!hash) return;
     console.log("handleOAuthRedirect ok");
 
-
     const params = new URLSearchParams(hash);
     const accessToken = params.get('access_token');
     const idToken = params.get('id_token');
@@ -74,24 +81,25 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (accessToken && idToken) {
       localStorage.removeItem(SocialLoginWeb.OAUTH_STATE_KEY);
       const profile = this.parseJwt(idToken);
-      const result: GoogleLoginResponse = {
-        accessToken: {
-          token: accessToken,
-        },
-        idToken,
-        profile: {
-          email: profile.email || null,
-          familyName: profile.family_name || null,
-          givenName: profile.given_name || null,
-          id: profile.sub || null,
-          name: profile.name || null,
-          imageUrl: profile.picture || null,
-        },
+      return {
+        provider: "google" as const,
+        result: {
+          accessToken: {
+            token: accessToken,
+          },
+          idToken,
+          profile: {
+            email: profile.email || null,
+            familyName: profile.family_name || null,
+            givenName: profile.given_name || null,
+            id: profile.sub || null,
+            name: profile.name || null,
+            imageUrl: profile.picture || null,
+          },
+        }
       };
-      // Emit event for pending promise to resolve
-      console.log("notifyListeners", { provider: "google", result });
-      this.notifyListeners('loginResponse', { provider: "google", result });
     }
+    return null;
   }
 
   async initialize(options: InitializeOptions): Promise<void> {
@@ -458,46 +466,76 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private async fallbackToTraditionalOAuth(
     scopes: string[],
   ): Promise<LoginResult> {
-    return new Promise(() => {
-      // Set up one-time listener for OAuth response
-      // const handleResponse = (response: { provider: string, result: any }) => {
-      //   this.removeListener('oauthResponse', handleResponse);
-      //   resolve(response);
-      // };
-      // this.addListener('oauthResponse', handleResponse);
+    const uniqueScopes = [...new Set([...scopes, "openid"])];
+    
+    const params = new URLSearchParams({
+      client_id: this.googleClientId!,
+      redirect_uri: window.location.href,
+      response_type: 'token id_token',
+      scope: uniqueScopes.join(' '),
+      nonce: Math.random().toString(36).substring(2),
+      include_granted_scopes: 'true',
+      state: 'popup'
+    });
 
-      // Mark OAuth flow as pending
-      localStorage.setItem(SocialLoginWeb.OAUTH_STATE_KEY, 'true');
-      
-      const uniqueScopes = [...new Set([...scopes, "openid"])];
-      
-      // Create form to request access token from Google's OAuth 2.0 server
-      const form = document.createElement('form');
-      form.setAttribute('method', 'GET');
-      form.setAttribute('action', 'https://accounts.google.com/o/oauth2/v2/auth');
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    localStorage.setItem(SocialLoginWeb.OAUTH_STATE_KEY, 'true');
+    const popup = window.open(
+      url,
+      'Google Sign In',
+      `width=${width},height=${height},left=${left},top=${top},popup=1`
+    );
 
-      // Parameters for OAuth 2.0 implicit flow
-      const params = {
-        client_id: this.googleClientId!,
-        redirect_uri: window.location.href,
-        response_type: 'token id_token',
-        scope: uniqueScopes.join(' '),
-        nonce: Math.random().toString(36).substring(2),
-        include_granted_scopes: 'true',
-      };
-
-      // Add form parameters as hidden input values
-      for (const [key, value] of Object.entries(params)) {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'hidden');
-        input.setAttribute('name', key);
-        input.setAttribute('value', value);
-        form.appendChild(input);
+    return new Promise((resolve, reject) => {
+      if (!popup) {
+        reject(new Error('Failed to open popup'));
+        return;
       }
 
-      // Add form to page and submit it
-      document.body.appendChild(form);
-      form.submit();
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data?.type === 'oauth-response') {
+          window.removeEventListener('message', handleMessage);
+          
+          const { accessToken, idToken } = event.data;
+          if (accessToken && idToken) {
+            const profile = this.parseJwt(idToken);
+            resolve({
+              provider: "google" as const,
+              result: {
+                accessToken: {
+                  token: accessToken.token,
+                },
+                idToken,
+                profile: {
+                  email: profile.email || null,
+                  familyName: profile.family_name || null,
+                  givenName: profile.given_name || null,
+                  id: profile.sub || null,
+                  name: profile.name || null,
+                  imageUrl: profile.picture || null,
+                },
+              }
+            });
+          } else {
+            reject(new Error('Login failed'));
+          }
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage);
+        popup.close();
+        reject(new Error('OAuth timeout'));
+      }, 300000);
     });
   }
 }
