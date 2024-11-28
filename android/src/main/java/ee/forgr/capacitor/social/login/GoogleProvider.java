@@ -103,77 +103,40 @@ public class GoogleProvider implements SocialProvider {
       this.scopes = new String[] { "profile", "email" };
     }
 
-    if (config.optBoolean("newUI", false)) {
-      GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
-        new GetSignInWithGoogleOption.Builder(this.clientId);
+    GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
+      new GetSignInWithGoogleOption.Builder(this.clientId);
 
-      if (nonce != null && !nonce.isEmpty()) {
-        googleIdOptionBuilder.setNonce(nonce);
-      }
-
-      GetSignInWithGoogleOption googleIdOptionFiltered =
-        googleIdOptionBuilder.build();
-      GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
-        .addCredentialOption(googleIdOptionFiltered)
-        .build();
-
-      Executor executor = Executors.newSingleThreadExecutor();
-      credentialManager.getCredentialAsync(
-        context,
-        filteredRequest,
-        null,
-        executor,
-        new CredentialManagerCallback<
-          GetCredentialResponse,
-          GetCredentialException
-        >() {
-          @Override
-          public void onResult(GetCredentialResponse result) {
-            handleSignInResult(result, call);
-          }
-
-          @Override
-          public void onError(GetCredentialException e) {
-            handleSignInError(e, call);
-          }
-        }
-      );
-    } else {
-      GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
-        new GetSignInWithGoogleOption.Builder(this.clientId);
-
-      if (nonce != null && !nonce.isEmpty()) {
-        googleIdOptionBuilder.setNonce(nonce);
-      }
-
-      GetSignInWithGoogleOption googleIdOptionFiltered =
-        googleIdOptionBuilder.build();
-      GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
-        .addCredentialOption(googleIdOptionFiltered)
-        .build();
-
-      Executor executor = Executors.newSingleThreadExecutor();
-      credentialManager.getCredentialAsync(
-        context,
-        filteredRequest,
-        null,
-        executor,
-        new CredentialManagerCallback<
-          GetCredentialResponse,
-          GetCredentialException
-        >() {
-          @Override
-          public void onResult(GetCredentialResponse result) {
-            handleSignInResult(result, call);
-          }
-
-          @Override
-          public void onError(GetCredentialException e) {
-            handleSignInError(e, call);
-          }
-        }
-      );
+    if (nonce != null && !nonce.isEmpty()) {
+      googleIdOptionBuilder.setNonce(nonce);
     }
+
+    GetSignInWithGoogleOption googleIdOptionFiltered =
+      googleIdOptionBuilder.build();
+    GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
+      .addCredentialOption(googleIdOptionFiltered)
+      .build();
+
+    Executor executor = Executors.newSingleThreadExecutor();
+    credentialManager.getCredentialAsync(
+      context,
+      filteredRequest,
+      null,
+      executor,
+      new CredentialManagerCallback<
+        GetCredentialResponse,
+        GetCredentialException
+      >() {
+        @Override
+        public void onResult(GetCredentialResponse result) {
+          handleSignInResult(result, call);
+        }
+
+        @Override
+        public void onError(GetCredentialException e) {
+          handleSignInError(e, call);
+        }
+      }
+    );
   }
 
   private void persistState(String idToken) throws JSONException {

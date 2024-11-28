@@ -421,7 +421,6 @@ Refresh the access token
 | **`scopes`**             | <code>string[]</code> | Specifies the scopes required for accessing Google APIs The default is defined in the configuration.                                     |                    |        |
 | **`nonce`**              | <code>string</code>   | Nonce                                                                                                                                    |                    |        |
 | **`grantOfflineAccess`** | <code>boolean</code>  | Set if your application needs to refresh access tokens when the user is not present at the browser. In response use `serverAuthCode` key | <code>false</code> | 0.0.69 |
-| **`newUI`**              | <code>boolean</code>  | New UI                                                                                                                                   | <code>false</code> | 0.1.0  |
 
 
 #### AppleProviderOptions

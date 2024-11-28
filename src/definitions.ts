@@ -85,13 +85,6 @@ export interface GoogleLoginOptions {
    * @since 0.0.69
    * */
   grantOfflineAccess?: boolean;
-  /**
-   * New UI
-   * @description use new UI for Google login
-   * @default false
-   * @since 0.1.0
-   */
-  newUI?: boolean;
 }
 
 export interface GoogleLoginResponse {
