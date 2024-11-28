@@ -12,6 +12,7 @@ import type {
   AuthorizationCodeOptions,
   FacebookLoginOptions,
   FacebookLoginResponse,
+  GoogleLoginOptions,
 } from "./definitions";
 
 // Add this declaration at the top of the file
@@ -210,7 +211,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
-  private async loginWithGoogle(options: any): Promise<LoginResult> {
+  private async loginWithGoogle(options: GoogleLoginOptions): Promise<LoginResult> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
