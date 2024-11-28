@@ -2,6 +2,7 @@ import Foundation
 import AuthenticationServices
 import Alamofire
 import UIKit
+import Security
 
 struct AppleProviderResponse: Codable {
     let accessToken: AccessTokenApple?
@@ -237,47 +238,69 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             let fullName = appleIDCredential.fullName
             let email = appleIDCredential.email
 
-            // Create proper access token
+            // If we get a name, save it
+            if fullName?.givenName != nil || fullName?.familyName != nil {
+                persistName(userId: userIdentifier, givenName: fullName?.givenName, familyName: fullName?.familyName)
+            }
+            
+            // Use saved name as fallback
+            let savedName = retrieveName(userId: userIdentifier)
+            let finalGivenName = fullName?.givenName ?? savedName?.givenName
+            let finalFamilyName = fullName?.familyName ?? savedName?.familyName
+            
+            // Create proper access token and decode JWT
+            let tokenString = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
             let accessToken = AccessTokenApple(
-                token: String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? "",
-                expiresIn: 3600, // Default 1 hour
-                refreshToken: nil // Apple doesn't provide refresh token directly
+                token: tokenString,
+                expiresIn: 3600,
+                refreshToken: nil
             )
 
-            retrieveUserInfo { savedUserInfo in
-                let response = AppleProviderResponse(
-                    accessToken: accessToken,
-                    profile: AppleProfile(
-                        user: userIdentifier,
-                        email: email ?? savedUserInfo?.profile.email,
-                        givenName: fullName?.givenName ?? savedUserInfo?.profile.givenName,
-                        familyName: fullName?.familyName ?? savedUserInfo?.profile.familyName
-                    ),
-                    idToken: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
-                )
+            // Decode JWT to get email
+            var decodedEmail = email
+            if let jwt = tokenString.split(separator: ".").dropFirst().first {
+                let remainder = jwt.count % 4
+                var base64String = String(jwt)
+                if remainder > 0 {
+                    base64String += String(repeating: "=", count: 4 - remainder)
+                }
+                
+                if let decodedData = Data(base64Encoded: base64String, options: []),
+                   let payload = try? JSONSerialization.jsonObject(with: decodedData, options: []) as? [String: Any] {
+                    print("payload", payload)
+                    decodedEmail = payload["email"] as? String ?? email
+                }
+            }
 
-                // Persist user info
-                self.persistUserInfo(userInfo: response)
+            let response = AppleProviderResponse(
+                accessToken: accessToken,
+                profile: AppleProfile(
+                    user: userIdentifier,
+                    email: decodedEmail,
+                    givenName: finalGivenName,
+                    familyName: finalFamilyName
+                ),
+                idToken: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
+            )
 
-                if !self.redirectUrl.isEmpty {
-                    let firstName = fullName?.givenName ?? ""
-                    let lastName = fullName?.familyName ?? ""
+            if !self.redirectUrl.isEmpty {
+                let firstName = fullName?.givenName ?? ""
+                let lastName = fullName?.familyName ?? ""
 
-                    self.sendRequest(code: response.accessToken?.token ?? "", identityToken: response.idToken ?? "", email: email ?? "", firstName: firstName, lastName: lastName, completion: { result in
-                        switch result {
-                        case .success(let appleResponse):
-                            self.completion?(.success(appleResponse))
-                        case .failure(let error):
-                            self.completion?(.failure(error))
-                        }
-                    }, skipUser: fullName?.givenName == nil)
-                } else {
-                    do {
-                        try self.persistState(idToken: response.idToken ?? "", refreshToken: "", accessToken: "")
-                        self.completion?(.success(response))
-                    } catch {
-                        self.completion?(.failure(AppleProviderError.specificJsonWritingError(error)))
+                self.sendRequest(code: response.accessToken?.token ?? "", identityToken: response.idToken ?? "", email: decodedEmail ?? "", firstName: firstName, lastName: lastName, completion: { result in
+                    switch result {
+                    case .success(let appleResponse):
+                        self.completion?(.success(appleResponse))
+                    case .failure(let error):
+                        self.completion?(.failure(error))
                     }
+                }, skipUser: fullName?.givenName == nil)
+            } else {
+                do {
+                    try self.persistState(idToken: response.idToken ?? "", refreshToken: "", accessToken: "")
+                    self.completion?(.success(response))
+                } catch {
+                    self.completion?(.failure(AppleProviderError.specificJsonWritingError(error)))
                 }
             }
         }
@@ -555,24 +578,22 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         return UIApplication.shared.windows.first!
     }
 
-    func persistUserInfo(userInfo: AppleProviderResponse) {
-        let encoder = JSONEncoder()
-        if let encoded = try? encoder.encode(userInfo) {
-            UserDefaults.standard.set(encoded, forKey: USER_INFO_KEY)
-            print("Successfully saved user info locally")
-        }
+    private func persistName(userId: String, givenName: String?, familyName: String?) {
+        if givenName == nil && familyName == nil { return }
+        
+        var names = UserDefaults.standard.dictionary(forKey: USER_INFO_KEY) as? [String: [String: String]] ?? [:]
+        names[userId] = [
+            "givenName": givenName ?? "",
+            "familyName": familyName ?? ""
+        ]
+        UserDefaults.standard.set(names, forKey: USER_INFO_KEY)
     }
 
-    func retrieveUserInfo(completion: @escaping (AppleProviderResponse?) -> Void) {
-        if let savedUserInfo = UserDefaults.standard.object(forKey: USER_INFO_KEY) as? Data {
-            let decoder = JSONDecoder()
-            if let loadedUserInfo = try? decoder.decode(AppleProviderResponse.self, from: savedUserInfo) {
-                completion(loadedUserInfo)
-            } else {
-                completion(nil)
-            }
-        } else {
-            completion(nil)
+    private func retrieveName(userId: String) -> (givenName: String?, familyName: String?)? {
+        guard let names = UserDefaults.standard.dictionary(forKey: USER_INFO_KEY) as? [String: [String: String]],
+              let userNames = names[userId] else {
+            return nil
         }
+        return (userNames["givenName"], userNames["familyName"])
     }
 }
