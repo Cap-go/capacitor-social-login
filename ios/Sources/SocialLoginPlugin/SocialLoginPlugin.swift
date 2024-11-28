@@ -190,7 +190,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-
     @objc func refresh(_ call: CAPPluginCall) {
         guard let provider = call.getString("provider") else {
             call.reject("Missing provider")
@@ -267,24 +266,24 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             if let appleResponse = response as? AppleProviderResponse {
                 let accessTokenObject = appleResponse.accessToken.map { accessToken in
                     [
-                        "token": accessToken.token,
+                        "token": accessToken.token
                         // Add other AccessToken fields if needed
                     ]
                 }
-                
+
                 let profileObject: [String: Any] = [
                     "user": appleResponse.profile.user,
                     "email": appleResponse.profile.email ?? "",
                     "givenName": appleResponse.profile.givenName ?? "",
                     "familyName": appleResponse.profile.familyName ?? ""
                 ]
-                
+
                 let appleResult: [String: Any] = [
                     "accessToken": accessTokenObject ?? NSNull(),
                     "profile": profileObject,
-                    "idToken": appleResponse.idToken ?? "",
+                    "idToken": appleResponse.idToken ?? ""
                 ]
-                
+
                 call.resolve([
                     "provider": "apple",
                     "result": appleResult

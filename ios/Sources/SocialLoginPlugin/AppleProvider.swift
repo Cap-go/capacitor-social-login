@@ -20,7 +20,7 @@ struct AccessTokenApple: Codable {
     let token: String
     let expiresIn: Int?
     let refreshToken: String?
-    
+
     init(token: String, expiresIn: Int? = nil, refreshToken: String? = nil) {
         self.token = token
         self.expiresIn = expiresIn
@@ -190,11 +190,15 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
         let appleIDProvider = ASAuthorizationAppleIDProvider()
         let request = appleIDProvider.createRequest()
-        
+
         if let scopes = payload["scopes"] as? [ASAuthorization.Scope] {
             request.requestedScopes = scopes
         } else {
             request.requestedScopes = [.fullName, .email]
+        }
+
+        if let nonce = payload["nonce"] as? String {
+            request.nonce = nonce;
         }
 
         let authorizationController = ASAuthorizationController(authorizationRequests: [request])

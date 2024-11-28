@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-social-login",
-  "version": "0.0.68-alpha.8",
+  "version": "0.0.69-alpha.8",
   "description": "All social logins in one plugin",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -57,12 +57,10 @@
     "@ionic/prettier-config": "^4.0.0",
     "@ionic/swiftlint-config": "^2.0.0",
     "@types/node": "^20.12.12",
-    "@typescript-eslint/eslint-plugin": "^8.11.0",
-    "@typescript-eslint/parser": "^8.11.0",
     "eslint": "^8.57.1",
-    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-import": "^2.29.1",
     "prettier": "^3.3.3",
-    "prettier-plugin-java": "^2.6.4",
+    "prettier-plugin-java": "^2.6.5",
     "rimraf": "^6.0.1",
     "rollup": "^4.24.0",
     "swiftlint": "^2.0.0",
@@ -73,6 +71,7 @@
     "@capacitor/core": "^6.0.0"
   },
   "prettier": "@ionic/prettier-config",
+  "swiftlint": "@ionic/swiftlint-config",
   "eslintConfig": {
     "extends": "@ionic/eslint-config/recommended"
   },

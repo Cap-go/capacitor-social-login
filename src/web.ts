@@ -334,7 +334,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       }
 
       // Extract the 'expires_in' field
-      let expiresInStr = jsonObject["expires_in"];
+      const expiresInStr = jsonObject["expires_in"];
 
       if (expiresInStr === undefined || expiresInStr === null) {
         console.error(

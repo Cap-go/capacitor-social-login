@@ -85,9 +85,16 @@ export interface GoogleLoginOptions {
    * Set if your application requires to force the refreshToken [Android only]
    *
    * @default false
-   * @since 3.1.0
+   * @since 0.0.69
    * */
   forceRefreshToken?: boolean;
+  /**
+   * New UI
+   * @description use new UI for Google login
+   * @default false
+   * @since 0.1.0
+   */
+  newUI?: boolean;
 }
 
 export interface GoogleLoginOnlineResponse {

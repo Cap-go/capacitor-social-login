@@ -52,7 +52,7 @@ async function loginApple() {
     options: {}
   })
   // token = the JWT returned by Apple
-  const token = res.result.identityToken
+  const token = res.result.idToken
   // Send the token to your backend.... 
 }
 ```
@@ -257,7 +257,7 @@ As you saw in the diagram, the backend performs a step called `Redirect back to 
 
 #### Backend configuration
 
-A backend is required for Android, but configuring a backend will also imact IOS. An example backend is provided [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/main/index.ts)
+A backend is required for Android, but configuring a backend will also impact IOS. An example backend is provided [here](https://github.com/WcaleNieWolny/capgo-social-login-backend-demo/blob/main/index.ts)
 
 This example provides the following:
 
@@ -274,7 +274,7 @@ Given everything that I said in this tutorial, here is how the `env` section wou
 ANDROID_SERVICE_ID = Service ID
 IOS_SERVICE_ID = App ID
 
-```json
+```js
 env: {
   PRIVATE_KEY_FILE: "AuthKey_U93M8LBQK3.p8",
   KEY_ID: "U93M8LBQK3",
@@ -284,7 +284,7 @@ env: {
   PORT: 3000,
   REDIRECT_URI: "https://xyz.wcaleniewolny.me/login/callback",
   BASE_REDIRECT_URL: "capgo-demo-app://path"
- }
+}
 ```
 
 #### Using the plugin
