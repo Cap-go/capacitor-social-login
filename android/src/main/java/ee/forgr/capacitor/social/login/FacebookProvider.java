@@ -211,39 +211,42 @@ public class FacebookProvider implements SocialProvider {
   }
 
   private JSObject createProfileObject(AccessToken accessToken) {
-    JSObject profileObject = new JSObject();
-    GraphRequest request = GraphRequest.newMeRequest(
-      accessToken,
-      new GraphRequest.GraphJSONObjectCallback() {
-        @Override
-        public void onCompleted(JSONObject object, GraphResponse response) {
-          if (response.getError() != null) {
-            Log.e(
-              LOG_TAG,
-              "Error fetching profile",
-              response.getError().getException()
-            );
-          } else {
-            profileObject.put("userID", object.optString("id", ""));
-            profileObject.put("email", object.optString("email", ""));
-            profileObject.put("name", object.optString("name", ""));
+        JSObject profileObject = new JSObject();
+        CountDownLatch latch = new CountDownLatch(1);
 
-            JSONObject pictureObject = object.optJSONObject("picture");
-            if (pictureObject != null) {
-              JSONObject dataObject = pictureObject.optJSONObject("data");
-              if (dataObject != null) {
-                profileObject.put("imageURL", dataObject.optString("url", ""));
-              }
+        GraphRequest request = GraphRequest.newMeRequest(accessToken, (object, response) -> {
+            if (response.getError() != null) {
+                Log.e(LOG_TAG, "Error fetching profile", response.getError().getException());
+            } else {
+                profileObject.put("userID", object.optString("id", ""));
+                profileObject.put("email", object.optString("email", ""));
+                profileObject.put("name", object.optString("name", ""));
+
+                JSONObject pictureObject = object.optJSONObject("picture");
+                if (pictureObject != null) {
+                    JSONObject dataObject = pictureObject.optJSONObject("data");
+                    if (dataObject != null) {
+                        profileObject.put("imageURL", dataObject.optString("url", ""));
+                    }
+                }
             }
-            // Add other fields as needed
-          }
+            latch.countDown();
+        });
+
+        Bundle parameters = new Bundle();
+        parameters.putString("fields", "id,name,email,picture.type(large)");
+        request.setParameters(parameters);
+
+        new Thread(() -> {
+            request.executeAndWait();
+        }).start();
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Log.e(LOG_TAG, "Interrupted while waiting for profile fetch", e);
         }
-      }
-    );
-    Bundle parameters = new Bundle();
-    parameters.putString("fields", "id,name,email,picture.type(large)");
-    request.setParameters(parameters);
-    request.executeAndWait();
-    return profileObject;
-  }
+
+        return profileObject;
+    }
 }
