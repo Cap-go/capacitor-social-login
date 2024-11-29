@@ -13,6 +13,7 @@ import type {
   FacebookLoginOptions,
   FacebookLoginResponse,
   GoogleLoginOptions,
+  ProviderResponseMap,
 } from "./definitions";
 
 declare const AppleID: any;
@@ -41,6 +42,8 @@ declare const FB: {
 };
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
+  private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
+  
   private googleClientId: string | null = null;
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
@@ -49,6 +52,56 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
   private facebookAppId: string | null = null;
   private facebookScriptLoaded = false;
+
+  constructor() {
+    super();
+    // Set up listener for OAuth redirects if we have a pending OAuth flow
+    if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
+      console.log("OAUTH_STATE_KEY found");
+      const result = this.handleOAuthRedirect();
+      if (result) {
+        window.opener?.postMessage({
+          type: 'oauth-response',
+          ...result.result
+        }, window.location.origin);
+        window.close();
+      }
+    }
+  }
+
+  private handleOAuthRedirect() {
+    const hash = window.location.hash.substring(1);
+    console.log("handleOAuthRedirect", window.location.hash);
+    if (!hash) return;
+    console.log("handleOAuthRedirect ok");
+
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const idToken = params.get('id_token');
+    
+    if (accessToken && idToken) {
+      localStorage.removeItem(SocialLoginWeb.OAUTH_STATE_KEY);
+      const profile = this.parseJwt(idToken);
+      return {
+        provider: "google" as const,
+        result: {
+          accessToken: {
+            token: accessToken,
+          },
+          idToken,
+          profile: {
+            email: profile.email || null,
+            familyName: profile.family_name || null,
+            givenName: profile.given_name || null,
+            id: profile.sub || null,
+            name: profile.name || null,
+            imageUrl: profile.picture || null,
+          },
+        }
+      };
+    }
+    return null;
+  }
 
   async initialize(options: InitializeOptions): Promise<void> {
     if (options.google?.webClientId) {
@@ -72,16 +125,19 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     // Implement initialization for other providers if needed
   }
 
-  async login(options: LoginOptions): Promise<LoginResult> {
-    if (options.provider === "google") {
-      return this.loginWithGoogle(options.options);
-    } else if (options.provider === "apple") {
-      return this.loginWithApple(options.options);
-    } else if (options.provider === "facebook") {
-      return this.loginWithFacebook(options.options as FacebookLoginOptions);
+  async login<T extends LoginOptions['provider']>(
+    options: Extract<LoginOptions, { provider: T }>
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+    switch (options.provider) {
+      case 'google':
+        return this.loginWithGoogle(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      case 'apple':
+        return this.loginWithApple(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      case 'facebook':
+        return this.loginWithFacebook(options.options as FacebookLoginOptions) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      default:
+        throw new Error(`Login for ${options.provider} is not implemented on web`);
     }
-    // Implement login for other providers
-    throw new Error(`Login for ${options.provider} is not implemented on web`);
   }
 
   async logout(options: {
@@ -183,13 +239,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         await this.loginWithFacebook(options.options as FacebookLoginOptions);
         break;
       default:
-        throw new Error(`Refresh for ${options.provider} is not implemented`);
+        throw new Error(`Refresh for ${(options as any).provider} is not implemented`);
     }
   }
 
-  private async loginWithGoogle(
-    options: GoogleLoginOptions,
-  ): Promise<LoginResult> {
+  private loginWithGoogle<T extends "google">(
+    options: GoogleLoginOptions
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
@@ -223,7 +279,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                 imageUrl: payload.picture || null,
               },
             };
-            resolve({ provider: "google", result });
+            resolve({ provider: "google" as T, result });
           }
         },
         auto_select: true,
@@ -233,7 +289,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           console.log("OneTap is not displayed or skipped");
           // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth(scopes).then(resolve).catch(reject);
+          this.fallbackToTraditionalOAuth(scopes).then((r) => resolve({ provider: "google" as T, result: r.result })).catch(reject);
         } else {
           console.log("OneTap is displayed");
         }
@@ -411,48 +467,79 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     });
   }
 
-  private async fallbackToTraditionalOAuth(
+  private async fallbackToTraditionalOAuth<T extends "google">(
     scopes: string[],
-  ): Promise<LoginResult> {
-    return new Promise((resolve, reject) => {
-      const uniqueScopes = [...new Set([...scopes, "openid"])];
-      const auth2 = google.accounts.oauth2.initTokenClient({
-        client_id: this.googleClientId!,
-        scope: uniqueScopes.join(" "),
-        callback: async (response) => {
-          if (response.error) {
-            reject(response.error);
-          } else {
-            // Get ID token from userinfo endpoint
-            const userInfoResponse = await fetch(
-              "https://www.googleapis.com/oauth2/v3/userinfo",
-              {
-                headers: {
-                  Authorization: `Bearer ${response.access_token}`,
-                },
-              },
-            );
-            const userData = await userInfoResponse.json();
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+    const uniqueScopes = [...new Set([...scopes, "openid"])];
+    
+    const params = new URLSearchParams({
+      client_id: this.googleClientId!,
+      redirect_uri: window.location.href,
+      response_type: 'token id_token',
+      scope: uniqueScopes.join(' '),
+      nonce: Math.random().toString(36).substring(2),
+      include_granted_scopes: 'true',
+      state: 'popup'
+    });
 
-            const result: GoogleLoginResponse = {
-              accessToken: {
-                token: response.access_token,
-              },
-              idToken: userData.sub, // Using sub as ID token
-              profile: {
-                email: userData.email || null,
-                familyName: userData.family_name || null,
-                givenName: userData.given_name || null,
-                id: userData.sub || null,
-                name: userData.name || null,
-                imageUrl: userData.picture || null,
-              },
-            };
-            resolve({ provider: "google", result });
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    localStorage.setItem(SocialLoginWeb.OAUTH_STATE_KEY, 'true');
+    const popup = window.open(
+      url,
+      'Google Sign In',
+      `width=${width},height=${height},left=${left},top=${top},popup=1`
+    );
+
+    return new Promise((resolve, reject) => {
+      if (!popup) {
+        reject(new Error('Failed to open popup'));
+        return;
+      }
+
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data?.type === 'oauth-response') {
+          window.removeEventListener('message', handleMessage);
+          
+          const { accessToken, idToken } = event.data;
+          if (accessToken && idToken) {
+            const profile = this.parseJwt(idToken);
+            resolve({
+              provider: "google" as T,
+              result: {
+                accessToken: {
+                  token: accessToken.token,
+                },
+                idToken,
+                profile: {
+                  email: profile.email || null,
+                  familyName: profile.family_name || null,
+                  givenName: profile.given_name || null,
+                  id: profile.sub || null,
+                  name: profile.name || null,
+                  imageUrl: profile.picture || null,
+                },
+              }
+            });
+          } else {
+            reject(new Error('Login failed'));
           }
-        },
-      });
-      auth2.requestAccessToken();
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      // Timeout after 5 minutes
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage);
+        popup.close();
+        reject(new Error('OAuth timeout'));
+      }, 300000);
     });
   }
 }

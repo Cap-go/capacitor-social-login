@@ -131,31 +131,33 @@ export interface AppleProviderResponse {
   };
 }
 
-export interface LoginOptions {
-  /**
-   * Provider
-   * @description select provider to login with
-   */
-  provider: "facebook" | "google" | "apple" | "twitter";
-  /**
-   * Options
-   * @description payload to login with
-   */
-  options: FacebookLoginOptions | GoogleLoginOptions | AppleProviderOptions;
-}
+export type LoginOptions =
+  | {
+      provider: 'facebook';
+      options: FacebookLoginOptions;
+    }
+  | {
+      provider: 'google';
+      options: GoogleLoginOptions;
+    }
+  | {
+      provider: 'apple';
+      options: AppleProviderOptions;
+    };
 
-export interface LoginResult {
-  /**
-   * Provider
-   * @description select provider to login with
-   */
-  provider: "facebook" | "google" | "apple" | "twitter";
-  /**
-   * Payload
-   * @description payload to login with
-   */
-  result: FacebookLoginResponse | GoogleLoginResponse | AppleProviderResponse;
-}
+export type LoginResult =
+  | {
+      provider: 'facebook';
+      result: FacebookLoginResponse;
+    }
+  | {
+      provider: 'google';
+      result: GoogleLoginResponse;
+    }
+  | {
+      provider: 'apple';
+      result: AppleProviderResponse;
+    };
 
 export interface AccessToken {
   applicationId?: string;
@@ -211,6 +213,13 @@ export interface isLoggedInOptions {
   provider: "apple" | "google" | "facebook";
 }
 
+// Add a helper type to map providers to their response types
+export type ProviderResponseMap = {
+  facebook: FacebookLoginResponse;
+  google: GoogleLoginResponse;
+  apple: AppleProviderResponse;
+};
+
 export interface SocialLoginPlugin {
   /**
    * Initialize the plugin
@@ -221,7 +230,9 @@ export interface SocialLoginPlugin {
    * Login with the selected provider
    * @description login with the selected provider
    */
-  login(options: LoginOptions): Promise<LoginResult>;
+  login<T extends LoginOptions['provider']>(
+    options: Extract<LoginOptions, { provider: T }>
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }>;
   /**
    * Logout
    * @description logout the user
