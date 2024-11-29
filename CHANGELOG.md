@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.74](https://github.com/Cap-go/capacitor-social-login/compare/0.0.73...0.0.74) (2024-11-29)
+
+
+### Bug Fixes
+
+* definitions ([ea721f1](https://github.com/Cap-go/capacitor-social-login/commit/ea721f17c865173100713e73d21198b9117e98cd))
+* idtoken issue ([3b227a7](https://github.com/Cap-go/capacitor-social-login/commit/3b227a79721b057f1da399a7c432f5261de54217))
+* remove listeners ([ece35e1](https://github.com/Cap-go/capacitor-social-login/commit/ece35e1a564537e8a8e7fd03fb229dc24399f09f))
+
 ### [0.0.73](https://github.com/Cap-go/capacitor-social-login/compare/0.0.72...0.0.73) (2024-11-29)
 
 ### [0.0.72](https://github.com/Cap-go/capacitor-social-login/compare/0.0.71...0.0.72) (2024-11-28)
