@@ -11,7 +11,6 @@ import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.FacebookSdk;
 import com.facebook.GraphRequest;
-import com.facebook.GraphResponse;
 import com.facebook.login.LoginBehavior;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
@@ -21,6 +20,7 @@ import com.getcapacitor.PluginCall;
 import ee.forgr.capacitor.social.login.helpers.JsonHelper;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.Collection;
+import java.util.concurrent.CountDownLatch;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -211,42 +211,49 @@ public class FacebookProvider implements SocialProvider {
   }
 
   private JSObject createProfileObject(AccessToken accessToken) {
-        JSObject profileObject = new JSObject();
-        CountDownLatch latch = new CountDownLatch(1);
+    JSObject profileObject = new JSObject();
+    CountDownLatch latch = new CountDownLatch(1);
 
-        GraphRequest request = GraphRequest.newMeRequest(accessToken, (object, response) -> {
-            if (response.getError() != null) {
-                Log.e(LOG_TAG, "Error fetching profile", response.getError().getException());
-            } else {
-                profileObject.put("userID", object.optString("id", ""));
-                profileObject.put("email", object.optString("email", ""));
-                profileObject.put("name", object.optString("name", ""));
+    GraphRequest request = GraphRequest.newMeRequest(
+      accessToken,
+      (object, response) -> {
+        if (response.getError() != null) {
+          Log.e(
+            LOG_TAG,
+            "Error fetching profile",
+            response.getError().getException()
+          );
+        } else {
+          profileObject.put("userID", object.optString("id", ""));
+          profileObject.put("email", object.optString("email", ""));
+          profileObject.put("name", object.optString("name", ""));
 
-                JSONObject pictureObject = object.optJSONObject("picture");
-                if (pictureObject != null) {
-                    JSONObject dataObject = pictureObject.optJSONObject("data");
-                    if (dataObject != null) {
-                        profileObject.put("imageURL", dataObject.optString("url", ""));
-                    }
-                }
+          JSONObject pictureObject = object.optJSONObject("picture");
+          if (pictureObject != null) {
+            JSONObject dataObject = pictureObject.optJSONObject("data");
+            if (dataObject != null) {
+              profileObject.put("imageURL", dataObject.optString("url", ""));
             }
-            latch.countDown();
-        });
-
-        Bundle parameters = new Bundle();
-        parameters.putString("fields", "id,name,email,picture.type(large)");
-        request.setParameters(parameters);
-
-        new Thread(() -> {
-            request.executeAndWait();
-        }).start();
-
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Log.e(LOG_TAG, "Interrupted while waiting for profile fetch", e);
+          }
         }
+        latch.countDown();
+      }
+    );
 
-        return profileObject;
+    Bundle parameters = new Bundle();
+    parameters.putString("fields", "id,name,email,picture.type(large)");
+    request.setParameters(parameters);
+
+    new Thread(() -> {
+      request.executeAndWait();
+    }).start();
+
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      Log.e(LOG_TAG, "Interrupted while waiting for profile fetch", e);
     }
+
+    return profileObject;
+  }
 }

@@ -93,6 +93,18 @@ public class GoogleProvider implements SocialProvider {
 
     // Extract scopes from the config
     JSONArray scopesArray = config.optJSONArray("scopes");
+    boolean grantOfflineAccess = config.optBoolean("grantOfflineAccess", false);
+    if (grantOfflineAccess) {
+      scopesArray.put("offline_access");
+    }
+    // Remove duplicates from scopes array
+    if (scopesArray != null) {
+        Set<String> uniqueScopes = new HashSet<>();
+        for (int i = 0; i < scopesArray.length(); i++) {
+            uniqueScopes.add(scopesArray.optString(i));
+        }
+        scopesArray = new JSONArray(uniqueScopes);
+    }
     if (scopesArray != null) {
       this.scopes = new String[scopesArray.length()];
       for (int i = 0; i < scopesArray.length(); i++) {

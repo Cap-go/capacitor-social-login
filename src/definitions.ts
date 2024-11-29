@@ -78,7 +78,7 @@ export interface GoogleLoginOptions {
    */
   nonce?: string;
   /**
-   * Set if your application needs to refresh access tokens when the user is not present at the browser.
+   * Set if your application needs to refresh access tokens when the user is not present at the browser. it will add offline_access to the scopes
    * In response use `serverAuthCode` key
    *
    * @default false
@@ -133,29 +133,29 @@ export interface AppleProviderResponse {
 
 export type LoginOptions =
   | {
-      provider: 'facebook';
+      provider: "facebook";
       options: FacebookLoginOptions;
     }
   | {
-      provider: 'google';
+      provider: "google";
       options: GoogleLoginOptions;
     }
   | {
-      provider: 'apple';
+      provider: "apple";
       options: AppleProviderOptions;
     };
 
 export type LoginResult =
   | {
-      provider: 'facebook';
+      provider: "facebook";
       result: FacebookLoginResponse;
     }
   | {
-      provider: 'google';
+      provider: "google";
       result: GoogleLoginResponse;
     }
   | {
-      provider: 'apple';
+      provider: "apple";
       result: AppleProviderResponse;
     };
 
@@ -230,8 +230,8 @@ export interface SocialLoginPlugin {
    * Login with the selected provider
    * @description login with the selected provider
    */
-  login<T extends LoginOptions['provider']>(
-    options: Extract<LoginOptions, { provider: T }>
+  login<T extends LoginOptions["provider"]>(
+    options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }>;
   /**
    * Logout

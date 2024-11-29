@@ -42,8 +42,8 @@ declare const FB: {
 };
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
-  private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
-  
+  private static readonly OAUTH_STATE_KEY = "social_login_oauth_pending";
+
   private googleClientId: string | null = null;
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
@@ -60,10 +60,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       console.log("OAUTH_STATE_KEY found");
       const result = this.handleOAuthRedirect();
       if (result) {
-        window.opener?.postMessage({
-          type: 'oauth-response',
-          ...result.result
-        }, window.location.origin);
+        window.opener?.postMessage(
+          {
+            type: "oauth-response",
+            ...result.result,
+          },
+          window.location.origin,
+        );
         window.close();
       }
     }
@@ -76,9 +79,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     console.log("handleOAuthRedirect ok");
 
     const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-    const idToken = params.get('id_token');
-    
+    const accessToken = params.get("access_token");
+    const idToken = params.get("id_token");
+
     if (accessToken && idToken) {
       localStorage.removeItem(SocialLoginWeb.OAUTH_STATE_KEY);
       const profile = this.parseJwt(idToken);
@@ -97,7 +100,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             name: profile.name || null,
             imageUrl: profile.picture || null,
           },
-        }
+        },
       };
     }
     return null;
@@ -125,18 +128,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     // Implement initialization for other providers if needed
   }
 
-  async login<T extends LoginOptions['provider']>(
-    options: Extract<LoginOptions, { provider: T }>
+  async login<T extends LoginOptions["provider"]>(
+    options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     switch (options.provider) {
-      case 'google':
-        return this.loginWithGoogle(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
-      case 'apple':
-        return this.loginWithApple(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
-      case 'facebook':
-        return this.loginWithFacebook(options.options as FacebookLoginOptions) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      case "google":
+        return this.loginWithGoogle(options.options) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
+      case "apple":
+        return this.loginWithApple(options.options) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
+      case "facebook":
+        return this.loginWithFacebook(
+          options.options as FacebookLoginOptions,
+        ) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
       default:
-        throw new Error(`Login for ${options.provider} is not implemented on web`);
+        throw new Error(
+          `Login for ${options.provider} is not implemented on web`,
+        );
     }
   }
 
@@ -239,12 +252,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         await this.loginWithFacebook(options.options as FacebookLoginOptions);
         break;
       default:
-        throw new Error(`Refresh for ${(options as any).provider} is not implemented`);
+        throw new Error(
+          `Refresh for ${(options as any).provider} is not implemented`,
+        );
     }
   }
 
   private loginWithGoogle<T extends "google">(
-    options: GoogleLoginOptions
+    options: GoogleLoginOptions,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
@@ -289,7 +304,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           console.log("OneTap is not displayed or skipped");
           // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth(scopes).then((r) => resolve({ provider: "google" as T, result: r.result })).catch(reject);
+          this.fallbackToTraditionalOAuth(scopes)
+            .then((r) => resolve({ provider: "google" as T, result: r.result }))
+            .catch(reject);
         } else {
           console.log("OneTap is displayed");
         }
@@ -471,15 +488,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     scopes: string[],
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const uniqueScopes = [...new Set([...scopes, "openid"])];
-    
+
     const params = new URLSearchParams({
       client_id: this.googleClientId!,
       redirect_uri: window.location.href,
-      response_type: 'token id_token',
-      scope: uniqueScopes.join(' '),
+      response_type: "token id_token",
+      scope: uniqueScopes.join(" "),
       nonce: Math.random().toString(36).substring(2),
-      include_granted_scopes: 'true',
-      state: 'popup'
+      include_granted_scopes: "true",
+      state: "popup",
     });
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -487,25 +504,25 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     const height = 600;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
-    localStorage.setItem(SocialLoginWeb.OAUTH_STATE_KEY, 'true');
+    localStorage.setItem(SocialLoginWeb.OAUTH_STATE_KEY, "true");
     const popup = window.open(
       url,
-      'Google Sign In',
-      `width=${width},height=${height},left=${left},top=${top},popup=1`
+      "Google Sign In",
+      `width=${width},height=${height},left=${left},top=${top},popup=1`,
     );
 
     return new Promise((resolve, reject) => {
       if (!popup) {
-        reject(new Error('Failed to open popup'));
+        reject(new Error("Failed to open popup"));
         return;
       }
 
       const handleMessage = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return;
-        
-        if (event.data?.type === 'oauth-response') {
-          window.removeEventListener('message', handleMessage);
-          
+
+        if (event.data?.type === "oauth-response") {
+          window.removeEventListener("message", handleMessage);
+
           const { accessToken, idToken } = event.data;
           if (accessToken && idToken) {
             const profile = this.parseJwt(idToken);
@@ -524,21 +541,21 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                   name: profile.name || null,
                   imageUrl: profile.picture || null,
                 },
-              }
+              },
             });
           } else {
-            reject(new Error('Login failed'));
+            reject(new Error("Login failed"));
           }
         }
       };
 
-      window.addEventListener('message', handleMessage);
+      window.addEventListener("message", handleMessage);
 
       // Timeout after 5 minutes
       setTimeout(() => {
-        window.removeEventListener('message', handleMessage);
+        window.removeEventListener("message", handleMessage);
         popup.close();
-        reject(new Error('OAuth timeout'));
+        reject(new Error("OAuth timeout"));
       }, 300000);
     });
   }

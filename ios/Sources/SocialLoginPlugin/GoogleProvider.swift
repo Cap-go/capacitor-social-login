@@ -26,38 +26,26 @@ class GoogleProvider {
                 }
 
                 let shouldGrantOfflineAccess = payload["grantOfflineAccess"] as? Bool ?? false
-
+                var scopes = payload["scopes"] as? [String] ?? self.defaultGrantedScopes
                 if shouldGrantOfflineAccess {
-                    GIDSignIn.sharedInstance.signIn(
-                        withPresenting: presentingVc,
-                        hint: nil,
-                        additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes
-                    ) { result, error in
-                        if let error = error {
-                            completion(.failure(error))
-                            return
-                        }
-                        guard let result = result else {
-                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
-                            return
-                        }
-                        completion(.success(self.createLoginResponse(user: result.user)))
-                    }
-                } else {
-                    GIDSignIn.sharedInstance.signIn(
-                        withPresenting: presentingVc
-                    ) { result, error in
-                        if let error = error {
-                            completion(.failure(error))
-                            return
-                        }
-                        guard let result = result else {
-                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
-                            return
-                        }
-                        completion(.success(self.createLoginResponse(user: result.user)))
-                    }
+                    scopes = Array(Set(scopes + ["offline_access"]))
                 }
+
+                GIDSignIn.sharedInstance.signIn(
+                    withPresenting: presentingVc,
+                    hint: nil,
+                    additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes
+                ) { result, error in
+                    if let error = error {
+                        completion(.failure(error))
+                        return
+                    }
+                    guard let result = result else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
+                        return
+                    }
+                    completion(.success(self.createLoginResponse(user: result.user)))
+                } 
             }
 
             if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
