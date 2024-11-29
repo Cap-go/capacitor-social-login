@@ -13,6 +13,7 @@ import type {
   FacebookLoginOptions,
   FacebookLoginResponse,
   GoogleLoginOptions,
+  ProviderResponseMap,
 } from "./definitions";
 
 declare const AppleID: any;
@@ -124,16 +125,19 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     // Implement initialization for other providers if needed
   }
 
-  async login(options: LoginOptions): Promise<LoginResult> {
-    if (options.provider === "google") {
-      return this.loginWithGoogle(options.options);
-    } else if (options.provider === "apple") {
-      return this.loginWithApple(options.options);
-    } else if (options.provider === "facebook") {
-      return this.loginWithFacebook(options.options as FacebookLoginOptions);
+  async login<T extends LoginOptions['provider']>(
+    options: Extract<LoginOptions, { provider: T }>
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+    switch (options.provider) {
+      case 'google':
+        return this.loginWithGoogle(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      case 'apple':
+        return this.loginWithApple(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      case 'facebook':
+        return this.loginWithFacebook(options.options as FacebookLoginOptions) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+      default:
+        throw new Error(`Login for ${options.provider} is not implemented on web`);
     }
-    // Implement login for other providers
-    throw new Error(`Login for ${options.provider} is not implemented on web`);
   }
 
   async logout(options: {
@@ -235,13 +239,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         await this.loginWithFacebook(options.options as FacebookLoginOptions);
         break;
       default:
-        throw new Error(`Refresh for ${options.provider} is not implemented`);
+        throw new Error(`Refresh for ${(options as any).provider} is not implemented`);
     }
   }
 
-  private async loginWithGoogle(
-    options: GoogleLoginOptions,
-  ): Promise<LoginResult> {
+  private loginWithGoogle<T extends "google">(
+    options: GoogleLoginOptions
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     if (!this.googleClientId) {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
@@ -275,7 +279,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                 imageUrl: payload.picture || null,
               },
             };
-            resolve({ provider: "google", result });
+            resolve({ provider: "google" as T, result });
           }
         },
         auto_select: true,
@@ -285,7 +289,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           console.log("OneTap is not displayed or skipped");
           // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth(scopes).then(resolve).catch(reject);
+          this.fallbackToTraditionalOAuth(scopes).then((r) => resolve({ provider: "google" as T, result: r.result })).catch(reject);
         } else {
           console.log("OneTap is displayed");
         }
@@ -463,9 +467,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     });
   }
 
-  private async fallbackToTraditionalOAuth(
+  private async fallbackToTraditionalOAuth<T extends "google">(
     scopes: string[],
-  ): Promise<LoginResult> {
+  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const uniqueScopes = [...new Set([...scopes, "openid"])];
     
     const params = new URLSearchParams({
@@ -506,7 +510,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           if (accessToken && idToken) {
             const profile = this.parseJwt(idToken);
             resolve({
-              provider: "google" as const,
+              provider: "google" as T,
               result: {
                 accessToken: {
                   token: accessToken.token,

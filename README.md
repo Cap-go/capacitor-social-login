@@ -232,9 +232,8 @@ const res = await SocialLogin.login({
 * [`isLoggedIn(...)`](#isloggedin)
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
-* [`removeAllListeners()`](#removealllisteners)
-* [`addListener('loginResponse', ...)`](#addlistenerloginresponse-)
 * [Interfaces](#interfaces)
+* [Type Aliases](#type-aliases)
 
 </docgen-index>
 
@@ -259,16 +258,16 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login(options: LoginOptions) => Promise<LoginResult>
+login<T extends "apple" | "google" | "facebook">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
 
-| Param         | Type                                                  |
-| ------------- | ----------------------------------------------------- |
-| **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt;</code> |
 
-**Returns:** <code>Promise&lt;<a href="#loginresult">LoginResult</a>&gt;</code>
+**Returns:** <code>Promise&lt;{ provider: T; result: ProviderResponseMap[T]; }&gt;</code>
 
 --------------------
 
@@ -283,7 +282,7 @@ Logout
 
 | Param         | Type                                                          |
 | ------------- | ------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'facebook' \| 'google' \| 'apple'; }</code> |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook'; }</code> |
 
 --------------------
 
@@ -337,39 +336,6 @@ Refresh the access token
 --------------------
 
 
-### removeAllListeners()
-
-```typescript
-removeAllListeners() => Promise<void>
-```
-
-Remove all listeners for this plugin.
-
-**Since:** 1.0.0
-
---------------------
-
-
-### addListener('loginResponse', ...)
-
-```typescript
-addListener(eventName: "loginResponse", listenerFunc: (state: LoginResult) => void) => Promise<PluginListenerHandle>
-```
-
-Listen for login response event. For web only.
-
-| Param              | Type                                                                    |
-| ------------------ | ----------------------------------------------------------------------- |
-| **`eventName`**    | <code>'loginResponse'</code>                                            |
-| **`listenerFunc`** | <code>(state: <a href="#loginresult">LoginResult</a>) =&gt; void</code> |
-
-**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt;</code>
-
-**Since:** 1.0.0
-
---------------------
-
-
 ### Interfaces
 
 
@@ -380,14 +346,6 @@ Listen for login response event. For web only.
 | **`facebook`** | <code>{ appId: string; clientToken: string; }</code>                                     |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; }</code> |
 | **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                |
-
-
-#### LoginResult
-
-| Prop           | Type                                                                                                                                                                                            | Description |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **`provider`** | <code>'facebook' \| 'google' \| 'apple' \| 'twitter'</code>                                                                                                                                     | Provider    |
-| **`result`**   | <code><a href="#facebookloginresponse">FacebookLoginResponse</a> \| <a href="#googleloginresponse">GoogleLoginResponse</a> \| <a href="#appleproviderresponse">AppleProviderResponse</a></code> | Payload     |
 
 
 #### FacebookLoginResponse
@@ -432,14 +390,6 @@ Listen for login response event. For web only.
 | **`profile`**     | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> |
 
 
-#### LoginOptions
-
-| Prop           | Type                                                                                                                                                                                      | Description |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **`provider`** | <code>'facebook' \| 'google' \| 'apple' \| 'twitter'</code>                                                                                                                               | Provider    |
-| **`options`**  | <code><a href="#facebookloginoptions">FacebookLoginOptions</a> \| <a href="#googleloginoptions">GoogleLoginOptions</a> \| <a href="#appleprovideroptions">AppleProviderOptions</a></code> | Options     |
-
-
 #### FacebookLoginOptions
 
 | Prop               | Type                  | Description      | Default            |
@@ -471,7 +421,7 @@ Listen for login response event. For web only.
 
 | Prop           | Type                                           | Description |
 | -------------- | ---------------------------------------------- | ----------- |
-| **`provider`** | <code>'facebook' \| 'google' \| 'apple'</code> | Provider    |
+| **`provider`** | <code>'apple' \| 'google' \| 'facebook'</code> | Provider    |
 
 
 #### AuthorizationCode
@@ -485,13 +435,26 @@ Listen for login response event. For web only.
 
 | Prop           | Type                                           | Description |
 | -------------- | ---------------------------------------------- | ----------- |
-| **`provider`** | <code>'facebook' \| 'google' \| 'apple'</code> | Provider    |
+| **`provider`** | <code>'apple' \| 'google' \| 'facebook'</code> | Provider    |
 
 
-#### PluginListenerHandle
+### Type Aliases
 
-| Prop         | Type                                      |
-| ------------ | ----------------------------------------- |
-| **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
+
+#### ProviderResponseMap
+
+<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; }</code>
+
+
+#### LoginOptions
+
+<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }</code>
+
+
+#### Extract
+
+<a href="#extract">Extract</a> from T those types that are assignable to U
+
+<code>T extends U ? T : never</code>
 
 </docgen-api>
