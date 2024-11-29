@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.75](https://github.com/Cap-go/capacitor-social-login/compare/0.0.74...0.0.75) (2024-11-29)
+
+
+### Features
+
+* add offline ([bdad966](https://github.com/Cap-go/capacitor-social-login/commit/bdad96643df808bcf0dc8eaf7555df68c4850d40))
+
 ### [0.0.74](https://github.com/Cap-go/capacitor-social-login/compare/0.0.73...0.0.74) (2024-11-29)
 
 
