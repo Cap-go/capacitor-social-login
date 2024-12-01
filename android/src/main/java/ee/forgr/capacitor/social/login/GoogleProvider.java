@@ -19,6 +19,7 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.android.gms.auth.GoogleAuthException;
 import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
@@ -103,40 +104,89 @@ public class GoogleProvider implements SocialProvider {
       this.scopes = new String[] { "profile", "email" };
     }
 
-    GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
-      new GetSignInWithGoogleOption.Builder(this.clientId);
+    boolean newUi = false;
 
-    if (nonce != null && !nonce.isEmpty()) {
-      googleIdOptionBuilder.setNonce(nonce);
+    try {
+      if (config.has("newUI") && config.getBoolean("newUI")) {
+        newUi = true;
+      }
+    } catch (JSONException e) {
+      // ignore the error
     }
 
-    GetSignInWithGoogleOption googleIdOptionFiltered =
-      googleIdOptionBuilder.build();
-    GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
-      .addCredentialOption(googleIdOptionFiltered)
-      .build();
+    if (!newUi) {
+      GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
+          new GetSignInWithGoogleOption.Builder(this.clientId);
 
-    Executor executor = Executors.newSingleThreadExecutor();
-    credentialManager.getCredentialAsync(
-      context,
-      filteredRequest,
-      null,
-      executor,
-      new CredentialManagerCallback<
-        GetCredentialResponse,
-        GetCredentialException
-      >() {
-        @Override
-        public void onResult(GetCredentialResponse result) {
-          handleSignInResult(result, call);
-        }
-
-        @Override
-        public void onError(GetCredentialException e) {
-          handleSignInError(e, call);
-        }
+      if (nonce != null && !nonce.isEmpty()) {
+        googleIdOptionBuilder.setNonce(nonce);
       }
-    );
+
+      GetSignInWithGoogleOption googleIdOptionFiltered =
+          googleIdOptionBuilder.build();
+      GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
+          .addCredentialOption(googleIdOptionFiltered)
+          .build();
+
+      Executor executor = Executors.newSingleThreadExecutor();
+      credentialManager.getCredentialAsync(
+          context,
+          filteredRequest,
+          null,
+          executor,
+          new CredentialManagerCallback<
+              GetCredentialResponse,
+              GetCredentialException
+              >() {
+            @Override
+            public void onResult(GetCredentialResponse result) {
+              handleSignInResult(result, call);
+            }
+
+            @Override
+            public void onError(GetCredentialException e) {
+              handleSignInError(e, call);
+            }
+          }
+      );
+    } else {
+      GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder()
+          .setServerClientId(this.clientId);
+
+      if (nonce != null && !nonce.isEmpty()) {
+        googleIdOptionBuilder.setNonce(nonce);
+      }
+
+      GetCredentialRequest request  = new GetCredentialRequest.Builder()
+          .addCredentialOption(googleIdOptionBuilder.build())
+          .build();
+
+
+      Executor executor = Executors.newSingleThreadExecutor();
+      credentialManager.getCredentialAsync(
+          context,
+          request,
+          null,
+          executor,
+          new CredentialManagerCallback<
+              GetCredentialResponse,
+              GetCredentialException
+              >() {
+            @Override
+            public void onResult(GetCredentialResponse result) {
+              Log.i(SocialLoginPlugin.LOG_TAG, "YES?");
+              // handleSignInResult(result, call);
+            }
+
+            @Override
+            public void onError(GetCredentialException e) {
+              Log.e(SocialLoginPlugin.LOG_TAG, "No?", e);
+              // handleSignInError(e, call);
+            }
+          }
+      );
+
+    }
   }
 
   private void persistState(String idToken) throws JSONException {
