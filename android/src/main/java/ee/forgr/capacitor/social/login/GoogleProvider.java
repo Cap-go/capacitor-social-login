@@ -104,17 +104,51 @@ public class GoogleProvider implements SocialProvider {
       this.scopes = new String[] { "profile", "email" };
     }
 
-    boolean newUi = false;
+    boolean bottomUi = false;
 
     try {
-      if (config.has("newUI") && config.getBoolean("newUI")) {
-        newUi = true;
+      if (config.has("style") && "bottom".equals(config.getString("style"))) {
+        bottomUi = true;
       }
     } catch (JSONException e) {
       // ignore the error
     }
 
-    if (!newUi) {
+    GetCredentialRequest.Builder filteredRequest = new GetCredentialRequest.Builder();
+
+    if (bottomUi) {
+      boolean filterByAuthorizedAccounts = false;
+      boolean autoSelectEnabled = false;
+
+      try {
+        if (config.has("filterByAuthorizedAccounts") && config.getBoolean("filterByAuthorizedAccounts")) {
+          filterByAuthorizedAccounts = true;
+        }
+      } catch (JSONException e) {
+        // ignore the error
+      }
+
+      try {
+        if (config.has("autoSelectEnabled") && config.getBoolean("autoSelectEnabled")) {
+          autoSelectEnabled = true;
+        }
+      } catch (JSONException e) {
+        // ignore the error
+      }
+
+      GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder()
+              .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts)
+              .setAutoSelectEnabled(autoSelectEnabled)
+              .setServerClientId(this.clientId);
+
+      if (nonce != null && !nonce.isEmpty()) {
+        googleIdOptionBuilder.setNonce(nonce);
+      }
+
+      filteredRequest.addCredentialOption(googleIdOptionBuilder.build());
+
+    } else {
+
       GetSignInWithGoogleOption.Builder googleIdOptionBuilder =
           new GetSignInWithGoogleOption.Builder(this.clientId);
 
@@ -122,71 +156,31 @@ public class GoogleProvider implements SocialProvider {
         googleIdOptionBuilder.setNonce(nonce);
       }
 
-      GetSignInWithGoogleOption googleIdOptionFiltered =
-          googleIdOptionBuilder.build();
-      GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder()
-          .addCredentialOption(googleIdOptionFiltered)
-          .build();
-
-      Executor executor = Executors.newSingleThreadExecutor();
-      credentialManager.getCredentialAsync(
-          context,
-          filteredRequest,
-          null,
-          executor,
-          new CredentialManagerCallback<
-              GetCredentialResponse,
-              GetCredentialException
-              >() {
-            @Override
-            public void onResult(GetCredentialResponse result) {
-              handleSignInResult(result, call);
-            }
-
-            @Override
-            public void onError(GetCredentialException e) {
-              handleSignInError(e, call);
-            }
-          }
-      );
-    } else {
-      GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder()
-          .setServerClientId(this.clientId);
-
-      if (nonce != null && !nonce.isEmpty()) {
-        googleIdOptionBuilder.setNonce(nonce);
-      }
-
-      GetCredentialRequest request  = new GetCredentialRequest.Builder()
-          .addCredentialOption(googleIdOptionBuilder.build())
-          .build();
-
-
-      Executor executor = Executors.newSingleThreadExecutor();
-      credentialManager.getCredentialAsync(
-          context,
-          request,
-          null,
-          executor,
-          new CredentialManagerCallback<
-              GetCredentialResponse,
-              GetCredentialException
-              >() {
-            @Override
-            public void onResult(GetCredentialResponse result) {
-              Log.i(SocialLoginPlugin.LOG_TAG, "YES?");
-              // handleSignInResult(result, call);
-            }
-
-            @Override
-            public void onError(GetCredentialException e) {
-              Log.e(SocialLoginPlugin.LOG_TAG, "No?", e);
-              // handleSignInError(e, call);
-            }
-          }
-      );
+      filteredRequest.addCredentialOption(googleIdOptionBuilder.build());
 
     }
+
+    Executor executor = Executors.newSingleThreadExecutor();
+    credentialManager.getCredentialAsync(
+            context,
+            filteredRequest.build(),
+            null,
+            executor,
+            new CredentialManagerCallback<
+                    GetCredentialResponse,
+                    GetCredentialException
+                    >() {
+              @Override
+              public void onResult(GetCredentialResponse result) {
+                handleSignInResult(result, call);
+              }
+
+              @Override
+              public void onError(GetCredentialException e) {
+                handleSignInError(e, call);
+              }
+            }
+    );
   }
 
   private void persistState(String idToken) throws JSONException {
