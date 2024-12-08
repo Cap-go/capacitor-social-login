@@ -50,6 +50,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private appleScriptLoaded = false;
   private appleScriptUrl =
     "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+  private GOOGLE_TOKEN_REQUEST_URL =
+    "https://www.googleapis.com/oauth2/v3/tokeninfo";
   private facebookAppId: string | null = null;
   private facebookScriptLoaded = false;
 
@@ -161,8 +163,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
         console.log(
-          "Google logout: Token should be revoked on the client side if stored",
+          "Google logout: Id token should be revoked on the client side if stored",
         );
+        const state = this.getGoogleState();
+        if (!state) return;
+        await this.rawLogoutGoogle(state.accessToken);
         break;
       case "apple":
         // Apple doesn't provide a logout method for web
@@ -179,15 +184,144 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
+  private async accessTokenIsValid(accessToken: string): Promise<boolean> {
+    const url = `${this.GOOGLE_TOKEN_REQUEST_URL}?access_token=${encodeURIComponent(accessToken)}`;
+
+    try {
+      // Make the GET request using fetch
+      const response = await fetch(url);
+
+      // Check if the response is successful
+      if (!response.ok) {
+        console.log(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response not successful. Status code: ${response.status}. Assuming that the token is not valid`,
+        );
+        return false;
+      }
+
+      // Get the response body as text
+      const responseBody = await response.text();
+
+      if (!responseBody) {
+        console.error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is null`,
+        );
+        throw new Error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is null`,
+        );
+      }
+
+      // Parse the response body as JSON
+      let jsonObject: any;
+      try {
+        jsonObject = JSON.parse(responseBody);
+      } catch (e) {
+        console.error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`,
+        );
+        throw new Error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`,
+        );
+      }
+
+      // Extract the 'expires_in' field
+      const expiresInStr = jsonObject["expires_in"];
+
+      if (expiresInStr === undefined || expiresInStr === null) {
+        console.error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response JSON does not include 'expires_in'.`,
+        );
+        throw new Error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response JSON does not include 'expires_in'.`,
+        );
+      }
+
+      // Parse 'expires_in' as an integer
+      let expiresInInt: number;
+      try {
+        expiresInInt = parseInt(expiresInStr, 10);
+        if (isNaN(expiresInInt)) {
+          throw new Error(`'expires_in' is not a valid integer`);
+        }
+      } catch (e) {
+        console.error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`,
+        );
+        throw new Error(
+          `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`,
+        );
+      }
+
+      // Determine if the access token is valid based on 'expires_in'
+      return expiresInInt > 5;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+
+  private idTokenValid(idToken: string): boolean {
+    try {
+      const parsed = this.parseJwt(idToken);
+      const currentTime = Math.ceil(Date.now() / 1000) + 5; // Convert current time to seconds since epoch
+      return parsed.exp && currentTime < parsed.exp;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  private async rawLogoutGoogle(
+    accessToken: string,
+    tokenValid: boolean | null = null,
+  ) {
+    if (tokenValid === null) {
+      tokenValid = await this.accessTokenIsValid(accessToken);
+    }
+
+    if (tokenValid === true) {
+      return new Promise<void>((resolve, reject) => {
+        try {
+          google.accounts.oauth2.revoke(accessToken, async () => {
+            this.clearStateGoogle();
+            resolve();
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    } else {
+      this.clearStateGoogle();
+      return;
+    }
+  }
+
   async isLoggedIn(
     options: isLoggedInOptions,
   ): Promise<{ isLoggedIn: boolean }> {
     switch (options.provider) {
       case "google":
         // For Google, we can check if there's a valid token
-        // eslint-disable-next-line no-case-declarations
-        const googleUser = await this.getGoogleUser();
-        return { isLoggedIn: !!googleUser };
+        const state = this.getGoogleState();
+        if (!state) return { isLoggedIn: false };
+
+        try {
+          // todo: cache accessTokenIsValid calls
+          const isValidAccessToken =
+            await this.accessTokenIsValid(state.accessToken);
+          const isValidIdToken = this.idTokenValid(state.idToken);
+          if (isValidAccessToken && isValidIdToken) {
+            return { isLoggedIn: true };
+          } else {
+            try {
+              await this.rawLogoutGoogle(state.accessToken, false);
+            } catch (e) {
+              console.error("Access token is not valid, but cannot logout", e);
+            }
+            return { isLoggedIn: false };
+          }
+        } catch (e) {
+          return Promise.reject(e);
+        }
       case "apple":
         // Apple doesn't provide a method to check login status on web
         console.log("Apple login status should be managed on the client side");
@@ -211,12 +345,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can use the id_token as the authorization code
-        // eslint-disable-next-line no-case-declarations
-        const googleUser = await this.getGoogleUser();
-        if (googleUser?.credential) {
-          return { jwt: googleUser.credential };
+        const state = this.getGoogleState();
+        if (!state)
+          throw new Error("No Google authorization code available");
+
+        try {
+          // todo: cache accessTokenIsValid calls
+          const isValidAccessToken =
+            await this.accessTokenIsValid(state.accessToken);
+          const isValidIdToken = this.idTokenValid(state.idToken);
+          if (isValidAccessToken && isValidIdToken) {
+            return { accessToken: state.accessToken, jwt: state.idToken };
+          } else {
+            try {
+              await this.rawLogoutGoogle(state.accessToken, false);
+            } catch (e) {
+              console.error("Access token is not valid, but cannot logout", e);
+            }
+            throw new Error("No Google authorization code available");
+          }
+        } catch (e) {
+          return Promise.reject(e);
         }
-        throw new Error("No Google authorization code available");
       case "apple":
         // Apple authorization code should be obtained during login
         console.log("Apple authorization code should be stored during login");
@@ -242,8 +392,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         // For Google, we can prompt for re-authentication
-        await this.loginWithGoogle(options.options);
-        break;
+        return Promise.reject("Not implemented");
       case "apple":
         // Apple doesn't provide a refresh method for web
         console.log("Apple refresh not available on web");
@@ -265,9 +414,30 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       throw new Error("Google Client ID not set. Call initialize() first.");
     }
 
-    const scopes = options.scopes || ["email", "profile"];
+    let scopes = options.scopes || [];
 
     if (scopes.length > 0) {
+      // If scopes are provided, directly use the traditional OAuth flow
+      if (!scopes.includes("https://www.googleapis.com/auth/userinfo.email")) {
+        scopes.push("https://www.googleapis.com/auth/userinfo.email");
+      }
+      if (
+        !scopes.includes("https://www.googleapis.com/auth/userinfo.profile")
+      ) {
+        scopes.push("https://www.googleapis.com/auth/userinfo.profile");
+      }
+      if (!scopes.includes("openid")) {
+        scopes.push("openid");
+      }
+    } else {
+      scopes = [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "openid",
+      ];
+    }
+
+    if (scopes.length > 3) {
       // If scopes are provided, directly use the traditional OAuth flow
       return this.fallbackToTraditionalOAuth(scopes);
     }
@@ -404,20 +574,37 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     });
   }
 
-  private async getGoogleUser(): Promise<any> {
-    return new Promise((resolve) => {
-      google.accounts.id.initialize({
-        client_id: this.googleClientId!,
-        callback: (response) => {
-          resolve(response);
-        },
-      });
-      google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          resolve(null);
-        }
-      });
-    });
+  private persistStateGoogle(accessToken: string, idToken: string) {
+    try {
+      window.localStorage.setItem(
+        "capgo_social_login_google_state",
+        JSON.stringify({ accessToken, idToken }),
+      );
+    } catch (e) {
+      console.error("Cannot persist state google", e);
+    }
+  }
+
+  private clearStateGoogle() {
+    try {
+      window.localStorage.removeItem("capgo_social_login_google_state");
+    } catch (e) {
+      console.error("Cannot clear state google", e);
+    }
+  }
+
+  private getGoogleState(): { accessToken: string; idToken: string } | null {
+    try {
+      const state = window.localStorage.getItem(
+        "capgo_social_login_google_state",
+      );
+      if (!state) return null;
+      const { accessToken, idToken } = JSON.parse(state);
+      return { accessToken, idToken };
+    } catch (e) {
+      console.error("Cannot get state google", e);
+      return null;
+    }
   }
 
   private async loadFacebookScript(): Promise<void> {
@@ -492,7 +679,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     const params = new URLSearchParams({
       client_id: this.googleClientId!,
       redirect_uri: window.location.href,
-      response_type: "token id_token",
+      response_type: "token id_token", // code
       scope: uniqueScopes.join(" "),
       nonce: Math.random().toString(36).substring(2),
       include_granted_scopes: "true",
@@ -511,6 +698,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       `width=${width},height=${height},left=${left},top=${top},popup=1`,
     );
 
+    // This may never return...
     return new Promise((resolve, reject) => {
       if (!popup) {
         reject(new Error("Failed to open popup"));
@@ -526,6 +714,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           const { accessToken, idToken } = event.data;
           if (accessToken && idToken) {
             const profile = this.parseJwt(idToken);
+            this.persistStateGoogle(accessToken.token, idToken);
             resolve({
               provider: "google" as T,
               result: {

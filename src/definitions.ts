@@ -85,6 +85,12 @@ export interface GoogleLoginOptions {
    * @since 0.0.69
    * */
   grantOfflineAccess?: boolean;
+  /**
+   * Force refresh token (only for Android)
+   * @description force refresh token
+   * @default false
+   */
+  forceRefreshToken?: boolean;
 }
 
 export interface GoogleLoginResponse {
@@ -194,7 +200,12 @@ export interface AuthorizationCode {
    * Jwt
    * @description A JSON web token
    */
-  jwt: string;
+  jwt?: string;
+  /**
+   * Access Token
+   * @description An access token
+   */
+  accessToken?: string;
 }
 
 export interface AuthorizationCodeOptions {
