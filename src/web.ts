@@ -47,6 +47,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private googleClientId: string | null = null;
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
+  private googleLoginType: "online" | "offline" = "online";
   private appleScriptLoaded = false;
   private appleScriptUrl =
     "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
@@ -75,6 +76,20 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   private handleOAuthRedirect() {
+    const paramsRaw = new URL(window.location.href).searchParams
+    const code = paramsRaw.get("code")
+    if (code && paramsRaw.has("scope")) {
+      return {
+        provider: "google" as const,
+        result: {
+          provider: "google" as const,
+          result: {
+            serverAuthCode: code,
+          },
+        },
+      };
+    }
+
     const hash = window.location.hash.substring(1);
     console.log("handleOAuthRedirect", window.location.hash);
     if (!hash) return;
@@ -111,6 +126,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   async initialize(options: InitializeOptions): Promise<void> {
     if (options.google?.webClientId) {
       this.googleClientId = options.google.webClientId;
+      if (options.google.mode) {
+        this.googleLoginType = options.google.mode;
+      }
+
       await this.loadGoogleScript();
     }
     if (options.apple?.clientId) {
@@ -437,7 +456,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       ];
     }
 
-    if (scopes.length > 3) {
+    if (scopes.length > 3 || this.googleLoginType === "offline") {
       // If scopes are provided, directly use the traditional OAuth flow
       return this.fallbackToTraditionalOAuth(scopes);
     }
@@ -454,6 +473,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
             const payload = this.parseJwt(response.credential);
             const result: GoogleLoginResponse = {
               accessToken: null,
+              responseType: "online",
               idToken: response.credential,
               profile: {
                 email: payload.email || null,
@@ -679,7 +699,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     const params = new URLSearchParams({
       client_id: this.googleClientId!,
       redirect_uri: window.location.href,
-      response_type: "token id_token", // code
+      response_type: this.googleLoginType === "offline" ? "code" : "token id_token",
       scope: uniqueScopes.join(" "),
       nonce: Math.random().toString(36).substring(2),
       include_granted_scopes: "true",
@@ -711,6 +731,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         if (event.data?.type === "oauth-response") {
           window.removeEventListener("message", handleMessage);
 
+          if (this.googleLoginType === "online") {
           const { accessToken, idToken } = event.data;
           if (accessToken && idToken) {
             const profile = this.parseJwt(idToken);
@@ -730,11 +751,22 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
                   name: profile.name || null,
                   imageUrl: profile.picture || null,
                 },
+                responseType: "online",
+              },
+              });
+            }
+          } else {
+            const { serverAuthCode } = event.data.result as { serverAuthCode: string };
+            resolve({
+              provider: "google" as T,
+              result: {
+                responseType: "offline",
+                serverAuthCode,
               },
             });
-          } else {
-            reject(new Error("Login failed"));
           }
+        } else {
+          reject(new Error("Login failed"));
         }
       };
 
