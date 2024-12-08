@@ -90,11 +90,26 @@ class GoogleProvider {
         }
     }
 
-    func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
+    func getAuthorizationCode(completion: @escaping (Result<GoogleLoginResponse.Authentication, Error>) -> Void) {
+//        if (self.mode == .OFFLINE) {
+//            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "getAuthorizationCode is not implemented when using offline mode"])))
+//            return
+//        }
         DispatchQueue.main.async {
-            if let currentUser = GIDSignIn.sharedInstance.currentUser, let idToken = currentUser.idToken?.tokenString {
-                completion(.success(idToken))
-                return
+            if let user = GIDSignIn.sharedInstance.currentUser {
+                user.refreshTokensIfNeeded { user, error in
+                    guard error == nil else {
+                        completion(.failure(error!))
+                        return
+                    }
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User guard failed??"])))
+                        return
+                    }
+                    
+                    completion(.success(GoogleLoginResponse.Authentication(accessToken: user.accessToken.tokenString, idToken: user.idToken?.tokenString, refreshToken: nil)))
+                    return
+                }
             }
             if GIDSignIn.sharedInstance.hasPreviousSignIn() {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
@@ -102,17 +117,31 @@ class GoogleProvider {
                         completion(.failure(error))
                         return
                     }
-                    if let user = user, let idToken = user.idToken?.tokenString {
-                        completion(.success(idToken))
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "2nd User guard failed??"])))
                         return
                     }
-                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                    
+                    user.refreshTokensIfNeeded { user, error in
+                        guard error == nil else {
+                            completion(.failure(error!))
+                            return
+                        }
+                        guard let user = user else {
+                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "3rd user guard failed??"])))
+                            return
+                        }
+                        
+                        completion(.success(GoogleLoginResponse.Authentication(accessToken: user.accessToken.tokenString, idToken: user.idToken?.tokenString, refreshToken: nil)))
+                        return
+                    }
                 }
             } else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User is not logged in"])))
             }
         }
     }
+
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.main.async {
