@@ -656,6 +656,30 @@ public class GoogleProvider implements SocialProvider {
         user.put("familyName", googleIdTokenCredential.getFamilyName());
         user.put("givenName", googleIdTokenCredential.getGivenName());
         user.put("imageUrl", googleIdTokenCredential.getProfilePictureUri());
+
+        try {
+          String[] parts = googleIdTokenCredential.getIdToken().split("\\.");
+          if (parts.length != 3) {
+            throw new RuntimeException("JWT parts length != 3 (how is this possible??)");
+          }
+
+          // Decode payload (second part)
+          String payload = new String(android.util.Base64.decode(parts[1], android.util.Base64.DEFAULT));
+          JSONObject parsed = new JSONObject(payload);
+
+          // Get current time in seconds
+          long currentTime = System.currentTimeMillis() / 1000 + 5;
+
+          // Check if token is expired
+          if (parsed.has("sub")) {
+            String sub = parsed.getString("sub");
+            user.put("id", sub);
+          } else {
+            throw new RuntimeException("No SUB field in the JWT");
+          }
+        } catch (Exception e) {
+          Log.e(LOG_TAG, "Cannot get id from id_token", e);
+        }
       }
     }
     return user;
