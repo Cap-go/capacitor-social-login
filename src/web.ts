@@ -76,8 +76,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   private handleOAuthRedirect() {
-    const paramsRaw = new URL(window.location.href).searchParams
-    const code = paramsRaw.get("code")
+    const paramsRaw = new URL(window.location.href).searchParams;
+    const code = paramsRaw.get("code");
     if (code && paramsRaw.has("scope")) {
       return {
         provider: "google" as const,
@@ -180,7 +180,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         if (this.googleLoginType === "offline") {
-          return Promise.reject("Offline login doesn't store tokens. logout is not available");
+          return Promise.reject(
+            "Offline login doesn't store tokens. logout is not available",
+          );
         }
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
@@ -323,7 +325,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         if (this.googleLoginType === "offline") {
-          return Promise.reject("Offline login doesn't store tokens. isLoggedIn is not available");
+          return Promise.reject(
+            "Offline login doesn't store tokens. isLoggedIn is not available",
+          );
         }
         // For Google, we can check if there's a valid token
         const state = this.getGoogleState();
@@ -331,8 +335,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
         try {
           // todo: cache accessTokenIsValid calls
-          const isValidAccessToken =
-            await this.accessTokenIsValid(state.accessToken);
+          const isValidAccessToken = await this.accessTokenIsValid(
+            state.accessToken,
+          );
           const isValidIdToken = this.idTokenValid(state.idToken);
           if (isValidAccessToken && isValidIdToken) {
             return { isLoggedIn: true };
@@ -370,17 +375,19 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (options.provider) {
       case "google":
         if (this.googleLoginType === "offline") {
-          return Promise.reject("Offline login doesn't store tokens. getAuthorizationCode is not available");
+          return Promise.reject(
+            "Offline login doesn't store tokens. getAuthorizationCode is not available",
+          );
         }
         // For Google, we can use the id_token as the authorization code
         const state = this.getGoogleState();
-        if (!state)
-          throw new Error("No Google authorization code available");
+        if (!state) throw new Error("No Google authorization code available");
 
         try {
           // todo: cache accessTokenIsValid calls
-          const isValidAccessToken =
-            await this.accessTokenIsValid(state.accessToken);
+          const isValidAccessToken = await this.accessTokenIsValid(
+            state.accessToken,
+          );
           const isValidIdToken = this.idTokenValid(state.idToken);
           if (isValidAccessToken && isValidIdToken) {
             return { accessToken: state.accessToken, jwt: state.idToken };
@@ -708,7 +715,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     const params = new URLSearchParams({
       client_id: this.googleClientId!,
       redirect_uri: window.location.href,
-      response_type: this.googleLoginType === "offline" ? "code" : "token id_token",
+      response_type:
+        this.googleLoginType === "offline" ? "code" : "token id_token",
       scope: uniqueScopes.join(" "),
       nonce: Math.random().toString(36).substring(2),
       include_granted_scopes: "true",
@@ -741,31 +749,33 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           window.removeEventListener("message", handleMessage);
 
           if (this.googleLoginType === "online") {
-          const { accessToken, idToken } = event.data;
-          if (accessToken && idToken) {
-            const profile = this.parseJwt(idToken);
-            this.persistStateGoogle(accessToken.token, idToken);
-            resolve({
-              provider: "google" as T,
-              result: {
-                accessToken: {
-                  token: accessToken.token,
+            const { accessToken, idToken } = event.data;
+            if (accessToken && idToken) {
+              const profile = this.parseJwt(idToken);
+              this.persistStateGoogle(accessToken.token, idToken);
+              resolve({
+                provider: "google" as T,
+                result: {
+                  accessToken: {
+                    token: accessToken.token,
+                  },
+                  idToken,
+                  profile: {
+                    email: profile.email || null,
+                    familyName: profile.family_name || null,
+                    givenName: profile.given_name || null,
+                    id: profile.sub || null,
+                    name: profile.name || null,
+                    imageUrl: profile.picture || null,
+                  },
+                  responseType: "online",
                 },
-                idToken,
-                profile: {
-                  email: profile.email || null,
-                  familyName: profile.family_name || null,
-                  givenName: profile.given_name || null,
-                  id: profile.sub || null,
-                  name: profile.name || null,
-                  imageUrl: profile.picture || null,
-                },
-                responseType: "online",
-              },
               });
             }
           } else {
-            const { serverAuthCode } = event.data.result as { serverAuthCode: string };
+            const { serverAuthCode } = event.data.result as {
+              serverAuthCode: string;
+            };
             resolve({
               provider: "google" as T,
               result: {

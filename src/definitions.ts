@@ -110,7 +110,9 @@ interface GoogleLoginResponseOffline {
   responseType: "offline";
 }
 
-export type GoogleLoginResponse = GoogleLoginResponseOnline | GoogleLoginResponseOffline;
+export type GoogleLoginResponse =
+  | GoogleLoginResponseOnline
+  | GoogleLoginResponseOffline;
 
 export interface AppleProviderOptions {
   /**
@@ -164,7 +166,7 @@ export type LoginResult =
     }
   | {
       provider: "google";
-      result: GoogleLoginResponse
+      result: GoogleLoginResponse;
     }
   | {
       provider: "apple";

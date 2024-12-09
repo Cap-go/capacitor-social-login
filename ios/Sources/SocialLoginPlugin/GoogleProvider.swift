@@ -15,7 +15,7 @@ class GoogleProvider {
 
     func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
-        self.mode = mode;
+        self.mode = mode
 
         GIDSignIn.sharedInstance.configuration = configuration
 
@@ -51,7 +51,7 @@ class GoogleProvider {
                         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
                         return
                     }
-                    if (self.mode == .OFFLINE) {
+                    if self.mode == .OFFLINE {
                         guard let serverAuthCode = result.serverAuthCode else {
                             completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Cannot find serverAuthCode"])))
                             return
@@ -79,7 +79,7 @@ class GoogleProvider {
     }
 
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
-        if (self.mode == .OFFLINE) {
+        if self.mode == .OFFLINE {
             completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "logout is not implemented when using offline mode"])))
             return
         }
@@ -90,7 +90,7 @@ class GoogleProvider {
     }
 
     func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
-        if (self.mode == .OFFLINE) {
+        if self.mode == .OFFLINE {
             completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "isLoggedIn is not implemented when using offline mode"])))
             return
         }
@@ -114,7 +114,7 @@ class GoogleProvider {
     }
 
     func getAuthorizationCode(completion: @escaping (Result<GoogleLoginResponse.Authentication, Error>) -> Void) {
-        if (self.mode == .OFFLINE) {
+        if self.mode == .OFFLINE {
             completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "getAuthorizationCode is not implemented when using offline mode"])))
             return
         }
@@ -129,7 +129,7 @@ class GoogleProvider {
                         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User guard failed??"])))
                         return
                     }
-                    
+
                     completion(.success(GoogleLoginResponse.Authentication(accessToken: user.accessToken.tokenString, idToken: user.idToken?.tokenString, refreshToken: nil)))
                     return
                 }
@@ -144,7 +144,7 @@ class GoogleProvider {
                         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "2nd User guard failed??"])))
                         return
                     }
-                    
+
                     user.refreshTokensIfNeeded { user, error in
                         guard error == nil else {
                             completion(.failure(error!))
@@ -154,7 +154,7 @@ class GoogleProvider {
                             completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "3rd user guard failed??"])))
                             return
                         }
-                        
+
                         completion(.success(GoogleLoginResponse.Authentication(accessToken: user.accessToken.tokenString, idToken: user.idToken?.tokenString, refreshToken: nil)))
                         return
                     }
@@ -164,7 +164,6 @@ class GoogleProvider {
             }
         }
     }
-
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         DispatchQueue.main.async {
@@ -218,7 +217,7 @@ struct GoogleLoginResponse {
     let id: String?
     let name: String?
     let imageUrl: String?
-    var serverAuthCode: String? = nil
+    var serverAuthCode: String?
 
     struct Authentication {
         let accessToken: String

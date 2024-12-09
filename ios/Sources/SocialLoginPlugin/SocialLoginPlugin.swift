@@ -34,11 +34,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         if let googleSettings = call.getObject("google") {
             let iOSClientId = googleSettings["iOSClientId"] as? String
             let iOSServerClientId = googleSettings["iOSServerClientId"] as? String
-            
+
             let modeStr = googleSettings["mode"] as? String
             var mode = GoogleProviderLoginType.ONLINE
             if let modeStr = modeStr {
-                switch (modeStr) {
+                switch modeStr {
                     case "online":
                         mode = GoogleProviderLoginType.ONLINE
                     case "offline":

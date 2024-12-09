@@ -196,15 +196,15 @@ public class SocialLoginPlugin extends Plugin {
       SocialProvider provider = socialProviderHashMap.get("google");
       if (!(provider instanceof GoogleProvider)) {
         Log.e(
-            SocialLoginPlugin.LOG_TAG,
-            "Provider is not a Google provider (could be null)"
+          SocialLoginPlugin.LOG_TAG,
+          "Provider is not a Google provider (could be null)"
         );
         return;
       }
       ((GoogleProvider) provider).handleAuthorizationIntent(
           requestCode,
           intent
-      );
+        );
     } catch (Throwable t) {
       Log.e(SocialLoginPlugin.LOG_TAG, "Cannot handle Google login intent");
     }
