@@ -84,6 +84,12 @@ public class GoogleProvider implements SocialProvider {
 
   private String idToken = null;
   private String accessToken = null;
+  private GoogleProviderLoginType mode = GoogleProviderLoginType.ONLINE;
+
+  public enum GoogleProviderLoginType {
+    ONLINE,
+    OFFLINE,
+  }
 
   public GoogleProvider(Activity activity, Context context) {
     this.activity = activity;
@@ -94,9 +100,10 @@ public class GoogleProvider implements SocialProvider {
     }
   }
 
-  public void initialize(String clientId) {
+  public void initialize(String clientId, GoogleProviderLoginType mode) {
     this.credentialManager = CredentialManager.create(activity);
     this.clientId = clientId;
+    this.mode = mode;
 
     String data = context
       .getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE)
@@ -431,13 +438,13 @@ public class GoogleProvider implements SocialProvider {
               AuthorizationRequest.builder().setRequestedScopes(scopes);
           // .requestOfflineAccess(this.clientId)
 
-//          if (GoogleProvider.this.mode == GoogleProviderLoginType.OFFLINE) {
-//            authorizationRequestBuilder =
-//                authorizationRequestBuilder.requestOfflineAccess(
-//                    this.clientId,
-//                    forceRefreshToken
-//                );
-//          }
+          if (GoogleProvider.this.mode == GoogleProviderLoginType.OFFLINE) {
+            authorizationRequestBuilder =
+                authorizationRequestBuilder.requestOfflineAccess(
+                    this.clientId,
+                    forceRefreshToken
+                );
+          }
 
           AuthorizationRequest authorizationRequest =
               authorizationRequestBuilder.build();
@@ -499,10 +506,18 @@ public class GoogleProvider implements SocialProvider {
                 } else {
                   // Access already granted, continue with user action
                   //saveToDriveAppFolder(authorizationResult);
-                  if (authorizationResult.getAccessToken() == null) {
-                    completer.setException(new RuntimeException("getAccessToken() is null"));
-                    return;
+                  if (this.mode == GoogleProviderLoginType.ONLINE) {
+                    if (authorizationResult.getAccessToken() == null) {
+                      completer.setException(new RuntimeException("getAccessToken() is null"));
+                      return;
+                    }
+                  } else if (this.mode == GoogleProviderLoginType.OFFLINE) {
+                    if (authorizationResult.getServerAuthCode() == null) {
+                      completer.setException(new RuntimeException("getAccessToken() is null"));
+                      return;
+                    }
                   }
+
                   completer.set(authorizationResult);
                 }
               })
@@ -555,19 +570,31 @@ public class GoogleProvider implements SocialProvider {
               public void run() {
                 try {
                   AuthorizationResult result = future.get();
-                  if (result.getAccessToken() != null) {
-                    JSObject accessTokenObj = new JSObject();
-                    accessTokenObj.put("token", result.getAccessToken());
-                    // accessTokenObj.put("userId", accessToken.userId);
+                  if (GoogleProvider.this.mode == GoogleProviderLoginType.ONLINE) {
+                    if (result.getAccessToken() != null) {
+                      JSObject accessTokenObj = new JSObject();
+                      accessTokenObj.put("token", result.getAccessToken());
+                      // accessTokenObj.put("userId", accessToken.userId);
 
-                    resultObj.put("accessToken", accessTokenObj);
-                    resultObj.put("profile", user);
-                    resultObj.put("idToken", googleIdTokenCredential.getIdToken());
-                    response.put("result", resultObj);
-                    persistState(googleIdTokenCredential.getIdToken(), result.getAccessToken());
-                    call.resolve(response);
+                      resultObj.put("accessToken", accessTokenObj);
+                      resultObj.put("profile", user);
+                      resultObj.put("idToken", googleIdTokenCredential.getIdToken());
+                      resultObj.put("responseType", "online");
+                      response.put("result", resultObj);
+                      persistState(googleIdTokenCredential.getIdToken(), result.getAccessToken());
+                      call.resolve(response);
+                    } else {
+                      call.reject("Failed to get access token");
+                    }
                   } else {
-                    call.reject("Failed to get access token");
+                    if (result.getServerAuthCode() != null) {
+                      resultObj.put("responseType", "offline");
+                      resultObj.put("serverAuthCode", result.getServerAuthCode());
+                      response.put("result", resultObj);
+                      call.resolve(response);
+                    } else {
+                      call.reject("Failed to get serverAuthCode");
+                    }
                   }
                 } catch (Exception e) {
                   call.reject(
@@ -718,10 +745,10 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void logout(PluginCall call) {
-//    if (this.mode == GoogleProviderLoginType.OFFLINE) {
-//      call.reject("logout is not implemented when using offline mode");
-//      return;
-//    }
+    if (this.mode == GoogleProviderLoginType.OFFLINE) {
+      call.reject("logout is not implemented when using offline mode");
+      return;
+    }
     rawLogout(
         new CredentialManagerCallback<Void, Exception>() {
           @Override
@@ -739,6 +766,10 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void getAuthorizationCode(PluginCall call) {
+    if (this.mode == GoogleProviderLoginType.OFFLINE) {
+      call.reject("getAuthorizationCode is not implemented when using offline mode");
+      return;
+    }
     if (GoogleProvider.this.idToken != null && GoogleProvider.this.accessToken != null) {
       try {
         // Check if access token is valid
@@ -784,6 +815,10 @@ public class GoogleProvider implements SocialProvider {
 
   @Override
   public void isLoggedIn(PluginCall call) {
+    if (this.mode == GoogleProviderLoginType.OFFLINE) {
+      call.reject("isLoggedIn is not implemented when using offline mode");
+      return;
+    }
     if (GoogleProvider.this.idToken != null && GoogleProvider.this.accessToken != null) {
       try {
         // Check if access token is valid

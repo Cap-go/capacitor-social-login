@@ -179,6 +179,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }): Promise<void> {
     switch (options.provider) {
       case "google":
+        if (this.googleLoginType === "offline") {
+          return Promise.reject("Offline login doesn't store tokens. logout is not available");
+        }
         // Google doesn't have a specific logout method for web
         // We can revoke the token if we have it stored
         console.log(
@@ -319,6 +322,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<{ isLoggedIn: boolean }> {
     switch (options.provider) {
       case "google":
+        if (this.googleLoginType === "offline") {
+          return Promise.reject("Offline login doesn't store tokens. isLoggedIn is not available");
+        }
         // For Google, we can check if there's a valid token
         const state = this.getGoogleState();
         if (!state) return { isLoggedIn: false };
@@ -363,6 +369,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<AuthorizationCode> {
     switch (options.provider) {
       case "google":
+        if (this.googleLoginType === "offline") {
+          return Promise.reject("Offline login doesn't store tokens. getAuthorizationCode is not available");
+        }
         // For Google, we can use the id_token as the authorization code
         const state = this.getGoogleState();
         if (!state)
