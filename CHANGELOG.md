@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.77](https://github.com/Cap-go/capacitor-social-login/compare/0.0.76...0.0.77) (2024-12-10)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.androidbrowserhelper:androidbrowserhelper to v2.5.0 ([c1e6d42](https://github.com/Cap-go/capacitor-social-login/commit/c1e6d425aa474c22fcfcdb3d6dd41b28491d6027))
+* **deps:** update dependency com.squareup.okhttp3:okhttp to v4.12.0 ([049c237](https://github.com/Cap-go/capacitor-social-login/commit/049c237c5818e95dc8a738393340760a33326d8e))
+
 ### [0.0.76](https://github.com/Cap-go/capacitor-social-login/compare/0.0.75...0.0.76) (2024-11-29)
 
 
