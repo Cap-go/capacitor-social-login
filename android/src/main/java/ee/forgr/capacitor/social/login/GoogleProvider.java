@@ -310,12 +310,22 @@ public class GoogleProvider implements SocialProvider {
       return;
     }
 
+    if (this.mode == GoogleProviderLoginType.OFFLINE && !(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)) {
+      call.reject("You CANNOT use offline mode without modifying the main activity. Please follow the docs!");
+      return;
+    }
+
     String nonce = call.getString("nonce");
 
     // Extract scopes from the config
     // Extract scopes from the config
     JSONArray scopesArray = config.optJSONArray("scopes");
     if (scopesArray != null) {
+      if (!(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)) {
+       call.reject("You CANNOT use scopes without modifying the main activity. Please follow the docs!");
+       return;
+      }
+
       this.scopes = new String[scopesArray.length()];
       for (int i = 0; i < scopesArray.length(); i++) {
         this.scopes[i] = scopesArray.optString(i);
