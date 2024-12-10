@@ -310,8 +310,13 @@ public class GoogleProvider implements SocialProvider {
       return;
     }
 
-    if (this.mode == GoogleProviderLoginType.OFFLINE && !(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)) {
-      call.reject("You CANNOT use offline mode without modifying the main activity. Please follow the docs!");
+    if (
+      this.mode == GoogleProviderLoginType.OFFLINE &&
+      !(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)
+    ) {
+      call.reject(
+        "You CANNOT use offline mode without modifying the main activity. Please follow the docs!"
+      );
       return;
     }
 
@@ -321,9 +326,13 @@ public class GoogleProvider implements SocialProvider {
     // Extract scopes from the config
     JSONArray scopesArray = config.optJSONArray("scopes");
     if (scopesArray != null) {
-      if (!(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)) {
-       call.reject("You CANNOT use scopes without modifying the main activity. Please follow the docs!");
-       return;
+      if (
+        !(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)
+      ) {
+        call.reject(
+          "You CANNOT use scopes without modifying the main activity. Please follow the docs!"
+        );
+        return;
       }
 
       this.scopes = new String[scopesArray.length()];
