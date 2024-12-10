@@ -315,11 +315,11 @@ In this part, you will learn how to setup Google login in Android
   
   // ModifiedMainActivityForSocialLoginPlugin is VERY VERY important !!!!!!    
   public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {}
-      
+  
         @Override
         public void onActivityResult(int requestCode, int resultCode, Intent data) {
           super.onActivityResult(requestCode, resultCode, data);
-      
+  
           if (requestCode >= GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN && requestCode < GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MAX) {
             PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
             if (pluginHandle == null) {
@@ -342,38 +342,39 @@ In this part, you will learn how to setup Google login in Android
   ```
 
 - Please save the file
-  
-  4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
-  - First, you need import `SocialLogin`
-    
-    ```typescript
-    import { ScialLogin } from '@capgo/capacitor-social-login';
-    ```
-  
-  - Then, you want to call initialize. I recommend calling this ONLY once.
-    
-    ```ts
-    // onMounted is Vue specific
-    // webClientId is the client ID you got in the web client creation step not the android client ID.
-    onMounted(() => {
+4. Now, you SHOULD be ready to use the login. Here is how you use it from typescript.
+   
+   - First, you need import `SocialLogin`
+     
+     ```typescript
+     import { ScialLogin } from '@capgo/capacitor-social-login';
+     ```
+   
+   - Then, you want to call initialize. I recommend calling this ONLY once.
+     
+     ```ts
+     // onMounted is Vue specific
+     // webClientId is the client ID you got in the web client creation step not the android client ID.
+     onMounted(() => {
      SocialLogin.initialize({
        google: {
          webClientId: '673324426943-avl4v9ubdas7a0u7igf7in03pdj1dkmg.apps.googleusercontent.com',
        }
      })
-    })
-    ```
-    
-    Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
-    
-    ```ts
-    const res = await SocialLogin.login({
+     })
+     ```
+     
+     Later, you want to call `SocialLogin.login`. I recommend creating a button and running the following code on click.
+     
+     ```ts
+     const res = await SocialLogin.login({
      provider: 'google',
      options: {}
-    })
-    // handle the response. popoutStore is specific to my app
-    popoutStore.popout("Google login", JSON.stringify(response))
-    ```
+     })
+     // handle the response. popoutStore is specific to my app
+     popoutStore.popout("Google login", JSON.stringify(response))
+     ```
+
 5. Before continuing, please ensure that you either use a physical device that supports Google Play Services or that you configure the emulator correctly. I will be using the emulator. Not every emulator will work with Google Login, so I will show you how to set one up
    
    - First, go into `Device manager` and click the plus button
@@ -412,7 +413,7 @@ In this part, you will learn how to setup Google login in Android
      ![](./assets/emul_and_settings_update_play_store.png)
 
 6- If you did everything correctly, you should see the following
-   
+
    ![](./assets/google_android_final_login_show.gif)
 
 ### Using Google login on the web
