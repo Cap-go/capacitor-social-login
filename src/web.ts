@@ -189,6 +189,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         console.log(
           "Google logout: Id token should be revoked on the client side if stored",
         );
+        // eslint-disable-next-line
         const state = this.getGoogleState();
         if (!state) return;
         await this.rawLogoutGoogle(state.accessToken);
@@ -330,6 +331,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           );
         }
         // For Google, we can check if there's a valid token
+        // eslint-disable-next-line
         const state = this.getGoogleState();
         if (!state) return { isLoggedIn: false };
 
@@ -380,6 +382,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           );
         }
         // For Google, we can use the id_token as the authorization code
+        // eslint-disable-next-line
         const state = this.getGoogleState();
         if (!state) throw new Error("No Google authorization code available");
 

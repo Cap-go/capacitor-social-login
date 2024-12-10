@@ -39,10 +39,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             var mode = GoogleProviderLoginType.ONLINE
             if let modeStr = modeStr {
                 switch modeStr {
-                    case "online":
-                        mode = GoogleProviderLoginType.ONLINE
-                    case "offline":
-                        mode = GoogleProviderLoginType.OFFLINE
+                case "online":
+                    mode = GoogleProviderLoginType.ONLINE
+                case "offline":
+                    mode = GoogleProviderLoginType.OFFLINE
                 case _:
                     call.reject("google.mode != (online || offline)")
                     return
