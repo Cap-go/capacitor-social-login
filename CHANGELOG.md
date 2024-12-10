@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.77-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.76...0.0.77-alpha.0) (2024-12-10)
+
+
+### Features
+
+* fix 'ID' field problem in the  GoogleProvider Android ([ed4f563](https://github.com/Cap-go/capacitor-social-login/commit/ed4f56382e39d14c6f2517fb715206a643ec9d61)), closes [#76](https://github.com/Cap-go/capacitor-social-login/issues/76)
+* port development part 1 ([5f09d26](https://github.com/Cap-go/capacitor-social-login/commit/5f09d267a1bd985b5b8012369ba21e2756d13c24))
+* port development part 2 ([74f198d](https://github.com/Cap-go/capacitor-social-login/commit/74f198d736f7903fd77a1bfc203edd8b2e2e6d72))
+* port offline_mode on android + fixes on web ([11a3236](https://github.com/Cap-go/capacitor-social-login/commit/11a3236a877e33a1cecde53375f3e9ad17a0ac02))
+* port offline_mode on iOS ([3c96fc7](https://github.com/Cap-go/capacitor-social-login/commit/3c96fc764553610c3cc4bea3bc72901b86651e1b))
+
 ### [0.0.76](https://github.com/Cap-go/capacitor-social-login/compare/0.0.75...0.0.76) (2024-11-29)
 
 
