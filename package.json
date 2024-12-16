@@ -58,7 +58,7 @@
     "@ionic/swiftlint-config": "^2.0.0",
     "@types/google.accounts": "^0.0.15",
     "@types/node": "^22.10.1",
-    "eslint": "^8.57.1",
+    "eslint": "^9.0.0",
     "eslint-plugin-import": "^2.29.1",
     "prettier": "^3.3.3",
     "prettier-plugin-java": "^2.6.5",
