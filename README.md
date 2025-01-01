@@ -45,7 +45,7 @@ await SocialLogin.initialize({
 const res = await SocialLogin.login({
   provider: 'apple',
   options: {
-    scopes: ['email', 'profile'],
+    scopes: ['email', 'name'],
   },
 });
 ```
@@ -63,7 +63,7 @@ await SocialLogin.initialize({
 const res = await SocialLogin.login({
   provider: 'apple',
   options: {
-    scopes: ['email', 'profile'],
+    scopes: ['email', 'name'],
   },
 });
 ```
