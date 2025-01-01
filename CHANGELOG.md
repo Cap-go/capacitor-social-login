@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.82](https://github.com/Cap-go/capacitor-social-login/compare/0.0.81...0.0.82) (2025-01-01)
+
+
+### Bug Fixes
+
+* invalid scope in readme ([09cac53](https://github.com/Cap-go/capacitor-social-login/commit/09cac53833df5c421748948f8d8f1e1993bfebcc)), closes [#80](https://github.com/Cap-go/capacitor-social-login/issues/80)
+
 ### [0.0.81](https://github.com/Cap-go/capacitor-social-login/compare/0.0.80...0.0.81) (2024-12-10)
 
 ### [0.0.80](https://github.com/Cap-go/capacitor-social-login/compare/0.0.79...0.0.80) (2024-12-10)
