@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.83](https://github.com/Cap-go/capacitor-social-login/compare/0.0.82...0.0.83) (2025-01-01)
+
+
+### Bug Fixes
+
+* prevent auto init FB ([9442714](https://github.com/Cap-go/capacitor-social-login/commit/94427148ce760e69cb3f604edccb6fb27b7332f3))
+
 ### [0.0.82](https://github.com/Cap-go/capacitor-social-login/compare/0.0.81...0.0.82) (2025-01-01)
 
 
