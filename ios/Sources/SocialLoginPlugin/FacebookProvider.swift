@@ -140,7 +140,7 @@ class FacebookProvider {
 
     func refresh(viewController: UIViewController?, completion: @escaping (Result<SocialLoginUser, Error>) -> Void) {
         DispatchQueue.main.async {
-            if let token = AccessToken.current, !token.isExpired {
+            if let token = AccessToken.current, !token.isExpired, !token.isDataAccessExpired {
                 // let expiresIn = Int(token.expirationDate.timeIntervalSinceNow)
                 completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
             } else {

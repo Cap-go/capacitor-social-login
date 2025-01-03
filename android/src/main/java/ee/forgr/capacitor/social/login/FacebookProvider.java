@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import androidx.activity.result.ActivityResultRegistryOwner;
+import androidx.annotation.Nullable;
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
@@ -179,7 +180,43 @@ public class FacebookProvider implements SocialProvider {
   @Override
   public void refresh(PluginCall call) {
     // Not implemented for Facebook
-    call.reject("Not implemented");
+    AccessToken accessToken = AccessToken.getCurrentAccessToken();
+    if (accessToken == null) {
+      call.reject("No access token?");
+      return;
+    }
+    if (!accessToken.isDataAccessExpired() && !accessToken.isExpired()) {
+      JSObject ret = new JSObject();
+      ret.put("accessToken", accessToken.getToken());
+      call.resolve(ret);
+      return;
+    }
+    AccessToken.refreshCurrentAccessTokenAsync(
+      new AccessToken.AccessTokenRefreshCallback() {
+        @Override
+        public void OnTokenRefreshed(@Nullable AccessToken accessToken) {
+          if (accessToken == null) {
+            call.reject("Success, but refresh token is null ???");
+            return;
+          }
+          JSObject ret = new JSObject();
+          ret.put("accessToken", accessToken.getToken());
+          call.resolve(ret);
+        }
+
+        @Override
+        public void OnTokenRefreshFailed(@Nullable FacebookException e) {
+          if (e != null) {
+            Log.e(SocialLoginPlugin.LOG_TAG, "Facebook token refresh error", e);
+            call.reject(
+              String.format("Cannot refresh token. %s", e.toString())
+            );
+          } else {
+            call.reject("Cannot refresh token");
+          }
+        }
+      }
+    );
   }
 
   public boolean handleOnActivityResult(
