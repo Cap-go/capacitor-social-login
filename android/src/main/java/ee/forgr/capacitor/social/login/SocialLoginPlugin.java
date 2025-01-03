@@ -164,18 +164,18 @@ public class SocialLoginPlugin extends Plugin {
 
   @PluginMethod
   public void refresh(PluginCall call) {
-    String provider = call.getString("provider");
-    //    if (provider.equals("facebook")) {
-    //      facebookProvider.refresh(call);
-    //    } else if (provider.equals("google")) {
-    //      googleProvider.refresh(call);
-    //    } else if (provider.equals("twitter")) {
-    //      twitterProvider.refresh(call);
-    //    } else if (provider.equals("apple")) {
-    //      appleProvider.refresh(call);
-    //    } else {
-    //      call.reject("Unsupported social login provider: " + provider);
-    //    }
+    String providerStr = call.getString("provider", "");
+    if (providerStr == null || providerStr.isEmpty()) {
+      call.reject("provider not provided");
+    }
+
+    SocialProvider provider = this.socialProviderHashMap.get(providerStr);
+    if (provider == null) {
+      call.reject(String.format("Cannot find provider '%s'", providerStr));
+      return;
+    }
+
+    provider.refresh(call);
   }
 
   public void handleAppleLoginIntent(Intent intent) {

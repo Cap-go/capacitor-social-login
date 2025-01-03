@@ -45,7 +45,7 @@ class GoogleProvider {
                         return
                     }
                     completion(.success(self.createLoginResponse(user: result.user)))
-                } 
+                }
             }
 
             if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {

@@ -101,11 +101,11 @@ public class GoogleProvider implements SocialProvider {
     }
     // Remove duplicates from scopes array
     if (scopesArray != null) {
-        Set<String> uniqueScopes = new HashSet<>();
-        for (int i = 0; i < scopesArray.length(); i++) {
-            uniqueScopes.add(scopesArray.optString(i));
-        }
-        scopesArray = new JSONArray(uniqueScopes);
+      Set<String> uniqueScopes = new HashSet<>();
+      for (int i = 0; i < scopesArray.length(); i++) {
+        uniqueScopes.add(scopesArray.optString(i));
+      }
+      scopesArray = new JSONArray(uniqueScopes);
     }
     if (scopesArray != null) {
       this.scopes = new String[scopesArray.length()];
