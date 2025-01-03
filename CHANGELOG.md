@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.84](https://github.com/Cap-go/capacitor-social-login/compare/0.0.83...0.0.84) (2025-01-03)
+
+
+### Features
+
+* refresh token for facebook (iOS) ([e7d7939](https://github.com/Cap-go/capacitor-social-login/commit/e7d79394c5d2eaf93e53e0bb94153d9fd3d4d34d)), closes [#85](https://github.com/Cap-go/capacitor-social-login/issues/85)
+
 ### [0.0.83](https://github.com/Cap-go/capacitor-social-login/compare/0.0.82...0.0.83) (2025-01-01)
 
 
