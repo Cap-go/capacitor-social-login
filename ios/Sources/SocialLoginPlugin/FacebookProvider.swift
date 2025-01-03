@@ -138,14 +138,15 @@ class FacebookProvider {
         }
     }
 
-    func refresh(viewController: UIViewController?, completion: @escaping (Result<Void, Error>) -> Void) {
+    func refresh(viewController: UIViewController?, completion: @escaping (Result<SocialLoginUser, Error>) -> Void) {
         DispatchQueue.main.async {
             if let token = AccessToken.current, !token.isExpired {
-                completion(.success(()))
+                // let expiresIn = Int(token.expirationDate.timeIntervalSinceNow)
+                completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
             } else {
                 self.loginManager.reauthorizeDataAccess(from: viewController!) { loginResult, error in
-                    if let _ = loginResult?.token {
-                        completion(.success(()))
+                    if let token = loginResult?.token {
+                        completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
                     } else {
                         completion(.failure(error ?? NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Reauthorization failed"])))
                     }
