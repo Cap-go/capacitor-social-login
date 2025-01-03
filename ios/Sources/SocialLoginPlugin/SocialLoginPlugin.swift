@@ -15,7 +15,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isLoggedIn", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getAuthorizationCode", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getUserInfo", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise)
+
     ]
     private let apple = AppleProvider()
     private let facebook = FacebookProvider()
