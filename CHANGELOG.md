@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.87-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.86...0.0.87-alpha.0) (2025-01-04)
+
+### [0.0.77-alpha.3](https://github.com/Cap-go/capacitor-social-login/compare/0.0.77-alpha.2...0.0.77-alpha.3) (2025-01-04)
+
+
+### Features
+
+* docs changes ([502482e](https://github.com/Cap-go/capacitor-social-login/commit/502482e8a51edf08a34e8ba1f6ae695eefc283d3))
+
+### [0.0.77-alpha.2](https://github.com/Cap-go/capacitor-social-login/compare/0.0.85...0.0.77-alpha.2) (2025-01-04)
+
+### [0.0.77-alpha.1](https://github.com/Cap-go/capacitor-social-login/compare/0.0.77-alpha.0...0.0.77-alpha.1) (2024-12-10)
+
+
+### Bug Fixes
+
+* bun file ([cde056c](https://github.com/Cap-go/capacitor-social-login/commit/cde056c0b0ca27995ce8b231841929b7b96a5e05))
+* lint issue ([3181d8d](https://github.com/Cap-go/capacitor-social-login/commit/3181d8d8336f63f30ef267071ddfa2f8fd30f139))
+
+### [0.0.77-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.76...0.0.77-alpha.0) (2024-12-10)
+
+
+### Features
+
+* fix 'ID' field problem in the  GoogleProvider Android ([ed4f563](https://github.com/Cap-go/capacitor-social-login/commit/ed4f56382e39d14c6f2517fb715206a643ec9d61)), closes [#76](https://github.com/Cap-go/capacitor-social-login/issues/76)
+* port development part 1 ([5f09d26](https://github.com/Cap-go/capacitor-social-login/commit/5f09d267a1bd985b5b8012369ba21e2756d13c24))
+* port development part 2 ([74f198d](https://github.com/Cap-go/capacitor-social-login/commit/74f198d736f7903fd77a1bfc203edd8b2e2e6d72))
+* port offline_mode on android + fixes on web ([11a3236](https://github.com/Cap-go/capacitor-social-login/commit/11a3236a877e33a1cecde53375f3e9ad17a0ac02))
+* port offline_mode on iOS ([3c96fc7](https://github.com/Cap-go/capacitor-social-login/commit/3c96fc764553610c3cc4bea3bc72901b86651e1b))
+
 ### [0.0.77-alpha.3](https://github.com/Cap-go/capacitor-social-login/compare/0.0.77-alpha.2...0.0.77-alpha.3) (2025-01-04)
 
 
