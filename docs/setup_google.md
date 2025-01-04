@@ -43,7 +43,7 @@ This step is required regardless of which the platform you decide to use. In thi
        ![](./assets/google_cons_app_inf.png)
        Please type in your `App Name`. **WARNING: THIS WILL BE DISPLAYED TO THE USERS**
        
-       Next, please enter the User support email. You can learn more about the support email [here]([Setting up your OAuth consent screen - Google Cloud Platform Console Help](https://support.google.com/cloud/answer/10311615#user-support-email&zippy=%2Cuser-support-email))
+       Next, please enter the User support email. You can learn more about the support email [here](https://support.google.com/cloud/answer/10311615#user-support-email&zippy=%2Cuser-support-email)
      
      - Then, you **CAN** add the app logo. This is not obligatory and I will skip this step
        ![](./assets/google_cons_app_logo.png)
@@ -423,36 +423,35 @@ In order to use it, you have to do the following:
 
 1. Create a web client in the Google Console.
    
-   - Please follow step 2 of the `Using Google login on Android` if you have not configured it already
+  - Please follow step 2 of the `Using Google login on Android` if you have not configured it already
+2. Configure the web client in the Google Console
 
-2- Configure the web client in the Google Console
+  - Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
+    ![](./assets/google_cons_open_web_client_id.png)
 
-- Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
-  ![](./assets/google_cons_open_web_client_id.png)
+  - Now, please add the `Authorized JavaScript origins`. This should include all the addresses that you might use for your app. In might case, I will **ONLY** use localhost, but since I use a custom port I have to add both `http://localhost` and `http://localhost:5173`
+    
+    - Please click on `add URI`
+      ![](./assets/google_cons_authorized_js_add_btn.png)
+    
+    - Please type your URL
+      ![](./assets/google_cons_authorized_js_typed_url.png)
+    
+    - Please repeat until you added all the URLs
+    
+    - When you finish, your screen should look something like this
+      ![](./assets/google_cons_authorized_js_final.png)
 
-- Now, please add the `Authorized JavaScript origins`. This should include all the addresses that you might use for your app. In might case, I will **ONLY** use localhost, but since I use a custom port I have to add both `http://localhost` and `http://localhost:5173`
-  
-  - Please click on `add URI`
-    ![](./assets/google_cons_authorized_js_add_btn.png)
-  
-  - Please type your URL
-    ![](./assets/google_cons_authorized_js_typed_url.png)
-  
-  - Please repeat until you added all the URLs
-  
-  - When you finish, your screen should look something like this
-    ![](./assets/google_cons_authorized_js_final.png)
+  - Now, please add some `Authorized redirect URIs`. This will depend on what page do you depend to use the CapacitorSocialLogin plugin on. In my case, I am going to be using it on `http://localhost:5173/auth` 
+    
+    - Please click on `ADD URI`
+      ![](./assets/google_cons_web_add_redirect_url_1.png)
+    
+    - Enter your URL and click `ADD URL` again
+      ![](./assets/google_cons_web_add_redirect_url_2.png)
 
-- Now, please add some `Authorized redirect URIs`. This will depend on what page do you depend to use the CapacitorSocialLogin plugin on. In my case, I am going to be using it on `http://localhost:5173/auth` 
-  
-  - Please click on `ADD URI`
-    ![](./assets/google_cons_web_add_redirect_url_1.png)
-  
-  - Enter your URL and click `ADD URL` again
-    ![](./assets/google_cons_web_add_redirect_url_2.png)
-
-- Click `save`
-  ![](./assets/google_cons_web_app_save.png)
+  - Click `save`
+    ![](./assets/google_cons_web_app_save.png)
 3. Now, you should be ready to call `login` from JavaScript like so:
 - First, you need import `SocialLogin`
   

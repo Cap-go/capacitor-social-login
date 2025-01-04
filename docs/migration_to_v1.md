@@ -29,6 +29,9 @@ V1 is just a port of the development version into main. It does, however, includ
 - Please add redirect urls in the Google Console. Without adding redirect urls, Google login will not work. 
   
   - Again, please follow the [Google Setup Guide](./setup_google.md). Specifically, please search for `Authorized redirect URIs`
+
+- Please ensure that you are not using `grantOfflineAccess` in the config. This feature is not supported in V1.
+
 - Please ensure that authentication works on all the platforms.
 
 ### Migration from the V0 development version
