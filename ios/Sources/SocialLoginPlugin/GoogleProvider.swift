@@ -1,14 +1,21 @@
 import Foundation
 import GoogleSignIn
 
+enum GoogleProviderLoginType {
+    case OFFLINE
+    case ONLINE
+}
+
 class GoogleProvider {
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
     var defaultGrantedScopes = ["email", "profile", "openid"]
+    var mode = GoogleProviderLoginType.ONLINE
 
-    func initialize(clientId: String, serverClientId: String? = nil) {
+    func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId)
+        self.mode = mode
 
         GIDSignIn.sharedInstance.configuration = configuration
 
@@ -44,18 +51,26 @@ class GoogleProvider {
                         completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No result returned"])))
                         return
                     }
-                    completion(.success(self.createLoginResponse(user: result.user)))
+                    if self.mode == .OFFLINE {
+                        guard let serverAuthCode = result.serverAuthCode else {
+                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Cannot find serverAuthCode"])))
+                            return
+                        }
+                        completion(.success(self.createOfflineResponse(serverAuthCode: result.serverAuthCode ?? "")))
+                    } else {
+                        completion(.success(self.mode == .ONLINE ? self.createOnlineLoginResponse(user: result.user) : self.createOfflineResponse(serverAuthCode: result.serverAuthCode ?? "")))
+                    }
                 }
             }
 
-            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode {
+            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode && self.mode != .OFFLINE {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                     if let error = error {
                         // completion(.failure(error))
                         login()
                         return
                     }
-                    completion(.success(self.createLoginResponse(user: user!)))
+                    completion(.success(self.createOnlineLoginResponse(user: user!)))
                 }
             } else {
                 login()
@@ -64,6 +79,10 @@ class GoogleProvider {
     }
 
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
+        if self.mode == .OFFLINE {
+            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "logout is not implemented when using offline mode"])))
+            return
+        }
         DispatchQueue.main.async {
             GIDSignIn.sharedInstance.signOut()
             completion(.success(()))
@@ -71,6 +90,10 @@ class GoogleProvider {
     }
 
     func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
+        if self.mode == .OFFLINE {
+            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "isLoggedIn is not implemented when using offline mode"])))
+            return
+        }
         DispatchQueue.main.async {
             if GIDSignIn.sharedInstance.currentUser != nil {
                 completion(.success(true))
@@ -90,11 +113,26 @@ class GoogleProvider {
         }
     }
 
-    func getAuthorizationCode(completion: @escaping (Result<String, Error>) -> Void) {
+    func getAuthorizationCode(completion: @escaping (Result<GoogleLoginResponse.Authentication, Error>) -> Void) {
+        if self.mode == .OFFLINE {
+            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "getAuthorizationCode is not implemented when using offline mode"])))
+            return
+        }
         DispatchQueue.main.async {
-            if let currentUser = GIDSignIn.sharedInstance.currentUser, let idToken = currentUser.idToken?.tokenString {
-                completion(.success(idToken))
-                return
+            if let user = GIDSignIn.sharedInstance.currentUser {
+                user.refreshTokensIfNeeded { user, error in
+                    guard error == nil else {
+                        completion(.failure(error!))
+                        return
+                    }
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User guard failed??"])))
+                        return
+                    }
+
+                    completion(.success(GoogleLoginResponse.Authentication(accessToken: user.accessToken.tokenString, idToken: user.idToken?.tokenString, refreshToken: nil)))
+                    return
+                }
             }
             if GIDSignIn.sharedInstance.hasPreviousSignIn() {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
@@ -102,14 +140,27 @@ class GoogleProvider {
                         completion(.failure(error))
                         return
                     }
-                    if let user = user, let idToken = user.idToken?.tokenString {
-                        completion(.success(idToken))
+                    guard let user = user else {
+                        completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "2nd User guard failed??"])))
                         return
                     }
-                    completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+
+                    user.refreshTokensIfNeeded { user, error in
+                        guard error == nil else {
+                            completion(.failure(error!))
+                            return
+                        }
+                        guard let user = user else {
+                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "3rd user guard failed??"])))
+                            return
+                        }
+
+                        completion(.success(GoogleLoginResponse.Authentication(accessToken: user.accessToken.tokenString, idToken: user.idToken?.tokenString, refreshToken: nil)))
+                        return
+                    }
                 }
             } else {
-                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "AuthorizationCode not found for google login"])))
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User is not logged in"])))
             }
         }
     }
@@ -135,7 +186,7 @@ class GoogleProvider {
         return nil
     }
 
-    private func createLoginResponse(user: GIDGoogleUser) -> GoogleLoginResponse {
+    private func createOnlineLoginResponse(user: GIDGoogleUser) -> GoogleLoginResponse {
         return GoogleLoginResponse(
             authentication: GoogleLoginResponse.Authentication(
                 accessToken: user.accessToken.tokenString,
@@ -150,6 +201,12 @@ class GoogleProvider {
             imageUrl: user.profile?.imageURL(withDimension: 100)?.absoluteString
         )
     }
+    private func createOfflineResponse(serverAuthCode: String) -> GoogleLoginResponse {
+        return GoogleLoginResponse(
+            authentication: GoogleLoginResponse.Authentication(
+                accessToken: "", idToken: nil, refreshToken: nil
+            ), email: nil, familyName: nil, givenName: nil, id: nil, name: nil, imageUrl: nil, serverAuthCode: serverAuthCode)
+    }
 }
 
 struct GoogleLoginResponse {
@@ -160,6 +217,7 @@ struct GoogleLoginResponse {
     let id: String?
     let name: String?
     let imageUrl: String?
+    var serverAuthCode: String?
 
     struct Authentication {
         let accessToken: String

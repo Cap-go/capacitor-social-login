@@ -63,7 +63,20 @@ public class SocialLoginPlugin extends Plugin {
         call.reject("google.clientId is null or empty");
         return;
       }
-      googleProvider.initialize(googleClientId);
+      String modestr = google.getString("mode", "online");
+      GoogleProvider.GoogleProviderLoginType mode = null;
+      switch (modestr) {
+        case "online":
+          mode = GoogleProvider.GoogleProviderLoginType.ONLINE;
+          break;
+        case "offline":
+          mode = GoogleProvider.GoogleProviderLoginType.OFFLINE;
+          break;
+        default:
+          call.reject("google.mode != (online || offline)");
+          return;
+      }
+      googleProvider.initialize(googleClientId, mode);
       this.socialProviderHashMap.put("google", googleProvider);
     }
 
@@ -176,6 +189,25 @@ public class SocialLoginPlugin extends Plugin {
     }
 
     provider.refresh(call);
+  }
+
+  public void handleGoogleLoginIntent(int requestCode, Intent intent) {
+    try {
+      SocialProvider provider = socialProviderHashMap.get("google");
+      if (!(provider instanceof GoogleProvider)) {
+        Log.e(
+          SocialLoginPlugin.LOG_TAG,
+          "Provider is not a Google provider (could be null)"
+        );
+        return;
+      }
+      ((GoogleProvider) provider).handleAuthorizationIntent(
+          requestCode,
+          intent
+        );
+    } catch (Throwable t) {
+      Log.e(SocialLoginPlugin.LOG_TAG, "Cannot handle Google login intent");
+    }
   }
 
   public void handleAppleLoginIntent(Intent intent) {

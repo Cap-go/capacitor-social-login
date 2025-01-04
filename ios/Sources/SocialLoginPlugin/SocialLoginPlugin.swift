@@ -37,11 +37,25 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             let iOSClientId = googleSettings["iOSClientId"] as? String
             let iOSServerClientId = googleSettings["iOSServerClientId"] as? String
 
+            let modeStr = googleSettings["mode"] as? String
+            var mode = GoogleProviderLoginType.ONLINE
+            if let modeStr = modeStr {
+                switch modeStr {
+                case "online":
+                    mode = GoogleProviderLoginType.ONLINE
+                case "offline":
+                    mode = GoogleProviderLoginType.OFFLINE
+                case _:
+                    call.reject("google.mode != (online || offline)")
+                    return
+                }
+            }
+
             if let clientId = iOSClientId {
                 if let serverClientId = iOSServerClientId {
-                    google.initialize(clientId: clientId, serverClientId: serverClientId)
+                    google.initialize(clientId: clientId, mode: mode, serverClientId: serverClientId)
                 } else {
-                    google.initialize(clientId: clientId, serverClientId: nil)
+                    google.initialize(clientId: clientId, mode: mode, serverClientId: nil)
                 }
                 initialized = true
             }
@@ -86,7 +100,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             self.google.getAuthorizationCode { res in
                 do {
                     let authorizationCode = try res.get()
-                    call.resolve([ "jwt": authorizationCode ])
+                    call.resolve([ "jwt": authorizationCode.idToken ?? "", "accessToken": authorizationCode.accessToken ])
                 } catch {
                     call.reject(error.localizedDescription)
                 }
@@ -278,6 +292,17 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "result": appleResult
                 ])
             } else if let googleResponse = response as? GoogleLoginResponse {
+                if let serverAuthCode = googleResponse.serverAuthCode {
+                    let googleResult: [String: Any] = [
+                        "serverAuthCode": serverAuthCode,
+                        "responseType": "offline"
+                    ]
+                    call.resolve([
+                        "provider": "google",
+                        "result": googleResult
+                    ])
+                    return
+                }
                 let accessToken: [String: Any] = [
                     "token": googleResponse.authentication.accessToken,
                     "refreshToken": googleResponse.authentication.refreshToken as Any,
@@ -294,7 +319,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 let googleResult: [String: Any] = [
                     "accessToken": accessToken,
                     "idToken": googleResponse.authentication.idToken ?? "",
-                    "profile": profile
+                    "profile": profile,
+                    "responseType": "online"
                 ]
                 call.resolve([
                     "provider": "google",

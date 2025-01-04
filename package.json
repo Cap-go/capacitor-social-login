@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-social-login",
-  "version": "0.0.86",
+  "version": "0.0.87-alpha.0",
   "description": "All social logins in one plugin",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -59,11 +59,11 @@
     "@types/google.accounts": "^0.0.15",
     "@types/node": "^22.10.1",
     "eslint": "^8.57.1",
-    "eslint-plugin-import": "^2.29.1",
-    "prettier": "^3.3.3",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.4.2",
     "prettier-plugin-java": "^2.6.5",
     "rimraf": "^6.0.1",
-    "rollup": "^4.27.4",
+    "rollup": "^4.28.1",
     "swiftlint": "^2.0.0",
     "typescript": "5.7.2"
   },

@@ -32,6 +32,12 @@ export interface InitializeOptions {
      * @since 3.1.0
      */
     webClientId?: string;
+    /**
+     * The login mode, can be online or offline.
+     * @example offline
+     * @since 3.1.0
+     */
+    mode?: "online" | "offline";
   };
   apple?: {
     /**
@@ -78,16 +84,14 @@ export interface GoogleLoginOptions {
    */
   nonce?: string;
   /**
-   * Set if your application needs to refresh access tokens when the user is not present at the browser. it will add offline_access to the scopes
-   * In response use `serverAuthCode` key
-   *
+   * Force refresh token (only for Android)
+   * @description force refresh token
    * @default false
-   * @since 0.0.69
-   * */
-  grantOfflineAccess?: boolean;
+   */
+  forceRefreshToken?: boolean;
 }
 
-export interface GoogleLoginResponse {
+interface GoogleLoginResponseOnline {
   accessToken: AccessToken | null;
   idToken: string | null;
   profile: {
@@ -98,7 +102,17 @@ export interface GoogleLoginResponse {
     name: string | null;
     imageUrl: string | null;
   };
+  responseType: "online";
 }
+
+interface GoogleLoginResponseOffline {
+  serverAuthCode: string;
+  responseType: "offline";
+}
+
+export type GoogleLoginResponse =
+  | GoogleLoginResponseOnline
+  | GoogleLoginResponseOffline;
 
 export interface AppleProviderOptions {
   /**
@@ -194,7 +208,12 @@ export interface AuthorizationCode {
    * Jwt
    * @description A JSON web token
    */
-  jwt: string;
+  jwt?: string;
+  /**
+   * Access Token
+   * @description An access token
+   */
+  accessToken?: string;
 }
 
 export interface AuthorizationCodeOptions {
