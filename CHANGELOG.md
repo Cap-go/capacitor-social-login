@@ -32,6 +32,8 @@ All notable changes to this project will be documented in this file. See [standa
 * lint issue ([3181d8d](https://github.com/Cap-go/capacitor-social-login/commit/3181d8d8336f63f30ef267071ddfa2f8fd30f139))
 
 ### [0.0.77-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.76...0.0.77-alpha.0) (2024-12-10)
+### [0.0.86](https://github.com/Cap-go/capacitor-social-login/compare/0.0.85...0.0.86) (2025-01-04)
+
 ### [0.0.85](https://github.com/Cap-go/capacitor-social-login/compare/0.0.84...0.0.85) (2025-01-03)
 
 

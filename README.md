@@ -70,6 +70,8 @@ const res = await SocialLogin.login({
 
 ## Facebook
 
+Docs: [How to setup facebook login](./docs/setup_facebook.md)
+
 ### Android configuration
 
 More information can be found here: https://developers.facebook.com/docs/android/getting-started
