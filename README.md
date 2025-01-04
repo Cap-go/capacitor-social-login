@@ -15,6 +15,8 @@ This plugin implement social auth for:
 
 We plan in the future to keep adding others social login and make this plugin the all in one solution.
 
+This plugin is the only one who implement all 3 majors social login on WEB, IOS and Android
+
 ## Install
 
 ```bash
@@ -43,7 +45,7 @@ await SocialLogin.initialize({
 const res = await SocialLogin.login({
   provider: 'apple',
   options: {
-    scopes: ['email', 'profile'],
+    scopes: ['email', 'name'],
   },
 });
 ```
@@ -61,7 +63,7 @@ await SocialLogin.initialize({
 const res = await SocialLogin.login({
   provider: 'apple',
   options: {
-    scopes: ['email', 'profile'],
+    scopes: ['email', 'name'],
   },
 });
 ```
@@ -473,3 +475,8 @@ Refresh the access token
 <code>T extends U ? T : never</code>
 
 </docgen-api>
+
+### Credits
+
+This plugin implementation of google is based on [CapacitorGoogleAuth](https://github.com/CodetrixStudio/CapacitorGoogleAuth) with a lot of rework, the current maintainer is unreachable, we are thankful for his work and are now going forward on our own!
+Thanks to [reslear](https://github.com/reslear) for helping to tranfer users to this plugin from the old one and all the work.

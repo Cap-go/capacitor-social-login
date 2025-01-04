@@ -323,8 +323,16 @@ public class GoogleProvider implements SocialProvider {
     String nonce = call.getString("nonce");
 
     // Extract scopes from the config
-    // Extract scopes from the config
     JSONArray scopesArray = config.optJSONArray("scopes");
+    
+    // Remove duplicates from scopes array
+    if (scopesArray != null) {
+      Set<String> uniqueScopes = new HashSet<>();
+      for (int i = 0; i < scopesArray.length(); i++) {
+        uniqueScopes.add(scopesArray.optString(i));
+      }
+      scopesArray = new JSONArray(uniqueScopes);
+    }
     if (scopesArray != null) {
       if (
         !(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)

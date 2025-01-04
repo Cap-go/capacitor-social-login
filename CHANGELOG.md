@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file. See [standa
 * lint issue ([3181d8d](https://github.com/Cap-go/capacitor-social-login/commit/3181d8d8336f63f30ef267071ddfa2f8fd30f139))
 
 ### [0.0.77-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/0.0.76...0.0.77-alpha.0) (2024-12-10)
+### [0.0.85](https://github.com/Cap-go/capacitor-social-login/compare/0.0.84...0.0.85) (2025-01-03)
 
 
 ### Features
@@ -20,6 +21,49 @@ All notable changes to this project will be documented in this file. See [standa
 * port development part 2 ([74f198d](https://github.com/Cap-go/capacitor-social-login/commit/74f198d736f7903fd77a1bfc203edd8b2e2e6d72))
 * port offline_mode on android + fixes on web ([11a3236](https://github.com/Cap-go/capacitor-social-login/commit/11a3236a877e33a1cecde53375f3e9ad17a0ac02))
 * port offline_mode on iOS ([3c96fc7](https://github.com/Cap-go/capacitor-social-login/commit/3c96fc764553610c3cc4bea3bc72901b86651e1b))
+* refresh Facebook on Android ([3d54d9f](https://github.com/Cap-go/capacitor-social-login/commit/3d54d9f574fafd5eb4d88e52795a0e62580d18d2))
+
+### [0.0.84](https://github.com/Cap-go/capacitor-social-login/compare/0.0.83...0.0.84) (2025-01-03)
+
+
+### Features
+
+* refresh token for facebook (iOS) ([e7d7939](https://github.com/Cap-go/capacitor-social-login/commit/e7d79394c5d2eaf93e53e0bb94153d9fd3d4d34d)), closes [#85](https://github.com/Cap-go/capacitor-social-login/issues/85)
+
+### [0.0.83](https://github.com/Cap-go/capacitor-social-login/compare/0.0.82...0.0.83) (2025-01-01)
+
+
+### Bug Fixes
+
+* prevent auto init FB ([9442714](https://github.com/Cap-go/capacitor-social-login/commit/94427148ce760e69cb3f604edccb6fb27b7332f3))
+
+### [0.0.82](https://github.com/Cap-go/capacitor-social-login/compare/0.0.81...0.0.82) (2025-01-01)
+
+
+### Bug Fixes
+
+* invalid scope in readme ([09cac53](https://github.com/Cap-go/capacitor-social-login/commit/09cac53833df5c421748948f8d8f1e1993bfebcc)), closes [#80](https://github.com/Cap-go/capacitor-social-login/issues/80)
+
+### [0.0.81](https://github.com/Cap-go/capacitor-social-login/compare/0.0.80...0.0.81) (2024-12-10)
+
+### [0.0.80](https://github.com/Cap-go/capacitor-social-login/compare/0.0.79...0.0.80) (2024-12-10)
+
+### [0.0.79](https://github.com/Cap-go/capacitor-social-login/compare/0.0.78...0.0.79) (2024-12-10)
+
+
+### Bug Fixes
+
+* issue lock ([ab51a51](https://github.com/Cap-go/capacitor-social-login/commit/ab51a51fb433dab063bb9cdd4df3b0297a297053))
+
+### [0.0.78](https://github.com/Cap-go/capacitor-social-login/compare/0.0.77...0.0.78) (2024-12-10)
+
+### [0.0.77](https://github.com/Cap-go/capacitor-social-login/compare/0.0.76...0.0.77) (2024-12-10)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.androidbrowserhelper:androidbrowserhelper to v2.5.0 ([c1e6d42](https://github.com/Cap-go/capacitor-social-login/commit/c1e6d425aa474c22fcfcdb3d6dd41b28491d6027))
+* **deps:** update dependency com.squareup.okhttp3:okhttp to v4.12.0 ([049c237](https://github.com/Cap-go/capacitor-social-login/commit/049c237c5818e95dc8a738393340760a33326d8e))
 
 ### [0.0.76](https://github.com/Cap-go/capacitor-social-login/compare/0.0.75...0.0.76) (2024-11-29)
 

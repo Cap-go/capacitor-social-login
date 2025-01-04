@@ -57,7 +57,7 @@
     "@ionic/prettier-config": "^4.0.0",
     "@ionic/swiftlint-config": "^2.0.0",
     "@types/google.accounts": "^0.0.15",
-    "@types/node": "^20.12.12",
+    "@types/node": "^22.10.1",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.31.0",
     "prettier": "^3.4.2",
@@ -65,7 +65,7 @@
     "rimraf": "^6.0.1",
     "rollup": "^4.28.1",
     "swiftlint": "^2.0.0",
-    "typescript": "5.1.6"
+    "typescript": "5.7.2"
   },
   "peerDependencies": {
     "@capacitor/core": "^6.0.0"
@@ -83,5 +83,5 @@
       "src": "android"
     }
   },
-  "packageManager": "pnpm@9.12.2+sha512.22721b3a11f81661ae1ec68ce1a7b879425a1ca5b991c975b074ac220b187ce56c708fe5db69f4c962c989452eee76c82877f4ee80f474cebd61ee13461b6228"
+  "packageManager": "pnpm@9.15.0"
 }
