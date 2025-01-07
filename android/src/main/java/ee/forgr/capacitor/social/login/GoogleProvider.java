@@ -324,7 +324,7 @@ public class GoogleProvider implements SocialProvider {
 
     // Extract scopes from the config
     JSONArray scopesArray = config.optJSONArray("scopes");
-    
+
     // Remove duplicates from scopes array
     if (scopesArray != null) {
       Set<String> uniqueScopes = new HashSet<>();
