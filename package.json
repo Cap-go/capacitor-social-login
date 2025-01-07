@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-social-login",
-  "version": "0.0.87",
+  "version": "0.1.0",
   "description": "All social logins in one plugin",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
