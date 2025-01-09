@@ -311,10 +311,13 @@ In this part, you will learn how to setup Google login in Android
   import ee.forgr.capacitor.social.login.GoogleProvider;
   import ee.forgr.capacitor.social.login.SocialLoginPlugin
   import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
+  import com.getcapacitor.PluginHandle;
+  import com.getcapacitor.Plugin;
   import android.content.Intent;
+  import android.util.Log;
   
   // ModifiedMainActivityForSocialLoginPlugin is VERY VERY important !!!!!!    
-  public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {}
+  public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
   
         @Override
         public void onActivityResult(int requestCode, int resultCode, Intent data) {
