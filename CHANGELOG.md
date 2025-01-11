@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.3.3](https://github.com/Cap-go/capacitor-social-login/compare/0.3.2...0.3.3) (2025-01-11)
+
+
+### Features
+
+* migration gude for apple and facebook ([e2f3374](https://github.com/Cap-go/capacitor-social-login/commit/e2f33748e93d2585fc718185952ea83e69eaa7d3))
+
 ### [0.3.2](https://github.com/Cap-go/capacitor-social-login/compare/0.3.1...0.3.2) (2025-01-10)
 
 ### [0.3.1](https://github.com/Cap-go/capacitor-social-login/compare/0.3.0...0.3.1) (2025-01-09)
