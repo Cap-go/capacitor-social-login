@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.1](https://github.com/Cap-go/capacitor-social-login/compare/0.3.3...1.0.1) (2025-01-13)
+
 ### [0.3.3](https://github.com/Cap-go/capacitor-social-login/compare/0.3.2...0.3.3) (2025-01-11)
 
 
