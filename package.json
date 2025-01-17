@@ -29,7 +29,14 @@
     "plugin",
     "native",
     "social",
-    "login"
+    "login",
+    "google",
+    "facebook",
+    "apple",
+    "twitter",
+    "sso",
+    "oauth",
+    "oauth2"
   ],
   "scripts": {
     "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
