@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/Cap-go/capacitor-social-login/compare/1.1.4...1.2.0) (2025-02-02)
+
+
+### Features
+
+* disable one-tap (web) ([be12d22](https://github.com/Cap-go/capacitor-social-login/commit/be12d22a0a0e602f7e5fb84aae30a606a6daa817))
+
 ### [1.1.4](https://github.com/Cap-go/capacitor-social-login/compare/1.1.3...1.1.4) (2025-02-02)
 
 
