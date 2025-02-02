@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
       - name: Build
         id: build_code
         run: npm run verify:android
@@ -59,9 +59,9 @@ jobs:
       - name: Install dependencies
         id: install_code
         run: bun install --frozen-lockfile
-      # - name: Lint
-      #   id: lint_code
-      #   run: bun run lint
+      - name: Lint
+        id: lint_code
+        run: bun run lint
       - name: Build
         id: build_code
         run: bun rum build
