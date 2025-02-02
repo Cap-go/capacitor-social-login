@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/Cap-go/capacitor-social-login/compare/1.1.0-alpha.0...1.1.0) (2025-02-02)
+
+## [1.1.0-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/1.0.2...1.1.0-alpha.0) (2025-01-26)
+
+
+### Features
+
+* migrate to capacitor v7 && git push ([054a2dc](https://github.com/Cap-go/capacitor-social-login/commit/054a2dc9043fb9c51dc9fafb5260bef092ed7283))
+
+### [1.0.2](https://github.com/Cap-go/capacitor-social-login/compare/1.0.1...1.0.2) (2025-01-17)
+
 ### [1.0.1](https://github.com/Cap-go/capacitor-social-login/compare/0.3.3...1.0.1) (2025-01-13)
 
 ### [0.3.3](https://github.com/Cap-go/capacitor-social-login/compare/0.3.2...0.3.3) (2025-01-11)
