@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.4](https://github.com/Cap-go/capacitor-social-login/compare/1.1.3...1.1.4) (2025-02-02)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.facebook.android:facebook-login to v18 ([25e04ab](https://github.com/Cap-go/capacitor-social-login/commit/25e04abeff94f699eece64e3e047e6bbd1714749))
+
+### [1.1.3](https://github.com/Cap-go/capacitor-social-login/compare/1.1.2...1.1.3) (2025-02-02)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.android.gms:play-services-auth to v21.3.0 ([dca689d](https://github.com/Cap-go/capacitor-social-login/commit/dca689ddcbef1bbf9362421a59a84b2d9fe933a0))
+
+### [1.1.2](https://github.com/Cap-go/capacitor-social-login/compare/1.1.1...1.1.2) (2025-02-02)
+
+
+### Bug Fixes
+
+* versions ([e211dec](https://github.com/Cap-go/capacitor-social-login/commit/e211deca1db47be11f30557d85dd0aa58c236187))
+
+### [1.1.1](https://github.com/Cap-go/capacitor-social-login/compare/1.1.0...1.1.1) (2025-02-02)
+
+
+### Bug Fixes
+
+* lint ([b4d14f9](https://github.com/Cap-go/capacitor-social-login/commit/b4d14f93261dc5be8fc94b3f30fb29044e0658a1))
+* lint issue ([09026a2](https://github.com/Cap-go/capacitor-social-login/commit/09026a2365cc8f4edd21428193746605a7103113))
+
+## [1.1.0](https://github.com/Cap-go/capacitor-social-login/compare/1.1.0-alpha.0...1.1.0) (2025-02-02)
+
+## [1.1.0-alpha.0](https://github.com/Cap-go/capacitor-social-login/compare/1.0.2...1.1.0-alpha.0) (2025-01-26)
+
+
+### Features
+
+* migrate to capacitor v7 && git push ([054a2dc](https://github.com/Cap-go/capacitor-social-login/commit/054a2dc9043fb9c51dc9fafb5260bef092ed7283))
+
 ### [1.0.2](https://github.com/Cap-go/capacitor-social-login/compare/1.0.1...1.0.2) (2025-01-17)
 
 ### [1.0.1](https://github.com/Cap-go/capacitor-social-login/compare/0.3.3...1.0.1) (2025-01-13)

@@ -37,7 +37,7 @@ export interface InitializeOptions {
      * @example offline
      * @since 3.1.0
      */
-    mode?: "online" | "offline";
+    mode?: 'online' | 'offline';
   };
   apple?: {
     /**
@@ -108,17 +108,15 @@ interface GoogleLoginResponseOnline {
     name: string | null;
     imageUrl: string | null;
   };
-  responseType: "online";
+  responseType: 'online';
 }
 
 interface GoogleLoginResponseOffline {
   serverAuthCode: string;
-  responseType: "offline";
+  responseType: 'offline';
 }
 
-export type GoogleLoginResponse =
-  | GoogleLoginResponseOnline
-  | GoogleLoginResponseOffline;
+export type GoogleLoginResponse = GoogleLoginResponseOnline | GoogleLoginResponseOffline;
 
 export interface AppleProviderOptions {
   /**
@@ -153,29 +151,29 @@ export interface AppleProviderResponse {
 
 export type LoginOptions =
   | {
-      provider: "facebook";
+      provider: 'facebook';
       options: FacebookLoginOptions;
     }
   | {
-      provider: "google";
+      provider: 'google';
       options: GoogleLoginOptions;
     }
   | {
-      provider: "apple";
+      provider: 'apple';
       options: AppleProviderOptions;
     };
 
 export type LoginResult =
   | {
-      provider: "facebook";
+      provider: 'facebook';
       result: FacebookLoginResponse;
     }
   | {
-      provider: "google";
+      provider: 'google';
       result: GoogleLoginResponse;
     }
   | {
-      provider: "apple";
+      provider: 'apple';
       result: AppleProviderResponse;
     };
 
@@ -227,7 +225,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: "apple" | "google" | "facebook";
+  provider: 'apple' | 'google' | 'facebook';
 }
 
 export interface isLoggedInOptions {
@@ -235,7 +233,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: "apple" | "google" | "facebook";
+  provider: 'apple' | 'google' | 'facebook';
 }
 
 // Add a helper type to map providers to their response types
@@ -255,14 +253,14 @@ export interface SocialLoginPlugin {
    * Login with the selected provider
    * @description login with the selected provider
    */
-  login<T extends LoginOptions["provider"]>(
+  login<T extends LoginOptions['provider']>(
     options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }>;
   /**
    * Logout
    * @description logout the user
    */
-  logout(options: { provider: "apple" | "google" | "facebook" }): Promise<void>;
+  logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void>;
   /**
    * IsLoggedIn
    * @description logout the user
@@ -273,9 +271,7 @@ export interface SocialLoginPlugin {
    * Get the current access token
    * @description get the current access token
    */
-  getAuthorizationCode(
-    options: AuthorizationCodeOptions,
-  ): Promise<AuthorizationCode>;
+  getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode>;
   /**
    * Refresh the access token
    * @description refresh the access token
