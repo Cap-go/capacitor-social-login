@@ -425,7 +425,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       ];
     }
 
-    if (scopes.length > 3 || this.googleLoginType === 'offline') {
+    if (
+      scopes.length > 3 ||
+      this.googleLoginType === "offline" ||
+      options.disableOneTap
+    ) {
       // If scopes are provided, directly use the traditional OAuth flow
       return this.fallbackToTraditionalOAuth(scopes);
     }
