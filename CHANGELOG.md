@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.1.3](https://github.com/Cap-go/capacitor-social-login/compare/1.1.2...1.1.3) (2025-02-02)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.android.gms:play-services-auth to v21.3.0 ([dca689d](https://github.com/Cap-go/capacitor-social-login/commit/dca689ddcbef1bbf9362421a59a84b2d9fe933a0))
+
 ### [1.1.2](https://github.com/Cap-go/capacitor-social-login/compare/1.1.1...1.1.2) (2025-02-02)
 
 
