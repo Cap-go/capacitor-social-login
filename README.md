@@ -425,6 +425,7 @@ Refresh the access token
 | **`scopes`**            | <code>string[]</code> | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                    |
 | **`nonce`**             | <code>string</code>   | Nonce                                                                                                |                    |
 | **`forceRefreshToken`** | <code>boolean</code>  | Force refresh token (only for Android)                                                               | <code>false</code> |
+| **`disableOneTap`**     | <code>boolean</code>  | Disable one-tap login (web only)                                                                     | <code>false</code> |
 
 
 #### AppleProviderOptions
