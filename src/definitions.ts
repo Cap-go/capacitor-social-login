@@ -97,7 +97,7 @@ export interface GoogleLoginOptions {
   disableOneTap?: boolean;
 }
 
-interface GoogleLoginResponseOnline {
+export interface GoogleLoginResponseOnline {
   accessToken: AccessToken | null;
   idToken: string | null;
   profile: {
@@ -111,7 +111,7 @@ interface GoogleLoginResponseOnline {
   responseType: 'online';
 }
 
-interface GoogleLoginResponseOffline {
+export interface GoogleLoginResponseOffline {
   serverAuthCode: string;
   responseType: 'offline';
 }
