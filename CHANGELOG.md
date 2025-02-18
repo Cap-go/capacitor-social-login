@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.0.2](https://github.com/Cap-go/capacitor-social-login/compare/7.0.1...7.0.2) (2025-02-18)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.facebook.android:facebook-login to v18.0.2 ([1ac270a](https://github.com/Cap-go/capacitor-social-login/commit/1ac270ab53e222cb4472add38ef65bf0c7218f29))
+* switch to new bun file ([7336f43](https://github.com/Cap-go/capacitor-social-login/commit/7336f4367bc8c8bbbf284266148914b6fdfe5c7c))
+
 ### [7.0.1](https://github.com/Cap-go/capacitor-social-login/compare/1.2.6...7.0.1) (2025-02-18)
 
 
