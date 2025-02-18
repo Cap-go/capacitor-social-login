@@ -15,7 +15,7 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
-    "types": ["google.accounts"]
+    "types": ["google.accounts", "@capacitor/core"]
   },
   "files": ["src/index.ts"]
 }
