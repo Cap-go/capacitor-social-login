@@ -350,7 +350,7 @@ In this part, you will learn how to setup Google login in Android
    - First, you need import `SocialLogin`
      
      ```typescript
-     import { ScialLogin } from '@capgo/capacitor-social-login';
+     import { SocialLogin } from '@capgo/capacitor-social-login';
      ```
    
    - Then, you want to call initialize. I recommend calling this ONLY once.
@@ -459,7 +459,7 @@ In order to use it, you have to do the following:
 - First, you need import `SocialLogin`
   
   ```typescript
-  import { ScialLogin } from '@capgo/capacitor-social-login';
+  import { SocialLogin } from '@capgo/capacitor-social-login';
   ```
 
 - Then, you want to call initialize. I recommend calling this ONLY once.
