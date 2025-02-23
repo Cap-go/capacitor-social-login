@@ -33,6 +33,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
 
   private googleClientId: string | null = null;
+  private googleHostedDomain?: string;
   private appleClientId: string | null = null;
   private googleScriptLoaded = false;
   private googleLoginType: 'online' | 'offline' = 'online';
@@ -115,6 +116,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       if (options.google.mode) {
         this.googleLoginType = options.google.mode;
       }
+      this.googleHostedDomain = options.google.hostedDomain;
 
       await this.loadGoogleScript();
     }
@@ -427,12 +429,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
     if (scopes.length > 3 || this.googleLoginType === 'offline' || options.disableOneTap) {
       // If scopes are provided, directly use the traditional OAuth flow
-      return this.fallbackToTraditionalOAuth(scopes);
+      return this.fallbackToTraditionalOAuth(scopes, this.googleHostedDomain);
     }
 
     return new Promise((resolve, reject) => {
       google.accounts.id.initialize({
         client_id: this.googleClientId!,
+        hd: this.googleHostedDomain,
         callback: (response) => {
           console.log('google.accounts.id.initialize callback', response);
           if ((response as any).error) {
@@ -463,7 +466,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           console.log('OneTap is not displayed or skipped');
           // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth(scopes)
+          this.fallbackToTraditionalOAuth(scopes, this.googleHostedDomain)
             .then((r) => resolve({ provider: 'google' as T, result: r.result }))
             .catch(reject);
         } else {
@@ -649,6 +652,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   private async fallbackToTraditionalOAuth<T extends 'google'>(
     scopes: string[],
+    hostedDomain?: string,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const uniqueScopes = [...new Set([...scopes, 'openid'])];
 
@@ -661,6 +665,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       include_granted_scopes: 'true',
       state: 'popup',
     });
+    if (hostedDomain !== undefined) {
+      params.append('hd', hostedDomain)
+    }
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     const width = 500;

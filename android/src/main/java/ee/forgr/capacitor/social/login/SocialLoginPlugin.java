@@ -59,6 +59,7 @@ public class SocialLoginPlugin extends Plugin {
                 call.reject("google.clientId is null or empty");
                 return;
             }
+            String hostedDomain = google.getString("hostedDomain");
             String modestr = google.getString("mode", "online");
             GoogleProvider.GoogleProviderLoginType mode = null;
             switch (modestr) {
@@ -72,7 +73,7 @@ public class SocialLoginPlugin extends Plugin {
                     call.reject("google.mode != (online || offline)");
                     return;
             }
-            googleProvider.initialize(googleClientId, mode);
+            googleProvider.initialize(googleClientId, mode, hostedDomain);
             this.socialProviderHashMap.put("google", googleProvider);
         }
 
