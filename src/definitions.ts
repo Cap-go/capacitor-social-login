@@ -38,6 +38,11 @@ export interface InitializeOptions {
      * @since 3.1.0
      */
     mode?: 'online' | 'offline';
+    /**
+     * Filter visible accounts by hosted domain
+     * @description filter visible accounts by hosted domain
+     */
+    hostedDomain?: string;
   };
   apple?: {
     /**

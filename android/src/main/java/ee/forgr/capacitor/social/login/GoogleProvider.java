@@ -76,6 +76,7 @@ public class GoogleProvider implements SocialProvider {
     private String idToken = null;
     private String accessToken = null;
     private GoogleProviderLoginType mode = GoogleProviderLoginType.ONLINE;
+    private String hostedDomain = null;
 
     public enum GoogleProviderLoginType {
         ONLINE,
@@ -91,10 +92,11 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
-    public void initialize(String clientId, GoogleProviderLoginType mode) {
+    public void initialize(String clientId, GoogleProviderLoginType mode, String hostedDomain) {
         this.credentialManager = CredentialManager.create(activity);
         this.clientId = clientId;
         this.mode = mode;
+        this.hostedDomain = hostedDomain;
 
         String data = context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE).getString(GOOGLE_DATA_PREFERENCE, null);
 
@@ -281,7 +283,7 @@ public class GoogleProvider implements SocialProvider {
             return;
         }
 
-        String nonce = call.getString("nonce");
+        String nonce = config.optString("nonce");
 
         // Extract scopes from the config
         JSONArray scopesArray = config.optJSONArray("scopes");
@@ -336,6 +338,10 @@ public class GoogleProvider implements SocialProvider {
 
         if (nonce != null && !nonce.isEmpty()) {
             googleIdOptionBuilder.setNonce(nonce);
+        }
+
+        if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
+            googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
         }
 
         GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
