@@ -102,7 +102,7 @@ The plugin now uses exclusively the Web Client ID for authentication. You'll nee
 
 1. No major changes needed in AppDelegate.swift ([iOS setup guide](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_google.md#ios))
 
-2. Update your configuration in `capacitor.config.json`:
+2. Update your configuration in `capacitor.config.json`, we don't use it in the new plugin:
 ```diff
 {
   "plugins": {
@@ -111,14 +111,6 @@ The plugin now uses exclusively the Web Client ID for authentication. You'll nee
 -     "serverClientId": "xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
 -     "forceCodeForRefreshToken": true
 -   }
-+   "SocialLogin": {
-+     "google": {
-+       "webClientId": "xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com",
-+       "iOSClientId": "your-ios-client-id",
-+       "mode": "offline"
-+     }
-+   }
-  }
 }
 ```
 
