@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.1.2](https://github.com/Cap-go/capacitor-social-login/compare/7.1.1...7.1.2) (2025-02-27)
+
+
+### Bug Fixes
+
+* disable auto update graddle ([14598ae](https://github.com/Cap-go/capacitor-social-login/commit/14598ae516933da76cd1ffed201475f2766d54aa))
+
 ### [7.1.1](https://github.com/Cap-go/capacitor-social-login/compare/7.1.0...7.1.1) (2025-02-27)
 
 
