@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.2.3](https://github.com/Cap-go/capacitor-social-login/compare/7.2.2...7.2.3) (2025-02-27)
+
+
+### Bug Fixes
+
+* web issue apple ([3ce783d](https://github.com/Cap-go/capacitor-social-login/commit/3ce783d0a57ef3917e799865a513a39e68b94d82))
+
 ### [7.2.2](https://github.com/Cap-go/capacitor-social-login/compare/7.2.1...7.2.2) (2025-02-27)
 
 
