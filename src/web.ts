@@ -533,15 +533,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         .then((res: any) => {
           const result: AppleProviderResponse = {
             profile: {
-              user: res.user?.name?.firstName ? `${res.user.name.firstName} ${res.user.name.lastName}` : '',
+              user: res.user || '',
               email: res.user?.email || null,
               givenName: res.user?.name?.firstName || null,
               familyName: res.user?.name?.lastName || null,
             },
             accessToken: {
-              token: res.authorization.code, // TODO: to fix and find the correct token
+              token: res.authorization.id_token || '',
             },
-            idToken: res.authorization.id_token || null,
+            idToken: res.authorization.code || null,
           };
           resolve({ provider: 'apple', result });
         })
