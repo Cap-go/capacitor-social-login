@@ -36,6 +36,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         if let googleSettings = call.getObject("google") {
             let iOSClientId = googleSettings["iOSClientId"] as? String
             let iOSServerClientId = googleSettings["iOSServerClientId"] as? String
+            let hostedDomain = googleSettings["hostedDomain"] as? String
 
             let modeStr = googleSettings["mode"] as? String
             var mode = GoogleProviderLoginType.ONLINE
@@ -52,11 +53,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
 
             if let clientId = iOSClientId {
-                if let serverClientId = iOSServerClientId {
-                    google.initialize(clientId: clientId, mode: mode, serverClientId: serverClientId)
-                } else {
-                    google.initialize(clientId: clientId, mode: mode, serverClientId: nil)
-                }
+                google.initialize(clientId: clientId, mode: mode, serverClientId: iOSServerClientId, hostedDomain: hostedDomain)
                 initialized = true
             }
         }
