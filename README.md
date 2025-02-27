@@ -430,6 +430,7 @@ Refresh the access token
 | **`nonce`**             | <code>string</code>   | Nonce                                                                                                |                    |
 | **`forceRefreshToken`** | <code>boolean</code>  | Force refresh token (only for Android)                                                               | <code>false</code> |
 | **`disableOneTap`**     | <code>boolean</code>  | Disable one-tap login (web only)                                                                     | <code>false</code> |
+| **`forcePrompt`**       | <code>boolean</code>  | Force account selection prompt (iOS)                                                                 | <code>false</code> |
 
 
 #### AppleProviderOptions

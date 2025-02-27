@@ -100,6 +100,12 @@ export interface GoogleLoginOptions {
    * @default false
    */
   disableOneTap?: boolean;
+  /**
+   * Force account selection prompt (iOS)
+   * @description forces the account selection prompt to appear on iOS
+   * @default false
+   */
+  forcePrompt?: boolean;
 }
 
 export interface GoogleLoginResponseOnline {

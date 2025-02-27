@@ -26,6 +26,12 @@ class GoogleProvider {
 
     func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
         DispatchQueue.main.async {
+            if let forcePrompt = payload["forcePrompt"] as? Bool {
+                self.forceAuthCode = forcePrompt
+            } else {
+                self.forceAuthCode = false
+            }
+
             func login() {
                 guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
                     completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
