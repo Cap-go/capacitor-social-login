@@ -666,7 +666,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       state: 'popup',
     });
     if (hostedDomain !== undefined) {
-      params.append('hd', hostedDomain)
+      params.append('hd', hostedDomain);
     }
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
