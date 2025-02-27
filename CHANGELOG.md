@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.2.0](https://github.com/Cap-go/capacitor-social-login/compare/7.1.6...7.2.0) (2025-02-27)
+
+
+### Features
+
+* allow force auth ios ([0ea393e](https://github.com/Cap-go/capacitor-social-login/commit/0ea393e84e4d28bc9dd74a77c274406035a666e1))
+
 ### [7.1.6](https://github.com/Cap-go/capacitor-social-login/compare/7.1.5...7.1.6) (2025-02-27)
 
 ### [7.1.5](https://github.com/Cap-go/capacitor-social-login/compare/7.1.4...7.1.5) (2025-02-27)
