@@ -197,6 +197,8 @@ const res = await SocialLogin.login({
 
 ### Android configuration
 
+The implemention use the new library of Google who use Google account at Os level, make sure your device does have at least one google account connected
+
 Directly call the `initialize` method with the `google` provider
 
 ```typescript
