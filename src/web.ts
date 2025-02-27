@@ -14,6 +14,7 @@ import type {
   FacebookLoginResponse,
   GoogleLoginOptions,
   ProviderResponseMap,
+  AppleProviderOptions,
 } from './definitions';
 
 declare const AppleID: any;
@@ -35,6 +36,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private googleClientId: string | null = null;
   private googleHostedDomain?: string;
   private appleClientId: string | null = null;
+  private appleRedirectUrl: string | null = null;
   private googleScriptLoaded = false;
   private googleLoginType: 'online' | 'offline' = 'online';
   private appleScriptLoaded = false;
@@ -122,6 +124,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
     if (options.apple?.clientId) {
       this.appleClientId = options.apple.clientId;
+      this.appleRedirectUrl = options.apple.redirectUrl || null;
       await this.loadAppleScript();
     }
     if (options.facebook?.appId) {
@@ -506,7 +509,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     });
   }
 
-  private async loginWithApple(options: any): Promise<LoginResult> {
+  private async loginWithApple(options: AppleProviderOptions): Promise<LoginResult> {
     if (!this.appleClientId) {
       throw new Error('Apple Client ID not set. Call initialize() first.');
     }
@@ -519,7 +522,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       AppleID.auth.init({
         clientId: this.appleClientId!,
         scope: options.scopes?.join(' ') || 'name email',
-        redirectURI: options.redirectUrl || window.location.href,
+        redirectURI: this.appleRedirectUrl || window.location.href,
         state: options.state,
         nonce: options.nonce,
         usePopup: true,
