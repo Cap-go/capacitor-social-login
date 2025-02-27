@@ -15,6 +15,21 @@
       "matchUpdateTypes": ["minor", "patch"],
       "matchCurrentVersion": "!/^0/",
       "automerge": true
+    },
+    {
+      "matchPackageNames": ["FBSDKCoreKit", "FBSDKLoginKit", "FacebookCore", "FacebookLogin"],
+      "matchManagers": ["swift", "cocoapods"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["eslint"],
+      "matchManagers": ["npm"],
+      "enabled": false
+    },
+    {
+      "matchPackagePatterns": ["^com\\.google\\..*"],
+      "matchCurrentVersion": "/^.*-android$/",
+      "allowedVersions": "/^.*-android$/"
     }
   ]
 }
