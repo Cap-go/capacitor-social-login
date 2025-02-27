@@ -232,6 +232,10 @@ const res = await SocialLogin.login({
 });
 ```
 
+### Web
+
+Initialize method create a script tag with google lib, we canot knwo when it's ready so be sure to do it early in web otherwise it will fail
+
 ## API
 
 <docgen-index>
