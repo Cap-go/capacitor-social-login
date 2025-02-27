@@ -221,7 +221,7 @@ Call the `initialize` method with the `google` provider
 await SocialLogin.initialize({
   google: {
     iOSClientId: 'your-client-id', // the iOS client id
-    iOSServerClientId: 'your-server-client-id', // the iOS server client id (optional)
+    iOSServerClientId: 'your-server-client-id', // the iOS server client id (required in mode offline)
   },
 });
 const res = await SocialLogin.login({

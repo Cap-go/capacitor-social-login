@@ -53,7 +53,7 @@ class GoogleProvider {
                     }
                     if self.mode == .OFFLINE {
                         guard let serverAuthCode = result.serverAuthCode else {
-                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Cannot find serverAuthCode"])))
+                            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Cannot find serverAuthCode, make sure to set iOSServerClientId in the configuration"])))
                             return
                         }
                         completion(.success(self.createOfflineResponse(serverAuthCode: result.serverAuthCode ?? "")))

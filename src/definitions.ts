@@ -19,7 +19,7 @@ export interface InitializeOptions {
      */
     iOSClientId?: string;
     /**
-     * The app's server client ID, found and created in the Google Developers Console.
+     * The app's server client ID, required for offline mode, found and created in the Google Developers Console.
      * For iOS.
      * @example xxxxxx-xxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
      * @since 3.1.0
@@ -33,7 +33,7 @@ export interface InitializeOptions {
      */
     webClientId?: string;
     /**
-     * The login mode, can be online or offline.
+     * The login mode, can be online or offline. In offline mode, the user will be able to login without an internet connection. It requires iOSServerClientId to be set.
      * @example offline
      * @since 3.1.0
      */
