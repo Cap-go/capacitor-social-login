@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.3.1](https://github.com/Cap-go/capacitor-social-login/compare/7.3.0...7.3.1) (2025-03-06)
+
+
+### Bug Fixes
+
+* remove pnpm ([2d3a563](https://github.com/Cap-go/capacitor-social-login/commit/2d3a563a17b539f47125361d3c6513108860422f))
+
 ## [7.3.0](https://github.com/Cap-go/capacitor-social-login/compare/7.2.3...7.3.0) (2025-03-06)
 
 
