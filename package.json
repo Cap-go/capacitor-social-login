@@ -89,6 +89,5 @@
     "android": {
       "src": "android"
     }
-  },
-  "packageManager": "pnpm@9.15.0"
+  }
 }
