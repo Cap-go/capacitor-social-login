@@ -106,6 +106,12 @@ export interface GoogleLoginOptions {
    * @default false
    */
   forcePrompt?: boolean;
+  /**
+   * Style
+   * @description style
+   * @default 'standard'
+   */
+  style?: 'bottom' | 'standard';
 }
 
 export interface GoogleLoginResponseOnline {

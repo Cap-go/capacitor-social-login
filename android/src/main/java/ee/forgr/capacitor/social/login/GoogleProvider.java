@@ -333,13 +333,6 @@ public class GoogleProvider implements SocialProvider {
                 "openid"
             };
         }
-
-        GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
-
-        if (nonce != null && !nonce.isEmpty()) {
-            googleIdOptionBuilder.setNonce(nonce);
-        }
-
         if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
             googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
         }
@@ -347,6 +340,58 @@ public class GoogleProvider implements SocialProvider {
         GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
         GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder().addCredentialOption(googleIdOptionFiltered).build();
 
+        // Use call directly instead of config
+        boolean bottomUi = call.getString("style", "").equals("bottom");
+        GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
+        
+        // Get nonce directly from call
+        String nonce = call.getString("nonce", null);
+        
+        if (bottomUi) {
+            // Bottom sheet UI style
+            // These options are only available for bottom UI style
+            boolean filterByAuthorizedAccounts = call.getBoolean("filterByAuthorizedAccounts", false);
+            boolean autoSelectEnabled = call.getBoolean("autoSelectEnabled", false);
+            
+            // Check if forcePrompt was set through the call
+            if (call.getBoolean("forcePrompt", false)) {
+                // When forcePrompt is true, we want to disable automatic selection 
+                // and not filter by authorized accounts
+                filterByAuthorizedAccounts = false;
+                autoSelectEnabled = false;
+            }
+            
+            GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts)
+                .setAutoSelectEnabled(autoSelectEnabled)
+                .setServerClientId(this.clientId);
+
+            if (nonce != null && !nonce.isEmpty()) {
+                googleIdOptionBuilder.setNonce(nonce);
+            }
+            
+            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
+                googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
+            }
+            
+            requestBuilder.addCredentialOption(googleIdOptionBuilder.build());
+        } else {
+            // Traditional UI style - doesn't support filterByAuthorizedAccounts and autoSelectEnabled
+            GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
+
+            if (nonce != null && !nonce.isEmpty()) {
+                googleIdOptionBuilder.setNonce(nonce);
+            }
+            
+            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
+                googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
+            }
+            
+            requestBuilder.addCredentialOption(googleIdOptionBuilder.build());
+        }
+
+        GetCredentialRequest filteredRequest = requestBuilder.build();
+        
         Executor executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
             context,
