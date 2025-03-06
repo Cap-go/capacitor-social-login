@@ -33,4 +33,4 @@ export class BaseSocialLogin extends WebPlugin {
       document.body.appendChild(script);
     });
   }
-} 
+}

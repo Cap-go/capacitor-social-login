@@ -84,9 +84,9 @@ export class AppleSocialLogin extends BaseSocialLogin {
 
   private async loadAppleScript(): Promise<void> {
     if (this.scriptLoaded) return;
-    
+
     return this.loadScript(this.scriptUrl).then(() => {
       this.scriptLoaded = true;
     });
   }
-} 
+}

@@ -103,9 +103,9 @@ export class FacebookSocialLogin extends BaseSocialLogin {
 
   private async loadFacebookScript(): Promise<void> {
     if (this.scriptLoaded) return;
-    
+
     return this.loadScript('https://connect.facebook.net/en_US/sdk.js').then(() => {
       this.scriptLoaded = true;
     });
   }
-} 
+}

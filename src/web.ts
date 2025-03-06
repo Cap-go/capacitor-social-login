@@ -16,18 +16,18 @@ import { GoogleSocialLogin } from './google-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
-  
+
   private googleProvider: GoogleSocialLogin;
   private appleProvider: AppleSocialLogin;
   private facebookProvider: FacebookSocialLogin;
 
   constructor() {
     super();
-    
+
     this.googleProvider = new GoogleSocialLogin();
     this.appleProvider = new AppleSocialLogin();
     this.facebookProvider = new FacebookSocialLogin();
-    
+
     // Set up listener for OAuth redirects if we have a pending OAuth flow
     if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
       console.log('OAUTH_STATE_KEY found');
@@ -52,32 +52,21 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   async initialize(options: InitializeOptions): Promise<void> {
     const initPromises: Promise<void>[] = [];
-    
+
     if (options.google?.webClientId) {
       initPromises.push(
-        this.googleProvider.initialize(
-          options.google.webClientId,
-          options.google.mode,
-          options.google.hostedDomain
-        )
+        this.googleProvider.initialize(options.google.webClientId, options.google.mode, options.google.hostedDomain),
       );
     }
-    
+
     if (options.apple?.clientId) {
-      initPromises.push(
-        this.appleProvider.initialize(
-          options.apple.clientId,
-          options.apple.redirectUrl
-        )
-      );
+      initPromises.push(this.appleProvider.initialize(options.apple.clientId, options.apple.redirectUrl));
     }
-    
+
     if (options.facebook?.appId) {
-      initPromises.push(
-        this.facebookProvider.initialize(options.facebook.appId)
-      );
+      initPromises.push(this.facebookProvider.initialize(options.facebook.appId));
     }
-    
+
     await Promise.all(initPromises);
   }
 
@@ -90,7 +79,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       case 'apple':
         return this.appleProvider.login(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
       case 'facebook':
-        return this.facebookProvider.login(options.options as FacebookLoginOptions) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+        return this.facebookProvider.login(options.options as FacebookLoginOptions) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
       default:
         throw new Error(`Login for ${options.provider} is not implemented on web`);
     }

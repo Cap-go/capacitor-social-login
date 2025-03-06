@@ -451,4 +451,4 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       }, 300000);
     });
   }
-} 
+}
