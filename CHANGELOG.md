@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.3.0](https://github.com/Cap-go/capacitor-social-login/compare/7.2.3...7.3.0) (2025-03-06)
+
+
+### Features
+
+* add bottom UI + split web ([c32e8c2](https://github.com/Cap-go/capacitor-social-login/commit/c32e8c25f0736124cd0897d04fc9bf1556133371))
+
+
+### Bug Fixes
+
+* lint ([e07085c](https://github.com/Cap-go/capacitor-social-login/commit/e07085c4ea0706aa07343ccb0077d5588d0bcd40))
+
 ### [7.2.3](https://github.com/Cap-go/capacitor-social-login/compare/7.2.2...7.2.3) (2025-02-27)
 
 
