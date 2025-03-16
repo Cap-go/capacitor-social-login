@@ -60,12 +60,11 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     const nonce = options.nonce || Math.random().toString(36).substring(2);
 
     if (scopes.length > 3 || this.loginType === 'offline' || options.disableOneTap) {
-      
       // If scopes are provided, directly use the traditional OAuth flow
-      return this.fallbackToTraditionalOAuth({ 
-        scopes, 
-        nonce, 
-        hostedDomain: this.hostedDomain
+      return this.fallbackToTraditionalOAuth({
+        scopes,
+        nonce,
+        hostedDomain: this.hostedDomain,
       });
     }
 
@@ -105,9 +104,9 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           console.log('OneTap is not displayed or skipped');
           // Fallback to traditional OAuth if One Tap is not available
           this.fallbackToTraditionalOAuth({
-            scopes, 
-            nonce, 
-            hostedDomain: this.hostedDomain 
+            scopes,
+            nonce,
+            hostedDomain: this.hostedDomain,
           })
             .then((r) => resolve({ provider: 'google' as T, result: r.result }))
             .catch(reject);
@@ -377,7 +376,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     hostedDomain,
     nonce,
   }: GoogleLoginOptions & { hostedDomain?: string }): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
-    const uniqueScopes = [...new Set([...scopes || [], 'openid'])];
+    const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
     const params = new URLSearchParams({
       client_id: this.clientId!,
