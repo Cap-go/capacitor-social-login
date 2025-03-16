@@ -407,7 +407,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       }
 
       const handleMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        if (event.origin !== window.location.origin || event.data?.source?.startsWith("angular")) return;
 
         if (event.data?.type === 'oauth-response') {
           window.removeEventListener('message', handleMessage);
