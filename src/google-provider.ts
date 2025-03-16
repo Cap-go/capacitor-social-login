@@ -57,15 +57,22 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       ];
     }
 
+    const nonce = options.nonce || Math.random().toString(36).substring(2);
+
     if (scopes.length > 3 || this.loginType === 'offline' || options.disableOneTap) {
       // If scopes are provided, directly use the traditional OAuth flow
-      return this.fallbackToTraditionalOAuth(scopes, this.hostedDomain);
+      return this.fallbackToTraditionalOAuth({
+        scopes,
+        nonce,
+        hostedDomain: this.hostedDomain,
+      });
     }
 
     return new Promise((resolve, reject) => {
       google.accounts.id.initialize({
         client_id: this.clientId!,
         hd: this.hostedDomain,
+        ...(nonce && { nonce }),
         callback: (response: any) => {
           console.log('google.accounts.id.initialize callback', response);
           if ((response as any).error) {
@@ -96,7 +103,11 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           console.log('OneTap is not displayed or skipped');
           // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth(scopes, this.hostedDomain)
+          this.fallbackToTraditionalOAuth({
+            scopes,
+            nonce,
+            hostedDomain: this.hostedDomain,
+          })
             .then((r) => resolve({ provider: 'google' as T, result: r.result }))
             .catch(reject);
         } else {
@@ -360,18 +371,19 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     }
   }
 
-  private async fallbackToTraditionalOAuth<T extends 'google'>(
-    scopes: string[],
-    hostedDomain?: string,
-  ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
-    const uniqueScopes = [...new Set([...scopes, 'openid'])];
+  private async fallbackToTraditionalOAuth<T extends 'google'>({
+    scopes,
+    hostedDomain,
+    nonce,
+  }: GoogleLoginOptions & { hostedDomain?: string }): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+    const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
     const params = new URLSearchParams({
       client_id: this.clientId!,
       redirect_uri: window.location.href,
       response_type: this.loginType === 'offline' ? 'code' : 'token id_token',
       scope: uniqueScopes.join(' '),
-      nonce: Math.random().toString(36).substring(2),
+      ...(nonce && { nonce }),
       include_granted_scopes: 'true',
       state: 'popup',
     });
