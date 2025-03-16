@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.0](https://github.com/Cap-go/capacitor-social-login/compare/7.3.1...7.4.0) (2025-03-16)
+
+
+### Features
+
+* **web:** add custom nonce for google ([f1b5e10](https://github.com/Cap-go/capacitor-social-login/commit/f1b5e1022b842c1fc82715327579220472ef9bd4))
+
 ### [7.3.1](https://github.com/Cap-go/capacitor-social-login/compare/7.3.0...7.3.1) (2025-03-06)
 
 
