@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.4.1](https://github.com/Cap-go/capacitor-social-login/compare/7.4.0...7.4.1) (2025-03-16)
+
+
+### Bug Fixes
+
+* angular devTools ([cbbee4e](https://github.com/Cap-go/capacitor-social-login/commit/cbbee4e784fe2377b7c40b49117643138d805e41)), closes [#GH-156](https://github.com/Cap-go/capacitor-social-login/issues/GH-156)
+
 ## [7.4.0](https://github.com/Cap-go/capacitor-social-login/compare/7.3.1...7.4.0) (2025-03-16)
 
 
