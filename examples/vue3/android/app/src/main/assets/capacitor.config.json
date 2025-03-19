@@ -1,18 +1,6 @@
 {
-	"appId": "com.app",
+	"appId": "com.example.app",
 	"appName": "app",
 	"webDir": "dist",
-	"plugins": {
-		"GoogleAuth": {
-			"clientId": "",
-			"scopes": [
-				"profile",
-				"email",
-				"https://www.googleapis.com/auth/calendar.events",
-				"https://www.googleapis.com/auth/contacts.readonly"
-			],
-			"serverClientId": "",
-			"forceCodeForRefreshToken": true
-		}
-	}
+	"plugins": {}
 }

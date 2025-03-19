@@ -1,7 +1,7 @@
 [
 	{
-		"pkg": "@belongnet/capacitor-google-auth",
-		"classpath": "com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth"
+		"pkg": "@capgo/capacitor-social-login",
+		"classpath": "ee.forgr.capacitor.social.login.SocialLoginPlugin"
 	},
 	{
 		"pkg": "@capacitor/app",

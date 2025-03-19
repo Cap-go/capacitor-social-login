@@ -12,46 +12,44 @@ import {
   IonInput,
   IonList,
 } from '@ionic/vue';
-// import { GoogleAuth, User } from '@belongnet/capacitor-google-auth';
 import { useStorage, StorageSerializers } from '@vueuse/core';
-import { computed, onMounted, ref } from 'vue';
+import { SocialLogin } from '@capgo/capacitor-social-login';
+import { onMounted, ref } from 'vue';
 import GoogleIcon from '../components/GoogleIcon.vue';
-import { Capacitor } from '@capacitor/core';
 
 const isInitialized = ref(false);
 
-onMounted(() => {
+onMounted(async() => {
   if (isInitialized.value) return;
-  // GoogleAuth.initialize({
-  //   clientId:
-  //     Capacitor.getPlatform() === 'ios'
-  //       ? import.meta.env.VITE_GOOGLE_CLIENT_ID_IOS
-  //       : import.meta.env.VITE_GOOGLE_CLIENT_ID,
-  //   grantOfflineAccess: true,
-  //   scopes: ['profile', 'email'],
-  // })
-  //   .then(() => {
-  //     isInitialized.value = true;
-  //   })
-  //   .catch((error) => {
-  //     console.error(error);
-  //   });
+  await SocialLogin.initialize({
+      google: {
+        webClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        iOSClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID_IOS,
+      },
+    });
+  isInitialized.value = true;
 });
 
-const session = useStorage<{ user: User }>('capacitor-google-auth', null, undefined, {
+const session = useStorage<{ user: any }>('capacitor-google-auth', null, undefined, {
   serializer: StorageSerializers.object,
   mergeDefaults: true,
 });
 // const isLoggedIn = computed(() => store.value !== null);
 
 async function signIn() {
-  // await GoogleAuth.signIn()
-  //   .then((user) => {
-  //     session.value.user = user;
-  //   })
-  //   .catch((error) => {
-  //     console.error(error);
-  //   });
+  await SocialLogin.login({
+    provider: 'google',
+    options: {
+      // scopes: ['profile', 'email'],
+      style: 'bottom',
+    },
+  })
+    .then((user) => {
+      session.value.user = user;
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 }
 
 async function signOut() {
@@ -88,7 +86,7 @@ async function signOut() {
           <IonList :inset="true">
             <template v-for="(value, key) in session.user" :key="key">
               <ion-item v-if="typeof value === 'string'">
-                <ion-input label-placement="fixed" :label="key" :value="`${value}`" readonly></ion-input>
+                <ion-input label-placement="fixed" :value="`${value}`" readonly></ion-input>
               </ion-item>
 
               <template v-else-if="typeof value === 'object'">
