@@ -95,12 +95,6 @@ export interface GoogleLoginOptions {
    */
   forceRefreshToken?: boolean;
   /**
-   * Disable one-tap login (web only)
-   * @description disable one-tap login
-   * @default false
-   */
-  disableOneTap?: boolean;
-  /**
    * Force account selection prompt (iOS)
    * @description forces the account selection prompt to appear on iOS
    * @default false

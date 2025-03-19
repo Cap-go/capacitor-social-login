@@ -1,7 +1,6 @@
 import { BaseSocialLogin } from './base';
 import type {
   GoogleLoginOptions,
-  GoogleLoginResponse,
   LoginResult,
   ProviderResponseMap,
   AuthorizationCode,
@@ -13,7 +12,6 @@ export class GoogleSocialLogin extends BaseSocialLogin {
   private clientId: string | null = null;
   private hostedDomain?: string;
   private loginType: 'online' | 'offline' = 'online';
-  private scriptLoaded = false;
   private GOOGLE_TOKEN_REQUEST_URL = 'https://www.googleapis.com/oauth2/v3/tokeninfo';
   private readonly GOOGLE_STATE_KEY = 'capgo_social_login_google_state';
 
@@ -23,10 +21,6 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       this.loginType = mode;
     }
     this.hostedDomain = hostedDomain as string | undefined;
-
-    if (clientId) {
-      await this.loadGoogleScript();
-    }
   }
 
   async login<T extends 'google'>(
@@ -59,61 +53,11 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
     const nonce = options.nonce || Math.random().toString(36).substring(2);
 
-    if (scopes.length > 3 || this.loginType === 'offline' || options.disableOneTap) {
       // If scopes are provided, directly use the traditional OAuth flow
-      return this.fallbackToTraditionalOAuth({
-        scopes,
-        nonce,
-        hostedDomain: this.hostedDomain,
-      });
-    }
-
-    return new Promise((resolve, reject) => {
-      google.accounts.id.initialize({
-        client_id: this.clientId!,
-        hd: this.hostedDomain,
-        ...(nonce && { nonce }),
-        callback: (response: any) => {
-          console.log('google.accounts.id.initialize callback', response);
-          if ((response as any).error) {
-            // we use any because type fail but we need to double check if that works
-            reject((response as any).error);
-          } else {
-            const payload = this.parseJwt(response.credential);
-            const result: GoogleLoginResponse = {
-              accessToken: null,
-              responseType: 'online',
-              idToken: response.credential,
-              profile: {
-                email: payload.email || null,
-                familyName: payload.family_name || null,
-                givenName: payload.given_name || null,
-                id: payload.sub || null,
-                name: payload.name || null,
-                imageUrl: payload.picture || null,
-              },
-            };
-            resolve({ provider: 'google' as T, result });
-          }
-        },
-        auto_select: true,
-      });
-
-      google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.log('OneTap is not displayed or skipped');
-          // Fallback to traditional OAuth if One Tap is not available
-          this.fallbackToTraditionalOAuth({
-            scopes,
-            nonce,
-            hostedDomain: this.hostedDomain,
-          })
-            .then((r) => resolve({ provider: 'google' as T, result: r.result }))
-            .catch(reject);
-        } else {
-          console.log('OneTap is displayed');
-        }
-      });
+    return this.traditionalOAuth({
+      scopes,
+      nonce,
+      hostedDomain: this.hostedDomain,
     });
   }
 
@@ -230,13 +174,6 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       };
     }
     return null;
-  }
-
-  private async loadGoogleScript(): Promise<void> {
-    if (this.scriptLoaded) return;
-    return this.loadScript('https://accounts.google.com/gsi/client').then(() => {
-      this.scriptLoaded = true;
-    });
   }
 
   private async accessTokenIsValid(accessToken: string): Promise<boolean> {
@@ -371,7 +308,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     }
   }
 
-  private async fallbackToTraditionalOAuth<T extends 'google'>({
+  private async traditionalOAuth<T extends 'google'>({
     scopes,
     hostedDomain,
     nonce,
