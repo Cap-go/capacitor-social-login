@@ -25,6 +25,7 @@ import com.google.android.gms.auth.api.identity.AuthorizationResult;
 import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -65,7 +67,7 @@ public class GoogleProvider implements SocialProvider {
     private CredentialManager credentialManager;
     private String clientId;
     private String[] scopes;
-    private List<CallbackToFutureAdapter.Completer<AuthorizationResult>> futuresList = new ArrayList<>(FUTURE_LIST_LENGTH);
+    private final List<CallbackToFutureAdapter.Completer<AuthorizationResult>> futuresList = new ArrayList<>(FUTURE_LIST_LENGTH);
 
     private String idToken = null;
     private String accessToken = null;
@@ -196,7 +198,7 @@ public class GoogleProvider implements SocialProvider {
                                 return;
                             }
 
-                            Integer expressInInt;
+                            int expressInInt;
                             try {
                                 expressInInt = Integer.parseInt(expiresIn);
                             } catch (Exception e) {
@@ -257,9 +259,9 @@ public class GoogleProvider implements SocialProvider {
     }
 
     public String arrayFind(String[] array, String search) {
-        for (int i = 0; i < array.length; i++) {
-            if (array[i].equals(search)) {
-                return array[i];
+        for (String s : array) {
+            if (s.equals(search)) {
+                return s;
             }
         }
         return null;
@@ -278,77 +280,55 @@ public class GoogleProvider implements SocialProvider {
         }
 
         String nonce = config.optString("nonce");
+        JSONObject options = call.getObject("options", new JSObject());
+        boolean bottomUi = false;
+        boolean forcePrompt = false;
+        boolean filterByAuthorizedAccounts = false;
+        boolean autoSelectEnabled = false;
 
-        // Extract scopes from the config
-        JSONArray scopesArray = config.optJSONArray("scopes");
-
-        // Remove duplicates from scopes array
-        if (scopesArray != null) {
-            Set<String> uniqueScopes = new HashSet<>();
-            for (int i = 0; i < scopesArray.length(); i++) {
-                uniqueScopes.add(scopesArray.optString(i));
+        try {
+            if (options != null) {
+                bottomUi = options.has("style") && Objects.equals(options.getString("style"), "bottom");
+                filterByAuthorizedAccounts = options.has("filterByAuthorizedAccounts") && options.getBoolean("filterByAuthorizedAccounts");
+                autoSelectEnabled = options.has("autoSelectEnabled") && options.getBoolean("autoSelectEnabled");
+                forcePrompt = options.has("forcePrompt") && options.getBoolean("forcePrompt");
             }
-            scopesArray = new JSONArray(uniqueScopes);
+        } catch (JSONException e) {
+            Log.e(LOG_TAG, "Error parsing options", e);
+            call.reject("Error parsing options: " + e.getMessage());
+            return;
         }
+
+        // Handle scopes
+        JSONArray scopesArray = config.optJSONArray("scopes");
+        Set<String> uniqueScopes = new HashSet<>();
+
+        // Add default scopes
+        uniqueScopes.add("https://www.googleapis.com/auth/userinfo.email");
+        uniqueScopes.add("https://www.googleapis.com/auth/userinfo.profile");
+        uniqueScopes.add("openid");
+
+        // Add custom scopes if provided
         if (scopesArray != null) {
             if (!(this.activity instanceof ModifiedMainActivityForSocialLoginPlugin)) {
                 call.reject("You CANNOT use scopes without modifying the main activity. Please follow the docs!");
                 return;
             }
-
-            this.scopes = new String[scopesArray.length()];
             for (int i = 0; i < scopesArray.length(); i++) {
-                this.scopes[i] = scopesArray.optString(i);
+                uniqueScopes.add(scopesArray.optString(i));
             }
-
-            if (arrayFind(this.scopes, "https://www.googleapis.com/auth/userinfo.email") == null) {
-                String[] newScopes = new String[this.scopes.length + 1];
-                System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
-                newScopes[this.scopes.length] = "https://www.googleapis.com/auth/userinfo.email";
-                this.scopes = newScopes;
-            }
-            if (arrayFind(this.scopes, "https://www.googleapis.com/auth/userinfo.profile") == null) {
-                String[] newScopes = new String[this.scopes.length + 1];
-                System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
-                newScopes[this.scopes.length] = "https://www.googleapis.com/auth/userinfo.profile";
-                this.scopes = newScopes;
-            }
-            if (arrayFind(this.scopes, "openid") == null) {
-                String[] newScopes = new String[this.scopes.length + 1];
-                System.arraycopy(this.scopes, 0, newScopes, 0, this.scopes.length);
-                newScopes[this.scopes.length] = "openid";
-                this.scopes = newScopes;
-            }
-        } else {
-            // Default scopes if not provided
-            this.scopes = new String[] {
-                "https://www.googleapis.com/auth/userinfo.profile",
-                "https://www.googleapis.com/auth/userinfo.email",
-                "openid"
-            };
         }
 
-        // Use call directly instead of config
-        boolean bottomUi = call.getString("style", "").equals("bottom");
+        this.scopes = uniqueScopes.toArray(new String[0]);
+
+        // Build credential request
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
         if (bottomUi) {
-            GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
-            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
-                googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
-            }
-
-            GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
-            GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder().addCredentialOption(googleIdOptionFiltered).build();
-            // Bottom sheet UI style
-            // These options are only available for bottom UI style
-            boolean filterByAuthorizedAccounts = Boolean.TRUE.equals(call.getBoolean("filterByAuthorizedAccounts", false));
-            boolean autoSelectEnabled = Boolean.TRUE.equals(call.getBoolean("autoSelectEnabled", false));
-
-            // Check if forcePrompt was set through the call
-            if (Boolean.TRUE.equals(call.getBoolean("forcePrompt", false))) {
-                // When forcePrompt is true, we want to disable automatic selection
-                // and not filter by authorized accounts
+            Log.e(LOG_TAG, "use bottomUi");
+            GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder().setServerClientId(this.clientId);
+            // Handle bottom UI specific options
+            if (forcePrompt) {
                 filterByAuthorizedAccounts = false;
                 autoSelectEnabled = false;
             }
@@ -356,20 +336,23 @@ public class GoogleProvider implements SocialProvider {
             if (!nonce.isEmpty()) {
                 googleIdOptionBuilder.setNonce(nonce);
             }
-
-            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
-                googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
+            if (filterByAuthorizedAccounts) {
+                googleIdOptionBuilder.setFilterByAuthorizedAccounts(true);
             }
 
-            requestBuilder.addCredentialOption(googleIdOptionBuilder.build());
+            if (autoSelectEnabled) {
+                googleIdOptionBuilder.setAutoSelectEnabled(true);
+            }
+
+            GetGoogleIdOption googleIdOptionFiltered = googleIdOptionBuilder.build();
+            requestBuilder.addCredentialOption(googleIdOptionFiltered);
         } else {
-            // Traditional UI style - doesn't support filterByAuthorizedAccounts and autoSelectEnabled
+            // For standard UI, we don't use these options
             GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
 
             if (!nonce.isEmpty()) {
                 googleIdOptionBuilder.setNonce(nonce);
             }
-
             if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
                 googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
             }
@@ -379,6 +362,7 @@ public class GoogleProvider implements SocialProvider {
 
         GetCredentialRequest filteredRequest = requestBuilder.build();
 
+        // Execute credential request
         Executor executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
             context,
@@ -392,8 +376,8 @@ public class GoogleProvider implements SocialProvider {
                 }
 
                 @Override
-                public void onError(GetCredentialException e) {
-                    handleSignInError(e, call);
+                public void onError(@NonNull GetCredentialException e) {
+                    handleSignInError(e, call, config);
                 }
             }
         );
@@ -432,8 +416,8 @@ public class GoogleProvider implements SocialProvider {
 
         ListenableFuture<AuthorizationResult> future = CallbackToFutureAdapter.getFuture(completer -> {
             List<Scope> scopes = new ArrayList<>(this.scopes.length);
-            for (int i = 0; i < this.scopes.length; i++) {
-                scopes.add(new Scope(this.scopes[i]));
+            for (String scope : this.scopes) {
+                scopes.add(new Scope(scope));
             }
             AuthorizationRequest.Builder authorizationRequestBuilder = AuthorizationRequest.builder().setRequestedScopes(scopes);
             // .requestOfflineAccess(this.clientId)
@@ -527,8 +511,12 @@ public class GoogleProvider implements SocialProvider {
                     JSObject resultObj = new JSObject();
 
                     JSONObject options = call.getObject("options", new JSObject());
-                    Boolean forceRefreshToken =
-                        options != null && options.has("forceRefreshToken") && options.getBoolean("forceRefreshToken");
+                    Boolean forceRefreshToken = false;
+                    try {
+                        forceRefreshToken = options != null && options.has("forceRefreshToken") && options.getBoolean("forceRefreshToken");
+                    } catch (JSONException e) {
+                        Log.e(LOG_TAG, "Error parsing forceRefreshToken option", e);
+                    }
 
                     GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.getData());
                     ListenableFuture<AuthorizationResult> future = getAuthorizationResult(forceRefreshToken);
@@ -615,10 +603,29 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
-    private void handleSignInError(GetCredentialException e, PluginCall call) {
+    private void handleSignInError(GetCredentialException e, PluginCall call, JSONObject config) {
         Log.e(LOG_TAG, "Google Sign-In failed", e);
-        if (e instanceof NoCredentialException) {
-            call.reject("No Google accounts available. Please add a Google account to your device and try again.");
+        boolean isBottomUi = false;
+        JSONObject options = call.getObject("options", new JSObject());
+        if (options.has("style")) {
+            try {
+                isBottomUi = options.getString("style").equals("bottom");
+            } catch (JSONException ex) {
+                // do nothing
+            }
+        }
+        if (e instanceof NoCredentialException && isBottomUi) {
+            Log.e(LOG_TAG, "No Google accounts available or miss configuration using bottomUi, auto switch to standard UI");
+            // During the get credential flow, this is returned when no viable credential is available for the the user. This can be caused by various scenarios such as that the user doesn't have any credential or the user doesn't grant consent to using any available credential. Upon this exception, your app should navigate to use the regular app sign-up or sign-in screen.
+            // https://developer.android.com/reference/androidx/credentials/exceptions/NoCredentialException
+            try {
+                options.put("style", "standard");
+                call.getData().put("options", options);
+            } catch (JSONException ex) {
+                call.reject("Google Sign-In failed: " + ex.getMessage());
+                return;
+            }
+            login(call, config);
         } else {
             call.reject("Google Sign-In failed: " + e.getMessage());
         }
@@ -688,7 +695,7 @@ public class GoogleProvider implements SocialProvider {
                 }
 
                 @Override
-                public void onError(ClearCredentialException e) {
+                public void onError(@NonNull ClearCredentialException e) {
                     Log.e(LOG_TAG, "Failed to clear credential state", e);
                     handler.onError(e);
                 }
