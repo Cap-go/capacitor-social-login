@@ -309,7 +309,7 @@ In this part, you will learn how to setup Google login in Android
   
   ```java
   import ee.forgr.capacitor.social.login.GoogleProvider;
-  import ee.forgr.capacitor.social.login.SocialLoginPlugin
+  import ee.forgr.capacitor.social.login.SocialLoginPlugin;
   import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
   import com.getcapacitor.PluginHandle;
   import com.getcapacitor.Plugin;
