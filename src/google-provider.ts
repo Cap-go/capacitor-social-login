@@ -1,10 +1,5 @@
 import { BaseSocialLogin } from './base';
-import type {
-  GoogleLoginOptions,
-  LoginResult,
-  ProviderResponseMap,
-  AuthorizationCode,
-} from './definitions';
+import type { GoogleLoginOptions, LoginResult, ProviderResponseMap, AuthorizationCode } from './definitions';
 
 declare const google: any;
 
@@ -53,7 +48,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
     const nonce = options.nonce || Math.random().toString(36).substring(2);
 
-      // If scopes are provided, directly use the traditional OAuth flow
+    // If scopes are provided, directly use the traditional OAuth flow
     return this.traditionalOAuth({
       scopes,
       nonce,
@@ -344,7 +339,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       }
 
       const handleMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin || event.data?.source?.startsWith("angular")) return;
+        if (event.origin !== window.location.origin || event.data?.source?.startsWith('angular')) return;
 
         if (event.data?.type === 'oauth-response') {
           window.removeEventListener('message', handleMessage);

@@ -1,12 +1,10 @@
 package ee.forgr.capacitor.social.login;
 
-import android.accounts.Account;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
-import android.text.TextUtils;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -22,8 +20,6 @@ import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
-import com.google.android.gms.auth.GoogleAuthException;
-import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.api.identity.AuthorizationRequest;
 import com.google.android.gms.auth.api.identity.AuthorizationResult;
 import com.google.android.gms.auth.api.identity.Identity;
@@ -38,11 +34,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -333,40 +327,33 @@ public class GoogleProvider implements SocialProvider {
                 "openid"
             };
         }
-        if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
-            googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
-        }
-
-        GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
-        GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder().addCredentialOption(googleIdOptionFiltered).build();
 
         // Use call directly instead of config
         boolean bottomUi = call.getString("style", "").equals("bottom");
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
-        // Get nonce directly from call
-        String nonce = call.getString("nonce", null);
-
         if (bottomUi) {
+            GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
+            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
+                googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
+            }
+
+            GetSignInWithGoogleOption googleIdOptionFiltered = googleIdOptionBuilder.build();
+            GetCredentialRequest filteredRequest = new GetCredentialRequest.Builder().addCredentialOption(googleIdOptionFiltered).build();
             // Bottom sheet UI style
             // These options are only available for bottom UI style
-            boolean filterByAuthorizedAccounts = call.getBoolean("filterByAuthorizedAccounts", false);
-            boolean autoSelectEnabled = call.getBoolean("autoSelectEnabled", false);
+            boolean filterByAuthorizedAccounts = Boolean.TRUE.equals(call.getBoolean("filterByAuthorizedAccounts", false));
+            boolean autoSelectEnabled = Boolean.TRUE.equals(call.getBoolean("autoSelectEnabled", false));
 
             // Check if forcePrompt was set through the call
-            if (call.getBoolean("forcePrompt", false)) {
+            if (Boolean.TRUE.equals(call.getBoolean("forcePrompt", false))) {
                 // When forcePrompt is true, we want to disable automatic selection
                 // and not filter by authorized accounts
                 filterByAuthorizedAccounts = false;
                 autoSelectEnabled = false;
             }
 
-            GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts)
-                .setAutoSelectEnabled(autoSelectEnabled)
-                .setServerClientId(this.clientId);
-
-            if (nonce != null && !nonce.isEmpty()) {
+            if (!nonce.isEmpty()) {
                 googleIdOptionBuilder.setNonce(nonce);
             }
 
@@ -379,7 +366,7 @@ public class GoogleProvider implements SocialProvider {
             // Traditional UI style - doesn't support filterByAuthorizedAccounts and autoSelectEnabled
             GetSignInWithGoogleOption.Builder googleIdOptionBuilder = new GetSignInWithGoogleOption.Builder(this.clientId);
 
-            if (nonce != null && !nonce.isEmpty()) {
+            if (!nonce.isEmpty()) {
                 googleIdOptionBuilder.setNonce(nonce);
             }
 
