@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.4.5](https://github.com/Cap-go/capacitor-social-login/compare/7.4.4...7.4.5) (2025-03-19)
+
+
+### Bug Fixes
+
+* build issue ([0f04175](https://github.com/Cap-go/capacitor-social-login/commit/0f04175c0f19a2db5c020043e798ffd1993f48d3))
+* build issue google ([47a6313](https://github.com/Cap-go/capacitor-social-login/commit/47a631353264e12d428ef0a67c6a94b07ae71da9))
+* exemple app ([a3c5095](https://github.com/Cap-go/capacitor-social-login/commit/a3c5095e6cf760fa0f7b67ff92d189815cf07767))
+
 ### [7.4.4](https://github.com/Cap-go/capacitor-social-login/compare/7.4.3...7.4.4) (2025-03-19)
 
 
