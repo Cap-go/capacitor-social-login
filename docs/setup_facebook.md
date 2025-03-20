@@ -76,11 +76,13 @@ keytool -exportcert -alias your-key-name -keystore your-keystore-path | openssl 
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
-            <data android:scheme="@string/fb_login_protocol_scheme" />
+            <data android:scheme="FB[APP_ID]" />
         </intent-filter>
     </activity>
 </application>
 ```
+
+Please make sure to correctly set up the `<data android:scheme="FB[APP_ID]" />`
 
 ### iOS Setup
 
@@ -115,6 +117,34 @@ keytool -exportcert -alias your-key-name -keystore your-keystore-path | openssl 
         </array>
     </dict>
 </array>
+```
+
+4. Modify the `AppDelegate.swift`
+```swift
+import FBSDKCoreKit
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        // Called when the app was launched with a url. Feel free to add additional processing here,
+        // but if you want the App API to support tracking app url opens, make sure to keep this call
+        
+        var handled: Bool
+        
+        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        if (FBSDKCoreKit.ApplicationDelegate.shared.application(
+            app,
+            open: url,
+            sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String,
+            annotation: options[UIApplication.OpenURLOptionsKey.annotation]
+        )) {
+            return true;
+        } else {
+            return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+        }
+        
+        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+}
 ```
 
 Replace:
