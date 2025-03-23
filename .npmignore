@@ -1,0 +1,14 @@
+examples/
+node_modules/
+.github/
+.git/
+.swiftpm/
+.prettierignore
+.eslintignore
+.DS_Store
+.npmrc
+renovate.json
+CONTRIBUTING.md
+MIGRATION_*.md
+java_code_style.xml
+bun.lock 
