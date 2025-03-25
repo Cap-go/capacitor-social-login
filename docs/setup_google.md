@@ -250,10 +250,17 @@ In this part, you will learn how to setup Google login in IOS
 
 ### Using Google login on Android
 
-In this part, you will learn how to setup Google login in Android
+In this part, you will learn how to setup Google login in Android.
 
-1. Please create an Android client ID. You can find the details where to create a client ID in the first point of the IOS section
-   
+> [!WARNING]
+> The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. The following steps assume the simplest scenario of an app that isn't published to Google Play Store and that is only used by the local simulator, or development hardware device. 
+>
+> If you have deployed your app to Google Play Store, you **MUST** add an additional Android client ID that contains the SHA1 from Google Play console for production releases. You can find the SHA1 hash that Google Play uses to sign your release bundle under `Test and release > Setup > App Signing`.
+> 
+> Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
+
+1. Please create an Android client ID. You can find the details where to create a client ID in the first point of the IOS section.
+
    - Select the `Android` application type
      ![](./assets/google_cons_app_type_android.png)
    
@@ -271,14 +278,11 @@ In this part, you will learn how to setup Google login in Android
    - Now, open the terminal. Make sure that you are in the `android` folder of your app and run `./gradlew signInReport`
      ![](./assets/term_sign_report.png)
    
-   - Before continuing, I **MUST** warn you. The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. I will assume the simplest scenario of an app that isn't published to Google Play Store and that is only ever used on a local simulator. If, however, you have deployed your app to Google Play Store, you **MUST** use the SHA1 from Google Play console for production releases.
-     Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
-   
-   - Now, scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
+   - Scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
    
    - Now, go back to the Google Console. Enter your `applicationId` as the `Package Name` and your SHA1 in the certificate field and click `create`
      ![](./assets/google_cons_creat_android_client.png)
-
+   
 2. Create a web client (this is required for Android)
    
    - Go to the "Create credentials" page in Google Console
