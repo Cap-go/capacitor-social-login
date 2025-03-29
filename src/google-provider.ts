@@ -17,7 +17,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       this.loginType = mode;
     }
     this.hostedDomain = hostedDomain as string | undefined;
-    
+
     if (clientId && this.loginType === 'online') {
       await this.loadGoogleScript();
     }
@@ -260,7 +260,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
   private async loadGoogleScript(): Promise<void> {
     if (this.scriptLoaded) return;
-    
+
     return this.loadScript('https://accounts.google.com/gsi/client').then(() => {
       this.scriptLoaded = true;
     });
@@ -276,7 +276,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       if (!this.scriptLoaded) {
         await this.loadGoogleScript();
       }
-      
+
       return new Promise<void>((resolve, reject) => {
         try {
           // Check if google object exists
