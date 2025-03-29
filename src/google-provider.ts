@@ -9,6 +9,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
   private loginType: 'online' | 'offline' = 'online';
   private GOOGLE_TOKEN_REQUEST_URL = 'https://www.googleapis.com/oauth2/v3/tokeninfo';
   private readonly GOOGLE_STATE_KEY = 'capgo_social_login_google_state';
+  private scriptLoaded = false;
 
   async initialize(clientId: string | null, mode?: 'online' | 'offline', hostedDomain?: string | null): Promise<void> {
     this.clientId = clientId;
@@ -16,6 +17,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       this.loginType = mode;
     }
     this.hostedDomain = hostedDomain as string | undefined;
+    
+    if (clientId && this.loginType === 'online') {
+      await this.loadGoogleScript();
+    }
   }
 
   async login<T extends 'google'>(
@@ -253,18 +258,38 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     }
   }
 
+  private async loadGoogleScript(): Promise<void> {
+    if (this.scriptLoaded) return;
+    
+    return this.loadScript('https://accounts.google.com/gsi/client').then(() => {
+      this.scriptLoaded = true;
+    });
+  }
+
   private async rawLogoutGoogle(accessToken: string, tokenValid: boolean | null = null) {
     if (tokenValid === null) {
       tokenValid = await this.accessTokenIsValid(accessToken);
     }
 
     if (tokenValid === true) {
+      // Ensure Google client is loaded first
+      if (!this.scriptLoaded) {
+        await this.loadGoogleScript();
+      }
+      
       return new Promise<void>((resolve, reject) => {
         try {
-          google.accounts.oauth2.revoke(accessToken, async () => {
+          // Check if google object exists
+          if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+            google.accounts.oauth2.revoke(accessToken, () => {
+              this.clearStateGoogle();
+              resolve();
+            });
+          } else {
+            // If google API not available, just clear state
             this.clearStateGoogle();
             resolve();
-          });
+          }
         } catch (e) {
           reject(e);
         }
