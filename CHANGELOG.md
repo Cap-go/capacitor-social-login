@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.4.8](https://github.com/Cap-go/capacitor-social-login/compare/7.4.7...7.4.8) (2025-04-07)
+
+
+### Bug Fixes
+
+* google offline login ([34805f2](https://github.com/Cap-go/capacitor-social-login/commit/34805f2c28ea73ac47200d973b871627bf4ee408))
+
 ### [7.4.7](https://github.com/Cap-go/capacitor-social-login/compare/7.4.6...7.4.7) (2025-03-23)
 
 
