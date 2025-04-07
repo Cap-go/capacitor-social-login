@@ -369,7 +369,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
               });
             }
           } else {
-            const { serverAuthCode } = event.data.result as {
+            const { serverAuthCode } = event.data as {
               serverAuthCode: string;
             };
             resolve({
