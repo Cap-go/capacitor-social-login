@@ -55,7 +55,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
     if (options.google?.webClientId) {
       initPromises.push(
-        this.googleProvider.initialize(options.google.webClientId, options.google.mode, options.google.hostedDomain),
+        this.googleProvider.initialize(
+          options.google.webClientId,
+          options.google.mode,
+          options.google.hostedDomain,
+          options.google.redirectUrl,
+        ),
       );
     }
 

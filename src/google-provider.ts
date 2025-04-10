@@ -7,15 +7,22 @@ export class GoogleSocialLogin extends BaseSocialLogin {
   private clientId: string | null = null;
   private hostedDomain?: string;
   private loginType: 'online' | 'offline' = 'online';
+  private redirectUrl?: string;
   private GOOGLE_TOKEN_REQUEST_URL = 'https://www.googleapis.com/oauth2/v3/tokeninfo';
   private readonly GOOGLE_STATE_KEY = 'capgo_social_login_google_state';
 
-  async initialize(clientId: string | null, mode?: 'online' | 'offline', hostedDomain?: string | null): Promise<void> {
+  async initialize(
+    clientId: string | null,
+    mode?: 'online' | 'offline',
+    hostedDomain?: string | null,
+    redirectUrl?: string,
+  ): Promise<void> {
     this.clientId = clientId;
     if (mode) {
       this.loginType = mode;
     }
     this.hostedDomain = hostedDomain as string | undefined;
+    this.redirectUrl = redirectUrl;
   }
 
   async login<T extends 'google'>(
@@ -312,7 +319,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
     const params = new URLSearchParams({
       client_id: this.clientId!,
-      redirect_uri: window.location.href,
+      redirect_uri: this.redirectUrl || window.location.href,
       response_type: this.loginType === 'offline' ? 'code' : 'token id_token',
       scope: uniqueScopes.join(' '),
       ...(nonce && { nonce }),

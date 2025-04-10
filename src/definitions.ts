@@ -43,6 +43,10 @@ export interface InitializeOptions {
      * @description filter visible accounts by hosted domain
      */
     hostedDomain?: string;
+    /**
+     * Google Redirect URL, should be your backend url that is configured in your google app
+     */
+    redirectUrl?: string;
   };
   apple?: {
     /**
