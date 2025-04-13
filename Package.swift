@@ -3,14 +3,14 @@ import PackageDescription
 
 let package = Package(
     name: "CapgoCapacitorSocialLogin",
-    platforms: [.iOS(.v14)],
+    platforms: [.iOS(.v13)],
     products: [
         .library(
             name: "CapgoCapacitorSocialLogin",
             targets: ["SocialLoginPlugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.0.1"),
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "6.2.1"),
         // FBSDKCoreKit and FBSDKLoginKit
         .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "17.4.0")),
         // Add Google Sign-In dependency
