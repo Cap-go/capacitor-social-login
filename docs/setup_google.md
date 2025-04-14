@@ -545,7 +545,7 @@ For there, you could issue the user with your own JWT or issue some sort of sess
 
 If you do want to call Google API's, I would strongly recommend at [Google's OAuth 2.0 Playground](https://developers.google.com/oauthplayground). From there you can easily see what APIs you can call.
 
-### Using online access with your own backend
+### Using offline access with your own backend
 
 In order to use online access you will need the following:
 
