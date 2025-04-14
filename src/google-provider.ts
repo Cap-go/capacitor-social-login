@@ -319,7 +319,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
     const params = new URLSearchParams({
       client_id: this.clientId!,
-      redirect_uri: this.redirectUrl || window.location.href,
+      redirect_uri: this.redirectUrl || window.location.origin + window.location.pathname,
       response_type: this.loginType === 'offline' ? 'code' : 'token id_token',
       scope: uniqueScopes.join(' '),
       ...(nonce && { nonce }),
