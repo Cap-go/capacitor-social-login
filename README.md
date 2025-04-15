@@ -496,3 +496,56 @@ Refresh the access token
 
 This plugin implementation of google is based on [CapacitorGoogleAuth](https://github.com/CodetrixStudio/CapacitorGoogleAuth) with a lot of rework, the current maintainer is unreachable, we are thankful for his work and are now going forward on our own!
 Thanks to [reslear](https://github.com/reslear) for helping to tranfer users to this plugin from the old one and all the work.
+
+## Privacy Manifest for App Developers
+
+If you use Google, Facebook, or Apple login, you must declare the data collected by their SDKs in your app's `PrivacyInfo.xcprivacy` file (not in the plugin).
+
+Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
+
+### Google Sign-In Example
+```json
+{
+  "NSPrivacyCollectedDataTypes": [
+    { "NSPrivacyCollectedDataType": "EmailAddress", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false },
+    { "NSPrivacyCollectedDataType": "Name", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false },
+    { "NSPrivacyCollectedDataType": "UserID", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false }
+  ]
+}
+```
+
+### Facebook Login Example
+```json
+{
+  "NSPrivacyCollectedDataTypes": [
+    { "NSPrivacyCollectedDataType": "EmailAddress", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false },
+    { "NSPrivacyCollectedDataType": "Name", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false },
+    { "NSPrivacyCollectedDataType": "UserID", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false },
+    { "NSPrivacyCollectedDataType": "FriendsList", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false }
+  ]
+}
+```
+
+### Apple Sign-In Example
+```json
+{
+  "NSPrivacyCollectedDataTypes": [
+    { "NSPrivacyCollectedDataType": "EmailAddress", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false },
+    { "NSPrivacyCollectedDataType": "Name", "NSPrivacyCollectedDataTypeLinked": true, "NSPrivacyCollectedDataTypeTracking": false }
+  ]
+}
+```
+
+- Adjust the data types to match your app's usage and the SDK documentation.
+- See [Apple docs](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/) for all allowed keys and values.
+
+## Troubleshooting
+
+### Invalid Privacy Manifest (ITMS-91056)
+If you get this error on App Store Connect:
+
+> ITMS-91056: Invalid privacy manifest - The PrivacyInfo.xcprivacy file from the following path is invalid: ...
+
+**How to fix:**
+- Make sure your app's `PrivacyInfo.xcprivacy` is valid JSON, with only Apple-documented keys/values.
+- Do not include a privacy manifest in the plugin, only in your app.
