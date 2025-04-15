@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.5.3](https://github.com/Cap-go/capacitor-social-login/compare/7.5.2...7.5.3) (2025-04-15)
+
+
+### Bug Fixes
+
+* rawLogoutGoogle ([b0045a4](https://github.com/Cap-go/capacitor-social-login/commit/b0045a4eca51a6d3745638a07c30ea14330dcae1))
+
 ### [7.5.2](https://github.com/Cap-go/capacitor-social-login/compare/7.5.1...7.5.2) (2025-04-15)
 
 ### [7.5.1](https://github.com/Cap-go/capacitor-social-login/compare/7.5.0...7.5.1) (2025-04-15)
