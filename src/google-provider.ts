@@ -333,6 +333,9 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     localStorage.setItem(BaseSocialLogin.OAUTH_STATE_KEY, 'true');
     const popup = window.open(url, 'Google Sign In', `width=${width},height=${height},left=${left},top=${top},popup=1`);
 
+    let popupClosedInterval: number;
+    let timeoutHandle: number;
+
     // This may never return...
     return new Promise((resolve, reject) => {
       if (!popup) {
@@ -345,6 +348,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
         if (event.data?.type === 'oauth-response') {
           window.removeEventListener('message', handleMessage);
+          clearInterval(popupClosedInterval);
 
           if (this.loginType === 'online') {
             const { accessToken, idToken } = event.data;
@@ -389,14 +393,16 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       window.addEventListener('message', handleMessage);
 
       // Timeout after 5 minutes
-      setTimeout(() => {
+      timeoutHandle = setTimeout(() => {
+        clearTimeout(timeoutHandle);
         window.removeEventListener('message', handleMessage);
         popup.close();
         reject(new Error('OAuth timeout'));
       }, 300000);
 
-      setInterval(() => {
+      popupClosedInterval = setInterval(() => {
         if (popup.closed) {
+          clearInterval(popupClosedInterval);
           reject(new Error('Popup closed'));
         }
       }, 1000);
