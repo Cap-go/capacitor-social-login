@@ -357,11 +357,11 @@ Refresh the access token
 
 #### InitializeOptions
 
-| Prop           | Type                                                                                                                                          |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`facebook`** | <code>{ appId: string; clientToken: string; }</code>                                                                                          |
-| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; }</code> |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                                                                     |
+| Prop           | Type                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`facebook`** | <code>{ appId: string; clientToken: string; }</code>                                                                                                                |
+| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                                                                                           |
 
 
 #### FacebookLoginResponse
