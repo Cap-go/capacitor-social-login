@@ -1,8 +1,6 @@
 import { BaseSocialLogin } from './base';
 import type { GoogleLoginOptions, LoginResult, ProviderResponseMap, AuthorizationCode } from './definitions';
 
-declare const google: any;
-
 export class GoogleSocialLogin extends BaseSocialLogin {
   private clientId: string | null = null;
   private hostedDomain?: string;
@@ -266,16 +264,13 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     }
 
     if (tokenValid === true) {
-      return new Promise<void>((resolve, reject) => {
-        try {
-          google.accounts.oauth2.revoke(accessToken, async () => {
-            this.clearStateGoogle();
-            resolve();
-          });
-        } catch (e) {
-          reject(e);
-        }
-      });
+      try {
+        await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${encodeURIComponent(accessToken)}`);
+        this.clearStateGoogle();
+      } catch (e) {
+        // ignore
+      }
+      return;
     } else {
       this.clearStateGoogle();
       return;
