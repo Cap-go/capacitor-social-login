@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.4.10](https://github.com/Cap-go/capacitor-social-login/compare/7.4.9...7.4.10) (2025-04-15)
+
+
+### Bug Fixes
+
+* ignore non-OAuth messages in GoogleSocialLogin ([efb3904](https://github.com/Cap-go/capacitor-social-login/commit/efb3904607dddafa4910d74f4b65a7748bace7e1))
+
 ### [7.4.9](https://github.com/Cap-go/capacitor-social-login/compare/7.4.8...7.4.9) (2025-04-07)
 
 ### [7.4.8](https://github.com/Cap-go/capacitor-social-login/compare/7.4.7...7.4.8) (2025-04-07)
