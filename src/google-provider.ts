@@ -394,6 +394,12 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         popup.close();
         reject(new Error('OAuth timeout'));
       }, 300000);
+
+      setInterval(() => {
+        if (popup.closed) {
+          reject(new Error('Popup closed'));
+        }
+      }, 1000);
     });
   }
 }
