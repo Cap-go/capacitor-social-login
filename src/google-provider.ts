@@ -380,9 +380,8 @@ export class GoogleSocialLogin extends BaseSocialLogin {
               },
             });
           }
-        } else {
-          reject(new Error('Login failed'));
         }
+        // Don't reject for non-OAuth messages, just ignore them
       };
 
       window.addEventListener('message', handleMessage);
