@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.5.1](https://github.com/Cap-go/capacitor-social-login/compare/7.5.0...7.5.1) (2025-04-15)
+
+## [7.5.0](https://github.com/Cap-go/capacitor-social-login/compare/7.4.10...7.5.0) (2025-04-15)
+
+
+### Features
+
+* add custom redirectUrl for google ([a28f974](https://github.com/Cap-go/capacitor-social-login/commit/a28f974068a768eaa80e40073b23b0d8f00fec28))
+
+
+### Bug Fixes
+
+* current URL stripped of query parameters and hash fragment. ([93094d3](https://github.com/Cap-go/capacitor-social-login/commit/93094d3e828abd715e93c45e0d2c58df870b7ede))
+
+### [7.4.10](https://github.com/Cap-go/capacitor-social-login/compare/7.4.9...7.4.10) (2025-04-15)
+
+
+### Bug Fixes
+
+* ignore non-OAuth messages in GoogleSocialLogin ([efb3904](https://github.com/Cap-go/capacitor-social-login/commit/efb3904607dddafa4910d74f4b65a7748bace7e1))
+
 ### [7.4.9](https://github.com/Cap-go/capacitor-social-login/compare/7.4.8...7.4.9) (2025-04-07)
 
 ### [7.4.8](https://github.com/Cap-go/capacitor-social-login/compare/7.4.7...7.4.8) (2025-04-07)
