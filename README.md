@@ -539,6 +539,34 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
 - Adjust the data types to match your app's usage and the SDK documentation.
 - See [Apple docs](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/) for all allowed keys and values.
 
+## Combine facebook and google URL handler in `AppDelegate.swift`
+
+```swift
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        // Called when the app was launched with a url. Feel free to add additional processing here,
+        // but if you want the App API to support tracking app url opens, make sure to keep this call
+
+        // https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_facebook.md#ios-setup
+        let isFacebookAuth = FBSDKCoreKit.ApplicationDelegate.shared.application(
+            app,
+            open: url,
+            sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String,
+            annotation: options[UIApplication.OpenURLOptionsKey.annotation]
+        )
+
+        // https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_google.md#using-google-login-on-ios
+        let isGoogleAuth = GIDSignIn.sharedInstance.handle(url)
+        
+        // Return true if the URL was handled by either Facebook or Google authentication
+        if isFacebookAuth || isGoogleAuth {
+            return true
+        }
+        
+        // If URL wasn't handled by auth services, pass it to Capacitor for processing
+        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+```
+
 ## Troubleshooting
 
 ### Invalid Privacy Manifest (ITMS-91056)
