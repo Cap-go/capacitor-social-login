@@ -28,6 +28,8 @@ Then, please make sure that you add the `Sign in with Apple` capability.
 
 ![](./assets/sign-with-apple-cap.png)
 
+If empty, configure the [Account & Organizational Data Sharing](https://developer.apple.com/account/resources/services/cwa/configure)
+
 Next, you want to initialize the Apple Login.
 
 | NOTE: I am using Vue as my framework, the exact implementation will vary depening on the framework of your choice |
