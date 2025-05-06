@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.5.8](https://github.com/Cap-go/capacitor-social-login/compare/7.5.7...7.5.8) (2025-05-06)
+
+
+### Bug Fixes
+
+* remove dependencyDashboard ([9fbe83c](https://github.com/Cap-go/capacitor-social-login/commit/9fbe83c9afd8dd0cf05157d360e86d0e13f7d2e3))
+
 ### [7.5.7](https://github.com/Cap-go/capacitor-social-login/compare/7.5.6...7.5.7) (2025-05-06)
 
 
