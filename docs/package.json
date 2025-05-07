@@ -15,6 +15,7 @@
     "vitepress": "^1.6.3"
   },
   "dependencies": {
-    "@catppuccin/vitepress": "^0.1.2"
+    "@catppuccin/vitepress": "^0.1.2",
+    "@vue-flow/core": "^1.43.1"
   }
 }
