@@ -13,13 +13,37 @@
     <main>
       <h1>Capacitor Test Plugin Project</h1>
       <p>
-        This project can be used to test out the functionality of your plugin.
-        Nothing in the <em>example/</em> folder will be published to npm when
-        using this template, so you can create away!
+        This project can be used to test out the functionality of your plugin. Nothing in the <em>example/</em> folder
+        will be published to npm when using this template, so you can create away!
       </p>
-      <label for="echoInput">Echo Text:</label>
-      <input type="text" id="echoInput" name="echoInput" value="Hello World!" />
-      <button onclick="testEcho()">Click Me!</button>
+
+      <button
+        onclick="loginFacebook()"
+        style="
+          background-color: #4267b2;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        "
+      >
+        Login Facebook
+      </button>
+      <button
+        onclick="getProfile()"
+        style="
+          background-color: #42b72a;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-left: 10px;
+        "
+      >
+        Get Profile
+      </button>
     </main>
 
     <script src="./js/example.js" type="module"></script>

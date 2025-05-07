@@ -16,8 +16,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getAuthorizationCode", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getUserInfo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise)
-
+        CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise)
     ]
     private let apple = AppleProvider()
     private let facebook = FacebookProvider()
@@ -136,6 +136,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "facebook": do {
+            call.resolve([ "isLoggedIn": self.facebook.isLoggedIn() ])
+
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -163,6 +167,35 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         default:
             call.reject("Invalid provider")
+        }
+    }
+
+    @objc func providerSpecificCall(_ call: CAPPluginCall) {
+        guard let customCall = call.getString("call") else {
+            call.reject("Call is required")
+            return
+        }
+        switch customCall {
+        case "facebook#getProfile":
+            guard let options = call.getObject("options") else {
+                call.reject("options are required")
+                return
+            }
+            guard let fields = options["fields"] as? [String] else {
+                call.reject("options are required")
+                return
+            }
+
+            facebook.getProfile(fields: fields, completion: { res in
+                switch res {
+                case .success(let profile):
+                    call.resolve(["profile": profile as Any])
+                case .failure(let error):
+                    call.reject(error.localizedDescription)
+                }
+            })
+        default:
+            call.reject("Invalid call. Supported calls: facebook#getProfile")
         }
     }
 

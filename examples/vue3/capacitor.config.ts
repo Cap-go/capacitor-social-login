@@ -1,14 +1,14 @@
 /// <reference types="@capgo/capacitor-social-login" />
 
-import { CapacitorConfig } from "@capacitor/cli";
-import * as dotenv from "dotenv";
+import { CapacitorConfig } from '@capacitor/cli';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 
 const config: CapacitorConfig = {
-  appId: process.env.VITE_BUNDLE_ID || "com.example.app",
-  appName: "app",
-  webDir: "dist",
+  appId: process.env.VITE_BUNDLE_ID || 'com.example.app',
+  appName: 'app',
+  webDir: 'dist',
   plugins: {
     // GoogleAuth: {
     //   scopes: [

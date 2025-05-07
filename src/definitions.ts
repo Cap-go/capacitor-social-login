@@ -251,6 +251,49 @@ export interface isLoggedInOptions {
   provider: 'apple' | 'google' | 'facebook';
 }
 
+// Define the provider-specific call types
+export type ProviderSpecificCall = 'facebook#getProfile';
+
+// Define the options and response types for each specific call
+export interface FacebookGetProfileOptions {
+  /**
+   * Fields to retrieve from Facebook profile
+   * @example ["id", "name", "email", "picture"]
+   */
+  fields?: string[];
+}
+
+export interface FacebookGetProfileResponse {
+  /**
+   * Facebook profile data
+   */
+  profile: {
+    id: string | null;
+    name: string | null;
+    email: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    picture?: {
+      data: {
+        height: number | null;
+        is_silhouette: boolean | null;
+        url: string | null;
+        width: number | null;
+      };
+    } | null;
+    [key: string]: any; // For additional fields that might be requested
+  };
+}
+
+// Map call strings to their options and response types
+export type ProviderSpecificCallOptionsMap = {
+  'facebook#getProfile': FacebookGetProfileOptions;
+};
+
+export type ProviderSpecificCallResponseMap = {
+  'facebook#getProfile': FacebookGetProfileResponse;
+};
+
 // Add a helper type to map providers to their response types
 export type ProviderResponseMap = {
   facebook: FacebookLoginResponse;
@@ -292,4 +335,13 @@ export interface SocialLoginPlugin {
    * @description refresh the access token
    */
   refresh(options: LoginOptions): Promise<void>;
+
+  /**
+   * Execute provider-specific calls
+   * @description Execute a provider-specific functionality
+   */
+  providerSpecificCall<T extends ProviderSpecificCall>(options: {
+    call: T;
+    options: ProviderSpecificCallOptionsMap[T];
+  }): Promise<ProviderSpecificCallResponseMap[T]>;
 }
