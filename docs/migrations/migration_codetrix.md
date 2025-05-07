@@ -151,7 +151,7 @@ interface GoogleLoginResponse {
 ## Additional Features
 
 The new plugin offers additional social login providers:
-- [Apple Sign-In](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_apple.md)
-- [Facebook Login](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_facebook.md)
+- [Apple Sign-In](../providers/apple/general.md)
+- [Facebook Login](../providers/facebook.md)
 
-Check the [main documentation](https://github.com/Cap-go/capacitor-social-login) for setting up these additional providers. 
+Check the [main documentation](../providers/google/general.md) for setting up these additional providers. 

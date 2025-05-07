@@ -89,5 +89,8 @@
     "android": {
       "src": "android"
     }
+  },
+  "dependencies": {
+    "@vue-flow/core": "^1.43.1"
   }
 }

@@ -192,4 +192,4 @@ ApplicationDelegate.shared.application(
 4. Different method names and parameter structures
 5. Error handling and error types have changed
 
-For more detailed setup instructions, please refer to the [official documentation](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_facebook.md). 
+For more detailed setup instructions, please refer to the [official documentation](../providers/facebook.md). 

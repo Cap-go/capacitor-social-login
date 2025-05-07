@@ -1,6 +1,9 @@
 # Migration guide for the V1 version
 
-### Introduction
+## Introduction
+
+> [!WARNING]
+> This guide is for the `V1`/`V7` version of the plugin for people who were sitll using this plugin with the `0.x.x` version.
 
 This guide will cover the following:
 
@@ -8,7 +11,7 @@ This guide will cover the following:
 
 - Migrating to the V1 version from the `development` version
 
-### Important changes in V1
+## Important changes in V1
 
 V1 is just a port of the development version into main. It does, however, include a lot of important changes that are not available in the `main` V0 version. Those changes include:
 
@@ -20,7 +23,7 @@ V1 is just a port of the development version into main. It does, however, includ
   
   - Extensive testing was conducted to ensure that all implementations of the Google Provider behave in the same way between platforms
 
-### Migration from the V0 main version
+## Migration from the V0 main version
 
 - Changes in the `MainActivity.java` for Android
   
@@ -34,7 +37,7 @@ V1 is just a port of the development version into main. It does, however, includ
 
 - Please ensure that authentication works on all the platforms.
 
-### Migration from the V0 development version
+## Migration from the V0 development version
 
 Changes in the `MainActivity.java` for Android
 

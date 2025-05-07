@@ -147,4 +147,4 @@ The new plugin offers several advantages:
 4. Token refresh handling is different
 5. Error handling and error types have changed
 
-For more detailed setup instructions, please refer to the [official documentation](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_apple.md). 
+For more detailed setup instructions, please refer to the [official documentation](../providers/apple/general.md). 

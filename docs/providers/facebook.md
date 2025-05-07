@@ -1,3 +1,8 @@
+<script setup lang="ts">
+import Picture from '../components/Picture.vue';
+</script>
+
+
 # Capgo Social Login "Facebook login" guide
 
 ### Introduction
@@ -16,21 +21,21 @@ If you don't already have a Facebook app created, follow this tutorial to create
 
 2. Before you can release your app to the public, please follow th  is [tutorial](https://developers.facebook.com/docs/development/release) to publish it. 
 
-### Where to find important information
+## Where to find important information
 
-1. CLIENT_TOKEN:
+1. `CLIENT_TOKEN`:
   - You can find the client token here:  
-  ![fb client token](./assets/fb_where_to_fiind_client_token.png)
-
-2. APP_ID:
+  <Picture src="../../assets/fb_where_to_fiind_client_token.png" alt="fb client token" />
+  
+2. `APP_ID`:
   - You can find the app id here:  
-  ![fb app id](./assets/fb_where_to_find_app_id.png)
+  <Picture src="./assets/fb_where_to_find_app_id.png" alt="Facebook developer dashboard showing where to find the app ID" />
 
-3. APP_NAME:
+3. `APP_NAME`:
   - You can find the app name here:  
-  ![fb app name](./assets/fb_where_to_find_app_name.png)
+  <Picture src="./assets/fb_where_to_find_app_name.png" alt="Facebook developer dashboard showing where to find the app name" />
 
-### Android Setup
+## Android Setup
 
 1. First, ensure you have the internet permission in your `AndroidManifest.xml`. Open the file and verify this line is present:
 
@@ -84,7 +89,7 @@ keytool -exportcert -alias your-key-name -keystore your-keystore-path | openssl 
 
 Please make sure to correctly set up the `<data android:scheme="FB[APP_ID]" />`
 
-### iOS Setup
+## iOS Setup
 
 1. Add the iOS platform if you haven't already:
   - Go to your app's dashboard on Facebook Developers
@@ -124,6 +129,18 @@ Please make sure to correctly set up the `<data android:scheme="FB[APP_ID]" />`
 import FBSDKCoreKit
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
+      func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Override point for customization after application launch.
+        
+        // Initialize Facebook SDK
+        FBSDKCoreKit.ApplicationDelegate.shared.application(
+            application,
+            didFinishLaunchingWithOptions: launchOptions
+        )
+        
+        return true
+    }
+
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
@@ -152,7 +169,7 @@ Replace:
 - `[CLIENT-TOKEN]` with your client token
 - `[APP-NAME]` with your app's name
 
-### Using Facebook Login in Your App
+## Using Facebook Login in Your App
 
 1. Initialize the Facebook login in your app:
 
@@ -189,7 +206,7 @@ async function loginWithFacebook() {
 }
 ```
 
-### Troubleshooting
+## Troubleshooting
 
 1. If you get key hash errors on Android:
    - Double check that you've added the correct key hash to the Facebook dashboard
