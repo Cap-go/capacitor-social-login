@@ -27,11 +27,11 @@ V1 is just a port of the development version into main. It does, however, includ
 
 - Changes in the `MainActivity.java` for Android
   
-  - Please follow the [Google Setup Guide](./setup_google.md). Specifically, please search for `MainActivity.java`
+  - Please follow the [Google Setup Guide](../providers/google/android.md). Specifically, please search for `MainActivity.java`
 
 - Please add redirect urls in the Google Console. Without adding redirect urls, Google login will not work. 
   
-  - Again, please follow the [Google Setup Guide](./setup_google.md). Specifically, please search for `Authorized redirect URIs`
+  - Again, please follow the [Google Setup Guide](../providers/google/android.md). Specifically, please search for `Authorized redirect URIs`
 
 - Please ensure that you are not using `grantOfflineAccess` in the config. This feature is not supported in V1.
 
@@ -41,8 +41,8 @@ V1 is just a port of the development version into main. It does, however, includ
 
 Changes in the `MainActivity.java` for Android
 
-- Please follow the [Google Setup Guide](./setup_google.md). Specifically, please search for `MainActivity.java`. In V1, you **HAVE TO** implement `ModifiedMainActivityForSocialLoginPlugin` in your main activity. This change is crucial for the plugin to work
+- Please follow the [Google Setup Guide](../providers/google/android.md). Specifically, please search for `MainActivity.java`. In V1, you **HAVE TO** implement `ModifiedMainActivityForSocialLoginPlugin` in your main activity. This change is crucial for the plugin to work
 - Please add redirect urls in the Google Console. Without adding redirect urls, Google login will not work.
-  - Again, please follow the [Google Setup Guide](./setup_google.md). Specifically, please search for `Authorized redirect URIs`
+  - Again, please follow the [Google Setup Guide](../providers/google/android.md). Specifically, please search for `Authorized redirect URIs`
 - Please ensure that types and variable names are correct. Please know that types and variables might not match between development and V1.
 - Please ensure that authentication works on all the platforms.
