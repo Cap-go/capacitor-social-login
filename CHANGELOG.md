@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.5.9](https://github.com/Cap-go/capacitor-social-login/compare/7.5.8...7.5.9) (2025-05-07)
+
+
+### Bug Fixes
+
+* setup_facebook.md AppDelegate for iOS ([7976aa9](https://github.com/Cap-go/capacitor-social-login/commit/7976aa9fe7b862641710b4c5577c3e30210017aa))
+
 ### [7.5.8](https://github.com/Cap-go/capacitor-social-login/compare/7.5.7...7.5.8) (2025-05-06)
 
 
