@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.6.0](https://github.com/Cap-go/capacitor-social-login/compare/7.5.9...7.6.0) (2025-05-12)
+
+
+### Features
+
+* getProfile for Facebook ([9ec1592](https://github.com/Cap-go/capacitor-social-login/commit/9ec1592692339de78ec929680d033b6619747935))
+
 ### [7.5.9](https://github.com/Cap-go/capacitor-social-login/compare/7.5.8...7.5.9) (2025-05-07)
 
 
