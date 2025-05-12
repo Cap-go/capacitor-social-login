@@ -248,6 +248,7 @@ Initialize method create a script tag with google lib, we canot knwo when it's r
 * [`isLoggedIn(...)`](#isloggedin)
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
+* [`providerSpecificCall(...)`](#providerspecificcall)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -348,6 +349,23 @@ Refresh the access token
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+
+--------------------
+
+
+### providerSpecificCall(...)
+
+```typescript
+providerSpecificCall<T extends "facebook#getProfile">(options: { call: T; options: ProviderSpecificCallOptionsMap[T]; }) => Promise<ProviderSpecificCallResponseMap[T]>
+```
+
+Execute provider-specific calls
+
+| Param         | Type                                                                  |
+| ------------- | --------------------------------------------------------------------- |
+| **`options`** | <code>{ call: T; options: ProviderSpecificCallOptionsMap[T]; }</code> |
+
+**Returns:** <code>Promise&lt;ProviderSpecificCallResponseMap[T]&gt;</code>
 
 --------------------
 
@@ -466,6 +484,20 @@ Refresh the access token
 | **`provider`** | <code>'apple' \| 'google' \| 'facebook'</code> | Provider    |
 
 
+#### FacebookGetProfileResponse
+
+| Prop          | Type                                                                                                                                                                                                                                                                                               | Description           |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| **`profile`** | <code>{ [key: string]: any; id: string \| null; name: string \| null; email: string \| null; first_name: string \| null; last_name: string \| null; picture?: { data: { height: number \| null; is_silhouette: boolean \| null; url: string \| null; width: number \| null; }; } \| null; }</code> | Facebook profile data |
+
+
+#### FacebookGetProfileOptions
+
+| Prop         | Type                  | Description                              |
+| ------------ | --------------------- | ---------------------------------------- |
+| **`fields`** | <code>string[]</code> | Fields to retrieve from Facebook profile |
+
+
 ### Type Aliases
 
 
@@ -489,6 +521,21 @@ Refresh the access token
 <a href="#extract">Extract</a> from T those types that are assignable to U
 
 <code>T extends U ? T : never</code>
+
+
+#### ProviderSpecificCallResponseMap
+
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; }</code>
+
+
+#### ProviderSpecificCall
+
+<code>'facebook#getProfile'</code>
+
+
+#### ProviderSpecificCallOptionsMap
+
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; }</code>
 
 </docgen-api>
 
