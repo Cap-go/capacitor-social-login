@@ -22,6 +22,7 @@ import ee.forgr.capacitor.social.login.helpers.JsonHelper;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -205,6 +206,57 @@ public class FacebookProvider implements SocialProvider {
             return callbackManager.onActivityResult(requestCode, resultCode, data);
         }
         return false;
+    }
+
+    public void getProfile(JSONArray fieldsArray, PluginCall call) {
+        AccessToken accessToken = AccessToken.getCurrentAccessToken();
+        if (accessToken == null || accessToken.isExpired()) {
+            call.reject("You're not logged in. Please login first to obtain an access token and try again.");
+            return;
+        }
+
+        String[] fieldsStrings = new String[fieldsArray.length()];
+        try {
+            for (int i = 0; i < fieldsArray.length(); i++) {
+                fieldsStrings[i] = fieldsArray.getString(i);
+            }
+        } catch (JSONException e) {
+            call.reject("Invalid fields format");
+            return;
+        }
+
+        String fieldsString = String.join(",", fieldsStrings);
+
+        Bundle parameters = new Bundle();
+        parameters.putString("fields", fieldsString);
+
+        GraphRequest request = GraphRequest.newMeRequest(accessToken, (jsonObject, response) -> {
+            if (response == null) {
+                call.reject("response is null from Facebook Graph");
+                return;
+            }
+            if (response.getError() != null) {
+                call.reject(response.getError().getErrorMessage());
+                return;
+            }
+
+            if (jsonObject == null) {
+                call.reject("jsonObject is null from Facebook Graph");
+                return;
+            }
+
+            try {
+                JSObject profile = JSObject.fromJSONObject(jsonObject);
+                JSObject result = new JSObject();
+                result.put("profile", profile);
+                call.resolve(result);
+            } catch (Exception e) {
+                call.reject("Error parsing profile response: " + e.getMessage());
+            }
+        });
+
+        request.setParameters(parameters);
+        request.executeAsync();
     }
 
     private JSObject createAccessTokenObject(AccessToken accessToken) {

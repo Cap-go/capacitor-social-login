@@ -32,6 +32,34 @@ class FacebookProvider {
         // No initialization required for FacebookProvider
     }
 
+    func getProfile(fields: [String], completion: @escaping (Result<[String: Any]?, Error>) -> Void) {
+        guard let accessToken = AccessToken.current else {
+            completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "You're not logged in. Please login first to obtain an access token and try again."])))
+            return
+        }
+
+        if accessToken.isExpired {
+            completion(.failure(NSError(domain: "FacebookProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "AccessToken is expired"])))
+            return
+        }
+
+        let parameters = ["fields": fields.joined(separator: ",")]
+        let graphRequest = GraphRequest.init(graphPath: "me", parameters: parameters)
+
+        graphRequest.start { (_ connection, _ result, _ error) in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            return completion(.success(result as? [String: Any]))
+        }
+    }
+
+    func isLoggedIn() -> Bool {
+        return AccessToken.current != nil
+    }
+
     func login(payload: [String: Any], completion: @escaping (Result<FacebookLoginResponse, Error>) -> Void) {
         guard let permissions = payload["permissions"] as? [String] else {
             completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing permissions"])))

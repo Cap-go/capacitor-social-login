@@ -3,6 +3,7 @@ package ee.forgr.capacitor.social.login;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -10,6 +11,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.util.HashMap;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 @CapacitorPlugin(name = "SocialLogin")
@@ -182,6 +185,43 @@ public class SocialLoginPlugin extends Plugin {
         }
 
         provider.refresh(call);
+    }
+
+    @PluginMethod
+    public void providerSpecificCall(PluginCall call) {
+        String customCall = call.getString("call");
+        if (customCall == null || customCall.isEmpty()) {
+            call.reject("Call is required");
+            return;
+        }
+
+        switch (customCall) {
+            case "facebook#getProfile":
+                JSObject options = call.getObject("options", new JSObject());
+                if (options == null) {
+                    call.reject("Options are required");
+                    return;
+                }
+
+                JSONArray fieldsArray = null;
+                try {
+                    fieldsArray = options.getJSONArray("fields");
+                } catch (JSONException e) {
+                    call.reject("Fields array is required");
+                    return;
+                }
+
+                SocialProvider provider = this.socialProviderHashMap.get("facebook");
+                if (provider == null || !(provider instanceof FacebookProvider)) {
+                    call.reject("Facebook provider not initialized");
+                    return;
+                }
+
+                ((FacebookProvider) provider).getProfile(fieldsArray, call);
+                break;
+            default:
+                call.reject("Invalid call. Supported calls: facebook#getProfile");
+        }
     }
 
     public void handleGoogleLoginIntent(int requestCode, Intent intent) {

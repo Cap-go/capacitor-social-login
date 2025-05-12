@@ -1,5 +1,6 @@
 package ee.forgr.capacitor.social.login.helpers;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.PluginCall;
 import org.json.JSONObject;
 
