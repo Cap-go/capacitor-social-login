@@ -152,6 +152,6 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     call: T;
     options: ProviderSpecificCallOptionsMap[T];
   }): Promise<ProviderSpecificCallResponseMap[T]> {
-        throw new Error(`Provider specific call for ${options.call} is not implemented`);
+    throw new Error(`Provider specific call for ${options.call} is not implemented`);
   }
 }
