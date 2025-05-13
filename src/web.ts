@@ -10,6 +10,9 @@ import type {
   isLoggedInOptions,
   ProviderResponseMap,
   FacebookLoginOptions,
+  ProviderSpecificCall,
+  ProviderSpecificCallOptionsMap,
+  ProviderSpecificCallResponseMap,
 } from './definitions';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
@@ -143,5 +146,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       default:
         throw new Error(`Refresh for ${(options as any).provider} is not implemented`);
     }
+  }
+
+  async providerSpecificCall<T extends ProviderSpecificCall>(options: {
+    call: T;
+    options: ProviderSpecificCallOptionsMap[T];
+  }): Promise<ProviderSpecificCallResponseMap[T]> {
+        throw new Error(`Provider specific call for ${options.call} is not implemented`);
   }
 }
