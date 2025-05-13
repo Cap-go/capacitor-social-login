@@ -23,6 +23,13 @@ We plan in the future to keep adding others social login and make this plugin th
 
 This plugin is the only one who implement all 3 majors social login on WEB, IOS and Android
 
+## Documentation
+
+Best experience to read the doc here:
+
+https://capgo.app/docs/plugins/social-login/getting-started/
+
+
 ## Install
 
 ```bash
