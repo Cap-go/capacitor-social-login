@@ -7,7 +7,7 @@ export interface InitializeOptions {
     /**
      * Facebook Client Token, provided by Facebook for web, in mobile it's set in the native files
      */
-    clientToken: string;
+    clientToken?: string;
   };
 
   google?: {
