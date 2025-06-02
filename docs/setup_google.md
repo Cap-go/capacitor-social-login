@@ -256,8 +256,13 @@ In this part, you will learn how to setup Google login in Android.
 > The Android SHA1 certificate is beyond painful and I wouldn't wish it on anyone to have to set this up. The following steps assume the simplest scenario of an app that isn't published to Google Play Store and that is only used by the local simulator, or development hardware device. 
 >
 > If you have deployed your app to Google Play Store, you **MUST** add an additional Android client ID that contains the SHA1 from Google Play console for production releases. You can find the SHA1 hash that Google Play uses to sign your release bundle under `Test and release > Setup > App Signing`.
+>
+> ![](./assets/google_play_signing_key.png)
+>
 > 
 > Finally, it's important to mention that if you mess up, the error will NOT be obvious. It may be very difficult to debug. If you struggle with the setup, please look at the [Github issues](https://github.com/Cap-go/capacitor-social-login/issues).
+> 
+>  Hence, we recommend you do the following steps twice, once for your debug signing key, a second time with the google play signing key. Leaving it for later is an easy thing to miss.
 
 1. Please create an Android client ID. You can find the details where to create a client ID in the first point of the IOS section.
 
@@ -282,6 +287,9 @@ In this part, you will learn how to setup Google login in Android.
    
    - Now, go back to the Google Console. Enter your `applicationId` as the `Package Name` and your SHA1 in the certificate field and click `create`
      ![](./assets/google_cons_creat_android_client.png)
+
+> [!IMPORTANT] Now repeat the above steps with the Google Play Signing Key. 
+
    
 2. Create a web client (this is required for Android)
    
@@ -423,6 +431,10 @@ In this part, you will learn how to setup Google login in Android.
 6- If you did everything correctly, you should see the following
 
    ![](./assets/google_android_final_login_show.gif)
+
+> [!TIP] You can test the production signing key by deploying your app to the Internal Testing Track 
+> ![](./assets/google_signing_key_testing_internal_test.png)
+
 
 ### Using Google login on the web
 
