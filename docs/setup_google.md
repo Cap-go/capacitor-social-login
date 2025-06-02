@@ -88,7 +88,7 @@ This step is required regardless of which the platform you decide to use. In thi
 
 In this part, you will learn how to setup Google login in IOS
 
-1. Please create an IOS client ID in the google console
+1. Please create an IOS client ID in the Google Cloud Console
    
    - Click on the search bar
      ![](./assets/google_cons_search.png)
@@ -118,7 +118,7 @@ In this part, you will learn how to setup Google login in IOS
      - Find your `Bundle Identifier` 
        ![](./assets/xcode_bundle_id.png)
      
-     - Go back to the Google Console and paste your `Bundle Identifier` into `Bundle ID`
+     - Go back to the Google Cloud Console and paste your `Bundle Identifier` into `Bundle ID`
        ![](./assets/google_cons_ios_bd_id.png)
    
    - Now, you can add your `App Store ID` or `Team ID` into the client ID. This isn't necessary, but if you have published your app to App Store I recommend filling those fields
@@ -277,7 +277,7 @@ In this part, you will learn how to setup Google login in Android.
    - Find `build.gradle` for the module `app`
      ![](./assets/studio_build_gradle.png)
    
-   - Copy the `android.defaultConfig.applicationId`. This will be your `package name` in the Google console
+   - Copy the `android.defaultConfig.applicationId`. This will be your `package name` in the Google Cloud Console
      ![](./assets/studio_build_gradle_app_id.png)
    
    - Now, open the terminal. Make sure that you are in the `android` folder of your app and run `./gradlew signInReport`
@@ -285,7 +285,7 @@ In this part, you will learn how to setup Google login in Android.
    
    - Scroll to the top of this command. You should see the following. Copy the `SHA1`.![](./assets/term_sign_report_res.png)
    
-   - Now, go back to the Google Console. Enter your `applicationId` as the `Package Name` and your SHA1 in the certificate field and click `create`
+   - Now, go back to the Google Cloud Console. Enter your `applicationId` as the `Package Name` and your SHA1 in the certificate field and click `create`
      ![](./assets/google_cons_creat_android_client.png)
 
 > [!IMPORTANT] Now repeat the above steps with the Google Play Signing Key. 
@@ -293,7 +293,7 @@ In this part, you will learn how to setup Google login in Android.
    
 2. Create a web client (this is required for Android)
    
-   - Go to the "Create credentials" page in Google Console
+   - Go to the "Create credentials" page in Google Cloud Console
    
    - Set application type to "Web"
      ![](./assets/google_cons_app_type_web.png)
@@ -428,9 +428,17 @@ In this part, you will learn how to setup Google login in Android.
    - Click `Update` and wait about 60 seconds
      ![](./assets/emul_and_settings_update_play_store.png)
 
-6- If you did everything correctly, you should see the following
+6. If you did everything correctly, you should see the following
 
    ![](./assets/google_android_final_login_show.gif)
+
+7. When you publish to the Google Play store, your app will be signed by a key that's created automatically by the Google Play Console. You will need to create a new Android OAuth client ID in the Google Cloud Console with the SHA-1 certificate fingerprint that Google Play used to sign your bundle.
+
+   - Locate the SHA-1 certificate fingerprint in the Google Play Console
+     ![](./assets/google_play_find_certificate_fingerprint.png)
+
+   - Create a new Android OAuth client in the Google Cloud Console. Enter a unique name such as `Android (Play Store)`. Enter the same client ID as you did in step 1 and paste the SHA-1 fingerprint from the Google Play Console.
+     ![](./assets/google_cloud_console_play_store_fingerprint.png)
 
 > [!TIP] You can test the production signing key by deploying your app to the Internal Testing Track 
 > ![](./assets/google_signing_key_testing_internal_test.png)
@@ -441,10 +449,10 @@ In this part, you will learn how to setup Google login in Android.
 Using the google login on the web is rather simple.
 In order to use it, you have to do the following:
 
-1. Create a web client in the Google Console.
+1. Create a web client in the Google Cloud Console.
    
   - Please follow step 2 of the `Using Google login on Android` if you have not configured it already
-2. Configure the web client in the Google Console
+2. Configure the web client in the Google Cloud Console
 
   - Please open the [credentials page](https://console.cloud.google.com/apis/credentials) and click on your web client
     ![](./assets/google_cons_open_web_client_id.png)
