@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.6.8](https://github.com/Cap-go/capacitor-social-login/compare/7.6.7...7.6.8) (2025-06-09)
+
+
+### Bug Fixes
+
+* prevent nonce usage for now ([cc59ae8](https://github.com/Cap-go/capacitor-social-login/commit/cc59ae8ac4459dc2199df10f14369b9208e92cf2))
+
 ### [7.6.7](https://github.com/Cap-go/capacitor-social-login/compare/7.6.6...7.6.7) (2025-06-02)
 
 
