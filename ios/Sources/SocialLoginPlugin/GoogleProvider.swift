@@ -31,6 +31,11 @@ class GoogleProvider {
             } else {
                 self.forceAuthCode = false
             }
+            // if nonce reject login as we need v9 to release to work
+            if let nonce = payload["nonce"] as? String {
+                completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Nonce is not supported in this version of the SDK, when V9 will be release it will work https://github.com/google/GoogleSignIn-iOS/tags"])))
+                return
+            }
 
             func login() {
                 guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
