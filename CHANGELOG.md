@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.7.0](https://github.com/Cap-go/capacitor-social-login/compare/7.6.8...7.7.0) (2025-06-12)
+
+
+### Features
+
+* add facebook#requestTracking ([795f117](https://github.com/Cap-go/capacitor-social-login/commit/795f1172c1b66918f66ebb457acca6644a923e2f))
+
 ### [7.6.8](https://github.com/Cap-go/capacitor-social-login/compare/7.6.7...7.6.8) (2025-06-09)
 
 
