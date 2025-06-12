@@ -252,7 +252,7 @@ export interface isLoggedInOptions {
 }
 
 // Define the provider-specific call types
-export type ProviderSpecificCall = 'facebook#getProfile';
+export type ProviderSpecificCall = 'facebook#getProfile' | 'facebook#requestTracking';
 
 // Define the options and response types for each specific call
 export interface FacebookGetProfileOptions {
@@ -285,13 +285,24 @@ export interface FacebookGetProfileResponse {
   };
 }
 
+export type FacebookRequestTrackingOptions = Record<string, never>;
+
+export interface FacebookRequestTrackingResponse {
+  /**
+   * App tracking authorization status
+   */
+  status: 'authorized' | 'denied' | 'notDetermined' | 'restricted';
+}
+
 // Map call strings to their options and response types
 export type ProviderSpecificCallOptionsMap = {
   'facebook#getProfile': FacebookGetProfileOptions;
+  'facebook#requestTracking': FacebookRequestTrackingOptions;
 };
 
 export type ProviderSpecificCallResponseMap = {
   'facebook#getProfile': FacebookGetProfileResponse;
+  'facebook#requestTracking': FacebookRequestTrackingResponse;
 };
 
 // Add a helper type to map providers to their response types

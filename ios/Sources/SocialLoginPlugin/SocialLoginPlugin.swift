@@ -194,8 +194,17 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     call.reject(error.localizedDescription)
                 }
             })
+        case "facebook#requestTracking":
+            facebook.requestTracking(completion: { res in
+                switch res {
+                case .success(let status):
+                    call.resolve(["status": status])
+                case .failure(let error):
+                    call.reject(error.localizedDescription)
+                }
+            })
         default:
-            call.reject("Invalid call. Supported calls: facebook#getProfile")
+            call.reject("Invalid call. Supported calls: facebook#getProfile, facebook#requestTracking")
         }
     }
 

@@ -6,6 +6,10 @@ import FBSDKLoginKit
 import FacebookLogin
 #endif
 
+#if canImport(AppTrackingTransparency)
+import AppTrackingTransparency
+#endif
+
 struct FacebookLoginResponse {
     let accessToken: [String: Any]
     let profile: [String: Any]
@@ -164,6 +168,35 @@ class FacebookProvider {
             self?.loginManager.logOut()
             completion(.success(()))
         }
+    }
+
+    func requestTracking(completion: @escaping (Result<String, Error>) -> Void) {
+        #if canImport(AppTrackingTransparency)
+        if #available(iOS 14, *) {
+            DispatchQueue.main.async {
+                ATTrackingManager.requestTrackingAuthorization { status in
+                    let statusString: String
+                    switch status {
+                    case .authorized:
+                        statusString = "authorized"
+                    case .denied:
+                        statusString = "denied"
+                    case .notDetermined:
+                        statusString = "notDetermined"
+                    case .restricted:
+                        statusString = "restricted"
+                    @unknown default:
+                        statusString = "notDetermined"
+                    }
+                    completion(.success(statusString))
+                }
+            }
+        } else {
+            completion(.success("notDetermined"))
+        }
+        #else
+        completion(.success("notDetermined"))
+        #endif
     }
 
     func refresh(viewController: UIViewController?, completion: @escaping (Result<SocialLoginUser, Error>) -> Void) {
