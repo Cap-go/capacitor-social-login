@@ -363,7 +363,7 @@ Refresh the access token
 ### providerSpecificCall(...)
 
 ```typescript
-providerSpecificCall<T extends "facebook#getProfile">(options: { call: T; options: ProviderSpecificCallOptionsMap[T]; }) => Promise<ProviderSpecificCallResponseMap[T]>
+providerSpecificCall<T extends ProviderSpecificCall>(options: { call: T; options: ProviderSpecificCallOptionsMap[T]; }) => Promise<ProviderSpecificCallResponseMap[T]>
 ```
 
 Execute provider-specific calls
@@ -498,6 +498,13 @@ Execute provider-specific calls
 | **`profile`** | <code>{ [key: string]: any; id: string \| null; name: string \| null; email: string \| null; first_name: string \| null; last_name: string \| null; picture?: { data: { height: number \| null; is_silhouette: boolean \| null; url: string \| null; width: number \| null; }; } \| null; }</code> | Facebook profile data |
 
 
+#### FacebookRequestTrackingResponse
+
+| Prop         | Type                                                                     | Description                       |
+| ------------ | ------------------------------------------------------------------------ | --------------------------------- |
+| **`status`** | <code>'authorized' \| 'denied' \| 'notDetermined' \| 'restricted'</code> | App tracking authorization status |
+
+
 #### FacebookGetProfileOptions
 
 | Prop         | Type                  | Description                              |
@@ -532,17 +539,29 @@ Execute provider-specific calls
 
 #### ProviderSpecificCallResponseMap
 
-<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; }</code>
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingresponse">FacebookRequestTrackingResponse</a>; }</code>
 
 
 #### ProviderSpecificCall
 
-<code>'facebook#getProfile'</code>
+<code>'facebook#getProfile' | 'facebook#requestTracking'</code>
 
 
 #### ProviderSpecificCallOptionsMap
 
-<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; }</code>
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingoptions">FacebookRequestTrackingOptions</a>; }</code>
+
+
+#### FacebookRequestTrackingOptions
+
+<code><a href="#record">Record</a>&lt;string, never&gt;</code>
+
+
+#### Record
+
+Construct a type with a set of properties K of type T
+
+<code>{ [P in K]: T; }</code>
 
 </docgen-api>
 
