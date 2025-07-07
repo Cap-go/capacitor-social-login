@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.dependency 'Capacitor'
   s.dependency 'FBSDKCoreKit', '17.4.0'
   s.dependency 'FBSDKLoginKit', '17.4.0'
-  s.dependency 'GoogleSignIn', '~> 8.0.0'
+  s.dependency 'GoogleSignIn', '~> 9.0.0'
   s.dependency 'Alamofire', '~> 5.10.2'
   s.swift_version = '5.1'
 end
