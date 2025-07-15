@@ -202,16 +202,38 @@ const res = await SocialLogin.login({
 
 [How to get the credentials](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_google.md)
 
-### Android configuration
+### Complete Configuration Example
 
-The implemention use the new library of Google who use Google account at Os level, make sure your device does have at least one google account connected
-
-Directly call the `initialize` method with the `google` provider
+For Google login to work properly across all platforms, you need different client IDs and must understand the requirements for each mode:
 
 ```typescript
 await SocialLogin.initialize({
   google: {
-    webClientId: 'your-client-id', // the web client id for Android and Web
+    webClientId: 'YOUR_WEB_CLIENT_ID',        // Required for Android and Web
+    iOSClientId: 'YOUR_IOS_CLIENT_ID',        // Required for iOS  
+    iOSServerClientId: 'YOUR_WEB_CLIENT_ID',  // Required for iOS offline mode (same as webClientId)
+    mode: 'online',  // 'online' or 'offline'
+  }
+});
+```
+
+**Important Notes:**
+- `webClientId`: Required for Android and Web platforms
+- `iOSClientId`: Required for iOS platform  
+- `iOSServerClientId`: Required only when using `mode: 'offline'` on iOS (should be the same value as `webClientId`)
+- `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data
+- `mode: 'online'`: Returns user profile data and access tokens (default)
+
+### Android configuration
+
+The implemention use the new library of Google who use Google account at Os level, make sure your device does have at least one google account connected
+
+Call the `initialize` method with the `google` provider:
+
+```typescript
+await SocialLogin.initialize({
+  google: {
+    webClientId: 'your-web-client-id', // Required: the web client id for Android and Web
   },
 });
 const res = await SocialLogin.login({
@@ -224,13 +246,14 @@ const res = await SocialLogin.login({
 
 ### iOS configuration
 
-Call the `initialize` method with the `google` provider
+Call the `initialize` method with the `google` provider:
 
 ```typescript
 await SocialLogin.initialize({
   google: {
-    iOSClientId: 'your-client-id', // the iOS client id
-    iOSServerClientId: 'your-server-client-id', // the iOS server client id (required in mode offline)
+    iOSClientId: 'your-ios-client-id',           // Required: the iOS client id
+    iOSServerClientId: 'your-web-client-id',     // Required for offline mode: same as webClientId
+    mode: 'online',  // 'online' for user data, 'offline' for server auth code only
   },
 });
 const res = await SocialLogin.login({
@@ -239,6 +262,19 @@ const res = await SocialLogin.login({
     scopes: ['email', 'profile'],
   },
 });
+```
+
+**Offline Mode Behavior:**
+When using `mode: 'offline'`, the login response will only contain:
+```typescript
+{
+  provider: 'google',
+  result: {
+    serverAuthCode: 'auth_code_for_backend',
+    responseType: 'offline'
+  }
+  // Note: No user profile data is returned in offline mode
+}
 ```
 
 ### Web
@@ -561,7 +597,9 @@ Execute provider-specific calls
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 </docgen-api>
 
