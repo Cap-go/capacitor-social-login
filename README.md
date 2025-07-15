@@ -281,6 +281,59 @@ When using `mode: 'offline'`, the login response will only contain:
 
 Initialize method to create a script tag with Google lib. We cannot know when it's ready so be sure to do it early in web otherwise it will fail.
 
+## Troubleshooting
+
+
+### Invalid Privacy Manifest (ITMS-91056)
+If you get this error on App Store Connect:
+
+> ITMS-91056: Invalid privacy manifest - The PrivacyInfo.xcprivacy file from the following path is invalid: ...
+
+**How to fix:**
+- Make sure your app's `PrivacyInfo.xcprivacy` is valid JSON, with only Apple-documented keys/values.
+- Do not include a privacy manifest in the plugin, only in your app.
+
+### Google Play Console AD_ID Permission Error
+
+**Problem**: After submitting your app to Google Play, you receive this error:
+```
+Google Api Error: Invalid request - This release includes the com.google.android.gms.permission.AD_ID permission 
+but your declaration on Play Console says your app doesn't use advertising ID. You must update your advertising 
+ID declaration.
+```
+
+**Root Cause**: The Facebook SDK automatically includes the `com.google.android.gms.permission.AD_ID` permission, even when you're only using Google and Apple sign-in.
+
+**Solutions**:
+
+#### Solution 1: Remove AD_ID Permission (Recommended)
+If you're not using Facebook login, add this to your app's `android/app/src/main/AndroidManifest.xml`:
+```xml
+<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+```
+
+Make sure you have the tools namespace declared:
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+```
+
+#### Solution 2: Update Google Play Console Declaration
+In Google Play Console → App content → Data safety:
+1. Select "Yes, my app collects or shares user data"
+2. Under "Data types" → "Device or other IDs" → Select "Advertising ID"
+3. Specify usage purpose (usually "App functionality" and/or "Analytics")
+
+#### Solution 3: Conditional Facebook Dependencies (Advanced)
+For advanced users who want to completely exclude Facebook from builds, you can use Gradle's conditional dependencies, but this requires custom build configuration.
+
+**Verification**: After implementing Solution 1, run:
+```bash
+./gradlew :app:dependencies --configuration debugRuntimeClasspath | grep facebook
+```
+
+The Facebook dependencies should still be present (for compatibility), but the AD_ID permission should be removed from your final APK.
+
 ## API
 
 <docgen-index>
@@ -603,10 +656,6 @@ Construct a type with a set of properties K of type T
 
 </docgen-api>
 
-### Credits
-
-This plugin implementation of google is based on [CapacitorGoogleAuth](https://github.com/CodetrixStudio/CapacitorGoogleAuth) with a lot of rework, the current maintainer is unreachable, we are thankful for his work and are now going forward on our own!
-Thanks to [reslear](https://github.com/reslear) for helping to tranfer users to this plugin from the old one and all the work.
 
 ## Privacy Manifest for App Developers
 
@@ -674,13 +723,7 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
     }
 ```
 
-## Troubleshooting
+### Credits
 
-### Invalid Privacy Manifest (ITMS-91056)
-If you get this error on App Store Connect:
-
-> ITMS-91056: Invalid privacy manifest - The PrivacyInfo.xcprivacy file from the following path is invalid: ...
-
-**How to fix:**
-- Make sure your app's `PrivacyInfo.xcprivacy` is valid JSON, with only Apple-documented keys/values.
-- Do not include a privacy manifest in the plugin, only in your app.
+This plugin implementation of google is based on [CapacitorGoogleAuth](https://github.com/CodetrixStudio/CapacitorGoogleAuth) with a lot of rework, the current maintainer is unreachable, we are thankful for his work and are now going forward on our own!
+Thanks to [reslear](https://github.com/reslear) for helping to tranfer users to this plugin from the old one and all the work.
