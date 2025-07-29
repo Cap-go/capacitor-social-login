@@ -172,31 +172,31 @@ export interface AppleProviderResponse {
 
 export type LoginOptions =
   | {
-    provider: 'facebook';
-    options: FacebookLoginOptions;
-  }
+      provider: 'facebook';
+      options: FacebookLoginOptions;
+    }
   | {
-    provider: 'google';
-    options: GoogleLoginOptions;
-  }
+      provider: 'google';
+      options: GoogleLoginOptions;
+    }
   | {
-    provider: 'apple';
-    options: AppleProviderOptions;
-  };
+      provider: 'apple';
+      options: AppleProviderOptions;
+    };
 
 export type LoginResult =
   | {
-    provider: 'facebook';
-    result: FacebookLoginResponse;
-  }
+      provider: 'facebook';
+      result: FacebookLoginResponse;
+    }
   | {
-    provider: 'google';
-    result: GoogleLoginResponse;
-  }
+      provider: 'google';
+      result: GoogleLoginResponse;
+    }
   | {
-    provider: 'apple';
-    result: AppleProviderResponse;
-  };
+      provider: 'apple';
+      result: AppleProviderResponse;
+    };
 
 export interface AccessToken {
   applicationId?: string;
