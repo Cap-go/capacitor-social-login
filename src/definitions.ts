@@ -58,7 +58,9 @@ export interface InitializeOptions {
      */
     clientId?: string;
     /**
-     * Apple Redirect URL, should be your backend url that is configured in your apple app, only for android
+     * Apple Redirect URL, should be your backend url that is configured in your apple app
+     * 
+     * **Note**: Use empty string `''` for iOS to prevent redirect.
      */
     redirectUrl?: string;
   };

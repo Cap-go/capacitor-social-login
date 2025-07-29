@@ -59,9 +59,69 @@ async function loginApple() {
 }
 ```
 
-Then, you want to run your app on a **<u>PHYSICAL</u>** device and test it. If you followed the steps closely you will see the following screen after clicking your button.
+**⚠️ Important**: Note, that adding `redirectUrl` **WILL** affect IOS!!! On iOS, this sends POST requests to your `redirectUrl`. To prevent this, consider using conditional initialization:
+
+```typescript
+import { Capacitor } from '@capacitor/core';
+
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+    redirectUrl: Capacitor.getPlatform() === 'ios' ? '' : 'https://appleloginvps.wcaleniewolny.me/login/callback'
+  }
+});
+```
+
+
+Apple Sign-In works on both physical devices and iOS simulators with signed in to iCloud account. 
+
 
 ![](./assets/apple-sign-in-ios-final.png)
+
+### Apple login on Web
+
+
+For web, you can use the same `initialize` and `login` functions as for IOS.
+
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-app-id', // Use your web Service ID
+    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback'
+  }
+});
+
+const result = await SocialLogin.login({
+  provider: 'apple',
+  options: {
+    scopes: ['email', 'name']
+  }
+});
+```
+
+**💡 Tip**: For web testing, it's better to create a Service ID with `.webapp` prefix (e.g., `your-app-id.webapp`) to keep web and mobile configurations separate.
+
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: Capacitor.getPlatform() === 'web' ? 'your-app-id.webapp' : 'your-app-id', // Use your web Service ID
+    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback'
+  }
+});
+```
+
+For web testing, you can use a free tool like Cloudflare tunnel to expose your local development server:
+
+1. Install Cloudflare tunnel: Follow the [official installation guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/local-management/create-local-tunnel/)
+2. Run tunnel: `cloudflared tunnel --url http://localhost:8100` (where 8100 is your app's port)
+3. You'll get a URL like: `https://monkey-bowlo-athens-spanking.trycloudflare.co`
+4. Configure this URL in Apple Developer Console:
+   - Go to `Register Website URLs`
+   - **Domains and Subdomains**: `trycloudflare.com`
+   - **Return URLs**: Use the generated Cloudflare URL
+
+
+![](./assets/apple-sign-in-ios-website-urls.png)
 
 ### Apple login on Android
 
@@ -301,5 +361,3 @@ await SocialLogin.initialize({
   }
 })
 ```
-
-Note, that adding `redirectUrl` **WILL** affect IOS!!!
