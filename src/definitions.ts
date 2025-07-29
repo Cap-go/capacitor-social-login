@@ -58,7 +58,9 @@ export interface InitializeOptions {
      */
     clientId?: string;
     /**
-     * Apple Redirect URL, should be your backend url that is configured in your apple app, only for android
+     * Apple Redirect URL, should be your backend url that is configured in your apple app
+     * 
+     * **Note**: Use empty string `''` for iOS to prevent redirect.
      */
     redirectUrl?: string;
   };
@@ -170,31 +172,31 @@ export interface AppleProviderResponse {
 
 export type LoginOptions =
   | {
-      provider: 'facebook';
-      options: FacebookLoginOptions;
-    }
+    provider: 'facebook';
+    options: FacebookLoginOptions;
+  }
   | {
-      provider: 'google';
-      options: GoogleLoginOptions;
-    }
+    provider: 'google';
+    options: GoogleLoginOptions;
+  }
   | {
-      provider: 'apple';
-      options: AppleProviderOptions;
-    };
+    provider: 'apple';
+    options: AppleProviderOptions;
+  };
 
 export type LoginResult =
   | {
-      provider: 'facebook';
-      result: FacebookLoginResponse;
-    }
+    provider: 'facebook';
+    result: FacebookLoginResponse;
+  }
   | {
-      provider: 'google';
-      result: GoogleLoginResponse;
-    }
+    provider: 'google';
+    result: GoogleLoginResponse;
+  }
   | {
-      provider: 'apple';
-      result: AppleProviderResponse;
-    };
+    provider: 'apple';
+    result: AppleProviderResponse;
+  };
 
 export interface AccessToken {
   applicationId?: string;
