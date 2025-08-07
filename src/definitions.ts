@@ -114,6 +114,21 @@ export interface GoogleLoginOptions {
    * @default 'standard'
    */
   style?: 'bottom' | 'standard';
+  /**
+   * Filter by authorized accounts (Android only)
+   * @description Only show accounts that have previously been used to sign in to the app.
+   * This option is only available for the 'bottom' style.
+   * Note: For Family Link supervised accounts, this should be set to false.
+   * @default true
+   */
+  filterByAuthorizedAccounts?: boolean;
+  /**
+   * Auto select enabled (Android only)
+   * @description Automatically select the account if only one Google account is available.
+   * This option is only available for the 'bottom' style.
+   * @default false
+   */
+  autoSelectEnabled?: boolean;
 }
 
 export interface GoogleLoginResponseOnline {

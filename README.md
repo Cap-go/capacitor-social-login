@@ -334,6 +334,40 @@ For advanced users who want to completely exclude Facebook from builds, you can 
 
 The Facebook dependencies should still be present (for compatibility), but the AD_ID permission should be removed from your final APK.
 
+### Google Sign-In with Family Link Supervised Accounts
+
+**Problem**: When users try to sign in with Google accounts supervised by Family Link, login fails with:
+```
+NoCredentialException: No credentials available
+```
+
+**Root Cause**: Family Link supervised accounts have different authentication requirements and may not work properly with certain Google Sign-In configurations.
+
+**Solution**: 
+When implementing Google Sign-In for apps that need to support Family Link accounts, use the following configuration:
+
+```typescript
+import { SocialLogin } from '@capacitor/social-login';
+
+// For Family Link accounts, disable filtering by authorized accounts
+await SocialLogin.login({
+  provider: 'google',
+  options: {
+    style: 'bottom', // or 'standard'
+    filterByAuthorizedAccounts: false, // Important for Family Link (default is true)
+    scopes: ['profile', 'email']
+  }
+});
+```
+
+**Key Points**:
+- Set `filterByAuthorizedAccounts` to `false` to ensure Family Link accounts are visible (default is `true`)
+- The plugin will automatically retry with 'standard' style if 'bottom' style fails with NoCredentialException
+- These options only affect Android; iOS handles Family Link accounts normally
+- The error message will suggest disabling `filterByAuthorizedAccounts` if login fails
+
+**Note**: Other apps like Listonic work with Family Link accounts because they use similar configurations. The default settings may be too restrictive for supervised accounts.
+
 ## API
 
 <docgen-index>
@@ -540,13 +574,15 @@ Execute provider-specific calls
 
 #### GoogleLoginOptions
 
-| Prop                    | Type                                | Description                                                                                          | Default                 |
-| ----------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------- |
-| **`scopes`**            | <code>string[]</code>               | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                         |
-| **`nonce`**             | <code>string</code>                 | Nonce                                                                                                |                         |
-| **`forceRefreshToken`** | <code>boolean</code>                | Force refresh token (only for Android)                                                               | <code>false</code>      |
-| **`forcePrompt`**       | <code>boolean</code>                | Force account selection prompt (iOS)                                                                 | <code>false</code>      |
-| **`style`**             | <code>'bottom' \| 'standard'</code> | Style                                                                                                | <code>'standard'</code> |
+| Prop                             | Type                                | Description                                                                                          | Default                 |
+| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------- |
+| **`scopes`**                     | <code>string[]</code>               | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                         |
+| **`nonce`**                      | <code>string</code>                 | Nonce                                                                                                |                         |
+| **`forceRefreshToken`**          | <code>boolean</code>                | Force refresh token (only for Android)                                                               | <code>false</code>      |
+| **`forcePrompt`**                | <code>boolean</code>                | Force account selection prompt (iOS)                                                                 | <code>false</code>      |
+| **`style`**                      | <code>'bottom' \| 'standard'</code> | Style                                                                                                | <code>'standard'</code> |
+| **`filterByAuthorizedAccounts`** | <code>boolean</code>                | Filter by authorized accounts (Android only)                                                         | <code>true</code>       |
+| **`autoSelectEnabled`**          | <code>boolean</code>                | Auto select enabled (Android only)                                                                   | <code>false</code>      |
 
 
 #### AppleProviderOptions
@@ -650,7 +686,9 @@ Execute provider-specific calls
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 </docgen-api>
 

@@ -614,18 +614,38 @@ public class GoogleProvider implements SocialProvider {
                 // do nothing
             }
         }
-        if (e instanceof NoCredentialException && isBottomUi) {
-            Log.e(LOG_TAG, "No Google accounts available or miss configuration using bottomUi, auto switch to standard UI");
-            // During the get credential flow, this is returned when no viable credential is available for the the user. This can be caused by various scenarios such as that the user doesn't have any credential or the user doesn't grant consent to using any available credential. Upon this exception, your app should navigate to use the regular app sign-up or sign-in screen.
-            // https://developer.android.com/reference/androidx/credentials/exceptions/NoCredentialException
+        if (e instanceof NoCredentialException) {
+            // Check if filterByAuthorizedAccounts is set (default is false if not explicitly set to false)
+            boolean filterByAuthorizedAccountsValue = false;
             try {
-                options.put("style", "standard");
-                call.getData().put("options", options);
+                if (options.has("filterByAuthorizedAccounts")) {
+                    filterByAuthorizedAccountsValue = options.getBoolean("filterByAuthorizedAccounts");
+                }
             } catch (JSONException ex) {
-                call.reject("Google Sign-In failed: " + ex.getMessage());
-                return;
+                // Ignore, use default
             }
-            login(call, config);
+            
+            if (isBottomUi) {
+                Log.e(LOG_TAG, "No Google accounts available with bottomUi. This may be due to Family Link supervised accounts when filterByAuthorizedAccounts is true. Switching to standard UI.");
+                // During the get credential flow, this is returned when no viable credential is available for the the user. This can be caused by various scenarios such as that the user doesn't have any credential or the user doesn't grant consent to using any available credential. Upon this exception, your app should navigate to use the regular app sign-up or sign-in screen.
+                // https://developer.android.com/reference/androidx/credentials/exceptions/NoCredentialException
+                // Note: Family Link supervised accounts may cause this error when filterByAuthorizedAccounts is true
+                try {
+                    options.put("style", "standard");
+                    call.getData().put("options", options);
+                } catch (JSONException ex) {
+                    call.reject("Google Sign-In failed: " + ex.getMessage());
+                    return;
+                }
+                login(call, config);
+            } else {
+                // If it's already standard UI, provide more detailed error message
+                if (filterByAuthorizedAccountsValue) {
+                    call.reject("Google Sign-In failed: No credentials available. If signing in with a Family Link supervised account, try setting filterByAuthorizedAccounts to false.");
+                } else {
+                    call.reject("Google Sign-In failed: " + e.getMessage());
+                }
+            }
         } else {
             call.reject("Google Sign-In failed: " + e.getMessage());
         }
