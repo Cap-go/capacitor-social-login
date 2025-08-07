@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [7.8.4](https://github.com/Cap-go/capacitor-social-login/compare/7.8.3...7.8.4) (2025-08-07)
+
+### [7.8.3](https://github.com/Cap-go/capacitor-social-login/compare/7.8.2...7.8.3) (2025-07-19)
+
+### [7.8.2](https://github.com/Cap-go/capacitor-social-login/compare/7.8.1...7.8.2) (2025-07-15)
+
 ### [7.8.1](https://github.com/Cap-go/capacitor-social-login/compare/7.8.0...7.8.1) (2025-07-15)
 
 ## [7.8.0](https://github.com/Cap-go/capacitor-social-login/compare/7.7.0...7.8.0) (2025-07-07)
