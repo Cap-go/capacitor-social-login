@@ -624,9 +624,12 @@ public class GoogleProvider implements SocialProvider {
             } catch (JSONException ex) {
                 // Ignore, use default
             }
-            
+
             if (isBottomUi) {
-                Log.e(LOG_TAG, "No Google accounts available with bottomUi. This may be due to Family Link supervised accounts when filterByAuthorizedAccounts is true. Switching to standard UI.");
+                Log.e(
+                    LOG_TAG,
+                    "No Google accounts available with bottomUi. This may be due to Family Link supervised accounts when filterByAuthorizedAccounts is true. Switching to standard UI."
+                );
                 // During the get credential flow, this is returned when no viable credential is available for the the user. This can be caused by various scenarios such as that the user doesn't have any credential or the user doesn't grant consent to using any available credential. Upon this exception, your app should navigate to use the regular app sign-up or sign-in screen.
                 // https://developer.android.com/reference/androidx/credentials/exceptions/NoCredentialException
                 // Note: Family Link supervised accounts may cause this error when filterByAuthorizedAccounts is true
@@ -641,7 +644,9 @@ public class GoogleProvider implements SocialProvider {
             } else {
                 // If it's already standard UI, provide more detailed error message
                 if (filterByAuthorizedAccountsValue) {
-                    call.reject("Google Sign-In failed: No credentials available. If signing in with a Family Link supervised account, try setting filterByAuthorizedAccounts to false.");
+                    call.reject(
+                        "Google Sign-In failed: No credentials available. If signing in with a Family Link supervised account, try setting filterByAuthorizedAccounts to false."
+                    );
                 } else {
                     call.reject("Google Sign-In failed: " + e.getMessage());
                 }
