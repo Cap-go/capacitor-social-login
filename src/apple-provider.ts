@@ -9,7 +9,7 @@ export class AppleSocialLogin extends BaseSocialLogin {
   private scriptLoaded = false;
   private scriptUrl = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
 
-  async initialize(clientId: string | null, redirectUrl: string | null | undefined): Promise<void> {
+  async initialize(clientId: string, redirectUrl: string | null | undefined): Promise<void> {
     this.clientId = clientId;
     this.redirectUrl = redirectUrl || null;
 
@@ -29,6 +29,7 @@ export class AppleSocialLogin extends BaseSocialLogin {
 
     return new Promise((resolve, reject) => {
       AppleID.auth.init({
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         clientId: this.clientId!,
         scope: options.scopes?.join(' ') || 'name email',
         redirectURI: this.redirectUrl || window.location.href,

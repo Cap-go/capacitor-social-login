@@ -10,7 +10,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
   private readonly GOOGLE_STATE_KEY = 'capgo_social_login_google_state';
 
   async initialize(
-    clientId: string | null,
+    clientId: string,
     mode?: 'online' | 'offline',
     hostedDomain?: string | null,
     redirectUrl?: string,
@@ -313,6 +313,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
     const params = new URLSearchParams({
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       client_id: this.clientId!,
       redirect_uri: this.redirectUrl || window.location.origin + window.location.pathname,
       response_type: this.loginType === 'offline' ? 'code' : 'token id_token',
