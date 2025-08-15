@@ -1,6 +1,13 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
+
+## [7.8.6](https://github.com/Cap-go/capacitor-social-login/compare/7.8.5...7.8.6) (2025-08-15)
+
+
+### Bug Fixes
+
+* improve logging messages in GoogleProvider for better clarity and consistency ([87c996e](https://github.com/Cap-go/capacitor-social-login/commit/87c996e1eca1c7b776a71b33bd4b883298d6bc9f))
 
 ### [7.8.5](https://github.com/Cap-go/capacitor-social-login/compare/7.8.4...7.8.5) (2025-08-07)
 
