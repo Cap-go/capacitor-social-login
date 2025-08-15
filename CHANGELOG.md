@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.9.0](https://github.com/Cap-go/capacitor-social-login/compare/7.8.14...7.9.0) (2025-08-15)
+
+
+### Features
+
+* **facebook:** add locale support for Facebook SDK initialization ([73c7fa5](https://github.com/Cap-go/capacitor-social-login/commit/73c7fa5aa2a6058b8170d25363c5ba2bf774f519))
+
 ## [7.8.14](https://github.com/Cap-go/capacitor-social-login/compare/7.8.13...7.8.14) (2025-08-15)
 
 ## [7.8.13](https://github.com/Cap-go/capacitor-social-login/compare/7.8.12...7.8.13) (2025-08-15)
