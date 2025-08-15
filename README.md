@@ -507,7 +507,7 @@ Execute provider-specific calls
 
 | Prop           | Type                                                                                                                                                                |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`facebook`** | <code>{ appId: string; clientToken?: string; }</code>                                                                                                               |
+| **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |
 | **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                                                                                           |
 

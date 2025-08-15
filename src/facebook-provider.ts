@@ -15,12 +15,17 @@ declare const FB: {
 export class FacebookSocialLogin extends BaseSocialLogin {
   private appId: string | null = null;
   private scriptLoaded = false;
+  private locale = 'en_US';
 
-  async initialize(appId: string | null): Promise<void> {
+  async initialize(appId: string | null, locale?: string): Promise<void> {
     this.appId = appId;
+    if (locale) {
+      this.locale = locale;
+    }
 
     if (appId) {
-      await this.loadFacebookScript();
+      // Load with the specified locale or default
+      await this.loadFacebookScript(this.locale);
       FB.init({
         appId: this.appId,
         version: 'v17.0',
@@ -101,10 +106,16 @@ export class FacebookSocialLogin extends BaseSocialLogin {
     await this.login(options);
   }
 
-  private async loadFacebookScript(): Promise<void> {
+  private async loadFacebookScript(locale: string): Promise<void> {
     if (this.scriptLoaded) return;
 
-    return this.loadScript('https://connect.facebook.net/en_US/sdk.js').then(() => {
+    // Remove any existing Facebook SDK script
+    const existingScript = document.querySelector('script[src*="connect.facebook.net"]');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    return this.loadScript(`https://connect.facebook.net/${locale}/sdk.js`).then(() => {
       this.scriptLoaded = true;
     });
   }

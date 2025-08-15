@@ -8,6 +8,13 @@ export interface InitializeOptions {
      * Facebook Client Token, provided by Facebook for web, in mobile it's set in the native files
      */
     clientToken?: string;
+    /**
+     * Locale
+     * @description The locale to use for the Facebook SDK (e.g., 'en_US', 'fr_FR', 'es_ES')
+     * @default 'en_US'
+     * @example 'fr_FR'
+     */
+    locale?: string;
   };
 
   google?: {

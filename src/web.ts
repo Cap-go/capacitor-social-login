@@ -72,7 +72,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     if (options.facebook?.appId) {
-      initPromises.push(this.facebookProvider.initialize(options.facebook.appId));
+      initPromises.push(this.facebookProvider.initialize(options.facebook.appId, options.facebook.locale));
     }
 
     await Promise.all(initPromises);
