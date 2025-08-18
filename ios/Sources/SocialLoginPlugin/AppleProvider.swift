@@ -249,16 +249,18 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             let finalFamilyName = fullName?.familyName ?? savedName?.familyName
 
             // Create proper access token and decode JWT
-            let tokenString = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
+            let authorizationCode = String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
+            let idToken = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
+
             let accessToken = AccessTokenApple(
-                token: tokenString,
+                token: authorizationCode,
                 expiresIn: 3600,
                 refreshToken: nil
             )
 
             // Decode JWT to get email
             var decodedEmail = email
-            if let jwt = tokenString.split(separator: ".").dropFirst().first {
+            if let jwt = idToken.split(separator: ".").dropFirst().first {
                 let remainder = jwt.count % 4
                 var base64String = String(jwt)
                 if remainder > 0 {
@@ -280,7 +282,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                     givenName: finalGivenName,
                     familyName: finalFamilyName
                 ),
-                idToken: String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
+                idToken: idToken
             )
 
             if !self.redirectUrl.isEmpty {

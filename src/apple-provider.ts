@@ -48,9 +48,9 @@ export class AppleSocialLogin extends BaseSocialLogin {
               familyName: res.user?.name?.lastName || null,
             },
             accessToken: {
-              token: res.authorization.id_token || '',
+              token: res.authorization.code || '',
             },
-            idToken: res.authorization.code || null,
+            idToken: res.authorization.id_token || null,
           };
           resolve({ provider: 'apple', result });
         })
