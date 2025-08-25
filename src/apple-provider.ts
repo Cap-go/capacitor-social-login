@@ -8,10 +8,16 @@ export class AppleSocialLogin extends BaseSocialLogin {
   private redirectUrl: string | null = null;
   private scriptLoaded = false;
   private scriptUrl = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+  private useProperTokenExchange = false;
 
-  async initialize(clientId: string | null, redirectUrl: string | null | undefined): Promise<void> {
+  async initialize(
+    clientId: string | null,
+    redirectUrl: string | null | undefined,
+    useProperTokenExchange = false,
+  ): Promise<void> {
     this.clientId = clientId;
     this.redirectUrl = redirectUrl || null;
+    this.useProperTokenExchange = useProperTokenExchange;
 
     if (clientId) {
       await this.loadAppleScript();
@@ -40,6 +46,20 @@ export class AppleSocialLogin extends BaseSocialLogin {
       AppleID.auth
         .signIn()
         .then((res: any) => {
+          let accessToken: { token: string } | null = null;
+
+          if (this.useProperTokenExchange) {
+            // When using proper token exchange, the authorization code should be exchanged
+            // for a proper access token on the backend. For now, we set accessToken to null
+            // and provide the authorization code in a separate field for backend processing.
+            accessToken = null;
+          } else {
+            // Legacy behavior: use authorization code as access token for backward compatibility
+            accessToken = {
+              token: res.authorization.code || '',
+            };
+          }
+
           const result: AppleProviderResponse = {
             profile: {
               user: res.user || '',
@@ -47,10 +67,10 @@ export class AppleSocialLogin extends BaseSocialLogin {
               givenName: res.user?.name?.firstName || null,
               familyName: res.user?.name?.lastName || null,
             },
-            accessToken: {
-              token: res.authorization.code || '',
-            },
+            accessToken: accessToken,
             idToken: res.authorization.id_token || null,
+            // Add authorization code for proper token exchange when flag is enabled
+            ...(this.useProperTokenExchange && { authorizationCode: res.authorization.code }),
           };
           resolve({ provider: 'apple', result });
         })

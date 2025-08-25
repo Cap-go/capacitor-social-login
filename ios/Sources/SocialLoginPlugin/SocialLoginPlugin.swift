@@ -59,13 +59,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         if let appleSettings = call.getObject("apple") {
-            if let redirectUrl = appleSettings["redirectUrl"] as? String {
-                apple.initialize(redirectUrl: redirectUrl)
-                initialized = true
-            } else {
-                apple.initialize()
-                initialized = true
-            }
+            let redirectUrl = appleSettings["redirectUrl"] as? String
+            let useProperTokenExchange = appleSettings["useProperTokenExchange"] as? Bool ?? false
+            apple.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
+            initialized = true
         }
 
         if initialized {

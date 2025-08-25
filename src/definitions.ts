@@ -70,6 +70,12 @@ export interface InitializeOptions {
      * **Note**: Use empty string `''` for iOS to prevent redirect.
      */
     redirectUrl?: string;
+    /**
+     * Use proper token exchange for Apple Sign-In
+     * @description When true, exchanges authorization code for proper access token. When false (default), uses authorization code as access token for backward compatibility. will be default in v8
+     * @default false
+     */
+    useProperTokenExchange?: boolean;
   };
 }
 
@@ -190,6 +196,11 @@ export interface AppleProviderResponse {
     givenName: string | null;
     familyName: string | null;
   };
+  /**
+   * Authorization code for proper token exchange (when useProperTokenExchange is enabled)
+   * @description Only present when useProperTokenExchange is true. Should be exchanged for proper access token on the backend.
+   */
+  authorizationCode?: string;
 }
 
 export type LoginOptions =

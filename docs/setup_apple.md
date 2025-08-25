@@ -53,11 +53,77 @@ async function loginApple() {
     provider: 'apple',
     options: {}
   })
-  // token = the JWT returned by Apple
-  const token = res.result.idToken
-  // Send the token to your backend.... 
+  // Get the ID token (JWT) and access token
+  const idToken = res.result.idToken
+  const accessToken = res.result.accessToken?.token
+
+  // Send the tokens to your backend for verification
+  // Use idToken for user authentication and accessToken for API calls
 }
 ```
+
+### Token Exchange Configuration
+
+The Apple provider supports a configuration flag `useProperTokenExchange` that controls how tokens are handled:
+
+#### Backward Compatible Mode (Default)
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+    redirectUrl: 'your-redirect-url',
+    useProperTokenExchange: false // or omit (defaults to false)
+  }
+})
+```
+
+**Behavior:**
+- `accessToken.token` contains the authorization code (legacy behavior)
+- `idToken` contains the JWT token
+- No `authorizationCode` field in response
+
+#### Proper Token Exchange Mode
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+    redirectUrl: 'your-redirect-url',
+    useProperTokenExchange: true
+  }
+})
+```
+
+**Behavior:**
+- `accessToken` is `null` (authorization code should be exchanged on backend)
+- `idToken` contains the JWT token
+- `authorizationCode` field contains the authorization code for backend processing
+
+When `useProperTokenExchange: true`, you should exchange the `authorizationCode` on your backend using Apple's token endpoint:
+
+```typescript
+// Frontend code
+async function loginApple() {
+  const res = await SocialLogin.login({
+    provider: 'apple',
+    options: {}
+  })
+
+  // Send to backend for proper token exchange
+  const response = await fetch('/api/auth/apple', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      authorizationCode: res.result.authorizationCode,
+      idToken: res.result.idToken
+    })
+  })
+
+  const tokens = await response.json()
+  // tokens.access_token, tokens.refresh_token, tokens.id_token
+}
+```
+
+This approach ensures proper token validation and follows Apple's recommended authentication flow.
 
 **⚠️ Important**: Note, that adding `redirectUrl` **WILL** affect IOS!!! On iOS, this sends POST requests to your `redirectUrl`. To prevent this, consider using conditional initialization:
 
@@ -87,7 +153,8 @@ For web, you can use the same `initialize` and `login` functions as for IOS.
 await SocialLogin.initialize({
   apple: {
     clientId: 'your-app-id', // Use your web Service ID
-    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback'
+    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback',
+    useProperTokenExchange: false // Default: false (backward compatible)
   }
 });
 
@@ -105,7 +172,8 @@ const result = await SocialLogin.login({
 await SocialLogin.initialize({
   apple: {
     clientId: Capacitor.getPlatform() === 'web' ? 'your-app-id.webapp' : 'your-app-id', // Use your web Service ID
-    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback'
+    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback',
+    useProperTokenExchange: false // Default: false (backward compatible)
   }
 });
 ```
@@ -351,13 +419,92 @@ env: {
 
 #### Using the plugin
 
-The usage of the `login` function doesn't change, it's the same as IOS. Please take a look at that section for more info. **HOWEVER**, the `initialize` method changes a bit.
+The usage of the `login` function doesn't change, it's the same as iOS. Please take a look at that section for more info. **HOWEVER**, the `initialize` method changes a bit.
 
 ```typescript
 await SocialLogin.initialize({
   apple: {
     clientId: 'ee.forgr.io.ionic.starter.service2',
-    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback'
+    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback',
+    useProperTokenExchange: false // Default: false (backward compatible)
+  }
+})
+
+// Login function
+async function loginApple() {
+  const res = await SocialLogin.login({
+    provider: 'apple',
+    options: {}
+  })
+
+  // Get the ID token (JWT) and access token
+  const idToken = res.result.idToken
+  const accessToken = res.result.accessToken?.token
+
+  // Send the tokens to your backend for verification
+  // Use idToken for user authentication and accessToken for API calls
+}
+```
+
+### Token Exchange Configuration
+
+The Apple provider supports a configuration flag `useProperTokenExchange` that controls how tokens are handled:
+
+#### Backward Compatible Mode (Default)
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+    redirectUrl: 'your-redirect-url',
+    useProperTokenExchange: false // or omit (defaults to false)
   }
 })
 ```
+
+**Behavior:**
+- `accessToken.token` contains the authorization code (legacy behavior)
+- `idToken` contains the JWT token
+- No `authorizationCode` field in response
+
+#### Proper Token Exchange Mode
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-client-id',
+    redirectUrl: 'your-redirect-url',
+    useProperTokenExchange: true
+  }
+})
+```
+
+**Behavior:**
+- `accessToken` is `null` (authorization code should be exchanged on backend)
+- `idToken` contains the JWT token
+- `authorizationCode` field contains the authorization code for backend processing
+
+When `useProperTokenExchange: true`, you should exchange the `authorizationCode` on your backend using Apple's token endpoint:
+
+```typescript
+// Frontend code
+async function loginApple() {
+  const res = await SocialLogin.login({
+    provider: 'apple',
+    options: {}
+  })
+
+  // Send to backend for proper token exchange
+  const response = await fetch('/api/auth/apple', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      authorizationCode: res.result.authorizationCode,
+      idToken: res.result.idToken
+    })
+  })
+
+  const tokens = await response.json()
+  // tokens.access_token, tokens.refresh_token, tokens.id_token
+}
+```
+
+This approach ensures proper token validation and follows Apple's recommended authentication flow.

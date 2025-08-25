@@ -68,7 +68,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     if (options.apple?.clientId) {
-      initPromises.push(this.appleProvider.initialize(options.apple.clientId, options.apple.redirectUrl));
+      initPromises.push(
+        this.appleProvider.initialize(
+          options.apple.clientId,
+          options.apple.redirectUrl,
+          options.apple.useProperTokenExchange,
+        ),
+      );
     }
 
     if (options.facebook?.appId) {
