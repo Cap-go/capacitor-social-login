@@ -46,6 +46,9 @@ The plugin now uses exclusively the Web Client ID for authentication. You'll nee
 + });
 ```
 
+If you have `"serverClientId"` in your capacitor config, make sure you include it alongside `iOSClientId` as `iOSServerClientId`, too.
+It's required for offline mode or when you need to verify idToken on the server.
+
 ### Sign In
 ```diff
 - const user = await GoogleAuth.signIn();
