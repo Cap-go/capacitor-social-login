@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.10.0](https://github.com/Cap-go/capacitor-social-login/compare/7.9.6...7.10.0) (2025-08-25)
+
+
+### Features
+
+* add proper token exchange configuration for Apple Sign-In ([a9a2c42](https://github.com/Cap-go/capacitor-social-login/commit/a9a2c42fc13c1817286c6cd208203b5c5fc6ae8d))
+* enhance Apple Sign-In response structure and token handling ([fea26a8](https://github.com/Cap-go/capacitor-social-login/commit/fea26a82ebe1d3da109f22cb49150e628207ffe7))
+
 ## [7.9.6](https://github.com/Cap-go/capacitor-social-login/compare/7.9.5...7.9.6) (2025-08-25)
 
 ## [7.9.5](https://github.com/Cap-go/capacitor-social-login/compare/7.9.4...7.9.5) (2025-08-25)
