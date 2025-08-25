@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.11.0](https://github.com/Cap-go/capacitor-social-login/compare/7.10.0...7.11.0) (2025-08-25)
+
+
+### Features
+
+* add Broadcast Channel support for Apple Sign-In ([7cd00c5](https://github.com/Cap-go/capacitor-social-login/commit/7cd00c5750b252d553b5390971db1c1691b51260))
+
 ## [7.10.0](https://github.com/Cap-go/capacitor-social-login/compare/7.9.6...7.10.0) (2025-08-25)
 
 
