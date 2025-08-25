@@ -422,7 +422,8 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                             givenName: nil,
                                             familyName: nil
                                         ),
-                                        idToken: idToken
+                                        idToken: idToken,
+                                        authorizationCode: nil
                                     )
                                     completion(.success(appleResponse))
                                     return
@@ -445,7 +446,8 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                         givenName: firstName,
                                         familyName: lastName
                                     ),
-                                    idToken: identityToken
+                                    idToken: identityToken,
+                                    authorizationCode: nil
                                 )
 
                                 do {
@@ -548,7 +550,8 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                                 givenName: nil,
                                 familyName: nil
                             ),
-                            idToken: idToken
+                            idToken: idToken,
+                            authorizationCode: nil
                         )
 
                         // Log the tokens (replace with your logging mechanism)

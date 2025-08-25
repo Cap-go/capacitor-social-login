@@ -53,12 +53,16 @@ async function loginApple() {
     provider: 'apple',
     options: {}
   })
-  // Get the ID token (JWT) and access token
-  const idToken = res.result.idToken
-  const accessToken = res.result.accessToken?.token
+  // Get the tokens from the response
+  const idToken = res.result.idToken           // JWT with user identity (email, name, user ID)
+  const accessToken = res.result.accessToken?.token  // Content depends on useProperTokenExchange setting
 
-  // Send the tokens to your backend for verification
-  // Use idToken for user authentication and accessToken for API calls
+  // Token content depends on configuration:
+  // - With useProperTokenExchange: true → accessToken = real Apple access token (~1 hour)
+  // - With useProperTokenExchange: false (default) → accessToken = authorization code (legacy)
+
+  // Always send idToken to backend for user authentication
+  // Only use accessToken for API calls when useProperTokenExchange is enabled
 }
 ```
 
@@ -109,12 +113,14 @@ async function loginApple() {
   })
 
   // Send to backend for proper token exchange
+  // When useProperTokenExchange: true, authorizationCode contains the raw code for backend exchange
+  // idToken contains the JWT for user identity verification
   const response = await fetch('/api/auth/apple', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      authorizationCode: res.result.authorizationCode,
-      idToken: res.result.idToken
+      authorizationCode: res.result.authorizationCode,  // Raw code for token exchange
+      idToken: res.result.idToken                      // JWT for user identity
     })
   })
 
@@ -437,12 +443,16 @@ async function loginApple() {
     options: {}
   })
 
-  // Get the ID token (JWT) and access token
-  const idToken = res.result.idToken
-  const accessToken = res.result.accessToken?.token
+  // Get the tokens from the response
+  const idToken = res.result.idToken           // JWT with user identity (email, name, user ID)
+  const accessToken = res.result.accessToken?.token  // Content depends on useProperTokenExchange setting
 
-  // Send the tokens to your backend for verification
-  // Use idToken for user authentication and accessToken for API calls
+  // Token content depends on configuration:
+  // - With useProperTokenExchange: true → accessToken = real Apple access token (~1 hour)
+  // - With useProperTokenExchange: false (default) → accessToken = authorization code (legacy)
+
+  // Always send idToken to backend for user authentication
+  // Only use accessToken for API calls when useProperTokenExchange is enabled
 }
 ```
 
@@ -493,12 +503,14 @@ async function loginApple() {
   })
 
   // Send to backend for proper token exchange
+  // When useProperTokenExchange: true, authorizationCode contains the raw code for backend exchange
+  // idToken contains the JWT for user identity verification
   const response = await fetch('/api/auth/apple', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      authorizationCode: res.result.authorizationCode,
-      idToken: res.result.idToken
+      authorizationCode: res.result.authorizationCode,  // Raw code for token exchange
+      idToken: res.result.idToken                      // JWT for user identity
     })
   })
 

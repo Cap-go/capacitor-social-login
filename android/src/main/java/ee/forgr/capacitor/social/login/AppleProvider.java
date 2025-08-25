@@ -68,6 +68,7 @@ public class AppleProvider implements SocialProvider {
     private final String redirectUrl;
     private final Activity activity;
     private final Context context;
+    private final boolean useProperTokenExchange;
 
     private CustomTabsClient customTabsClient;
     private CustomTabsSession currentSession;
@@ -82,11 +83,12 @@ public class AppleProvider implements SocialProvider {
         public void onServiceDisconnected(ComponentName name) {}
     };
 
-    public AppleProvider(String redirectUrl, String clientId, Activity activity, Context context) {
+    public AppleProvider(String redirectUrl, String clientId, Activity activity, Context context, boolean useProperTokenExchange) {
         this.redirectUrl = redirectUrl;
         this.clientId = clientId;
         this.activity = activity;
         this.context = context;
+        this.useProperTokenExchange = useProperTokenExchange;
     }
 
     public void initialize() {
@@ -235,6 +237,7 @@ public class AppleProvider implements SocialProvider {
         if ("true".equals(success)) {
             String accessToken = uri.getQueryParameter("access_token");
             if (accessToken != null) {
+                // We have proper tokens from the backend
                 String refreshToken = uri.getQueryParameter("refresh_token");
                 String idToken = uri.getQueryParameter("id_token");
                 try {
@@ -243,6 +246,11 @@ public class AppleProvider implements SocialProvider {
                     result.put("accessToken", createAccessTokenObject(accessToken));
                     result.put("profile", createProfileObject(idToken));
                     result.put("idToken", idToken);
+
+                    // For proper token exchange mode, don't include authorization code
+                    if (!useProperTokenExchange) {
+                        result.put("authorizationCode", (String) null);
+                    }
 
                     JSObject response = new JSObject();
                     response.put("provider", "apple");
@@ -254,9 +262,18 @@ public class AppleProvider implements SocialProvider {
                     this.lastcall.reject("Cannot persist state", e);
                 }
             } else {
+                // We only have authorization code, need to exchange it
                 String appleAuthCode = uri.getQueryParameter("code");
                 String appleClientSecret = uri.getQueryParameter("client_secret");
-                requestForAccessToken(appleAuthCode, appleClientSecret);
+
+                if (useProperTokenExchange) {
+                    // In proper token exchange mode, we should have received proper tokens
+                    // from the backend. If we only got an auth code, reject the call.
+                    this.lastcall.reject("Expected proper tokens from backend but received authorization code only");
+                } else {
+                    // Legacy mode: exchange the authorization code for tokens
+                    requestForAccessToken(appleAuthCode, appleClientSecret);
+                }
             }
         } else {
             this.lastcall.reject("We couldn't get the Auth Code");
@@ -298,9 +315,21 @@ public class AppleProvider implements SocialProvider {
                             String idToken = jsonObject.getString("id_token");
 
                             persistState(idToken, refreshToken, accessToken);
-                            AppleProvider.this.lastcall.resolve(
-                                    new JSObject().put("provider", "apple").put("result", new JSObject().put("identityToken", idToken))
-                                );
+
+                            // Create proper response with all tokens
+                            JSObject result = new JSObject();
+                            result.put("accessToken", createAccessTokenObject(accessToken));
+                            result.put("profile", createProfileObject(idToken));
+                            result.put("idToken", idToken);
+
+                            // For legacy mode, we don't include authorization code in the response
+                            // since we've already exchanged it for proper tokens
+
+                            JSObject appleResponse = new JSObject();
+                            appleResponse.put("provider", "apple");
+                            appleResponse.put("result", result);
+
+                            AppleProvider.this.lastcall.resolve(appleResponse);
                             AppleProvider.this.lastcall = null;
                         } catch (Exception e) {
                             AppleProvider.this.lastcall.reject("Cannot get access_token", e);

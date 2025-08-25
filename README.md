@@ -509,7 +509,7 @@ Execute provider-specific calls
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; }</code>                                                                                                           |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; }</code>                                                                         |
 
 
 #### FacebookLoginResponse
@@ -556,11 +556,12 @@ Execute provider-specific calls
 
 #### AppleProviderResponse
 
-| Prop              | Type                                                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------------------------------ |
-| **`accessToken`** | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                  |
-| **`idToken`**     | <code>string \| null</code>                                                                                  |
-| **`profile`**     | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> |
+| Prop                    | Type                                                                                                         | Description                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| **`accessToken`**       | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                  | Access token from Apple                                                               |
+| **`idToken`**           | <code>string \| null</code>                                                                                  | Identity token (JWT) from Apple                                                       |
+| **`profile`**           | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> | User profile information                                                              |
+| **`authorizationCode`** | <code>string</code>                                                                                          | Authorization code for proper token exchange (when useProperTokenExchange is enabled) |
 
 
 #### FacebookLoginOptions

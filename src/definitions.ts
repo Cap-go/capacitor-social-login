@@ -70,10 +70,31 @@ export interface InitializeOptions {
      * **Note**: Use empty string `''` for iOS to prevent redirect.
      */
     redirectUrl?: string;
-    /**
+        /**
      * Use proper token exchange for Apple Sign-In
-     * @description When true, exchanges authorization code for proper access token. When false (default), uses authorization code as access token for backward compatibility. will be default in v8
+     * @description Controls how Apple Sign-In tokens are handled and what gets returned:
+     *
+     * **When `true` (Recommended for new implementations):**
+     * - Exchanges authorization code for proper access tokens via Apple's token endpoint
+     * - `idToken`: JWT containing user identity information (email, name, user ID)
+     * - `accessToken.token`: Proper access token from Apple (short-lived, ~1 hour)
+     * - `authorizationCode`: Raw authorization code for backend token exchange
+     *
+     * **When `false` (Default - Legacy mode):**
+     * - Uses authorization code directly as access token for backward compatibility
+     * - `idToken`: JWT containing user identity information (email, name, user ID)
+     * - `accessToken.token`: The authorization code itself (not a real access token)
+     * - `authorizationCode`: undefined
+     *
      * @default false
+     * @example
+     * // Enable proper token exchange (recommended)
+     * useProperTokenExchange: true
+     * // Result: idToken=JWT, accessToken=real_token, authorizationCode=present
+     *
+     * // Legacy mode (backward compatibility)
+     * useProperTokenExchange: false
+     * // Result: idToken=JWT, accessToken=auth_code, authorizationCode=undefined
      */
     useProperTokenExchange?: boolean;
   };
@@ -188,17 +209,47 @@ export interface AppleProviderOptions {
 }
 
 export interface AppleProviderResponse {
+  /**
+   * Access token from Apple
+   * @description Content depends on `useProperTokenExchange` setting:
+   * - When `useProperTokenExchange: true`: Real access token from Apple (~1 hour validity)
+   * - When `useProperTokenExchange: false`: Contains authorization code as token (legacy mode)
+   * Use `idToken` for user authentication, `accessToken` for API calls when properly exchanged.
+   */
   accessToken: AccessToken | null;
+
+  /**
+   * Identity token (JWT) from Apple
+   * @description Always contains the JWT with user identity information including:
+   * - User ID (sub claim)
+   * - Email (if user granted permission)
+   * - Name components (if user granted permission)
+   * - Email verification status
+   * This is the primary token for user authentication and should be verified on your backend.
+   */
   idToken: string | null;
+
+  /**
+   * User profile information
+   * @description Basic user profile data extracted from the identity token and Apple response:
+   * - `user`: Apple's user identifier (sub claim from idToken)
+   * - `email`: User's email address (if permission granted)
+   * - `givenName`: User's first name (if permission granted)
+   * - `familyName`: User's last name (if permission granted)
+   */
   profile: {
     user: string;
     email: string | null;
     givenName: string | null;
     familyName: string | null;
   };
+
   /**
    * Authorization code for proper token exchange (when useProperTokenExchange is enabled)
-   * @description Only present when useProperTokenExchange is true. Should be exchanged for proper access token on the backend.
+   * @description Only present when `useProperTokenExchange` is `true`. This code should be exchanged
+   * for proper access tokens on your backend using Apple's token endpoint. Use this for secure
+   * server-side token validation and to obtain refresh tokens.
+   * @see https://developer.apple.com/documentation/sign_in_with_apple/tokenresponse
    */
   authorizationCode?: string;
 }
