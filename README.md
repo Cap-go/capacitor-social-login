@@ -211,7 +211,7 @@ await SocialLogin.initialize({
   google: {
     webClientId: 'YOUR_WEB_CLIENT_ID',        // Required for Android and Web
     iOSClientId: 'YOUR_IOS_CLIENT_ID',        // Required for iOS  
-    iOSServerClientId: 'YOUR_WEB_CLIENT_ID',  // Required for iOS offline mode (same as webClientId)
+    iOSServerClientId: 'YOUR_WEB_CLIENT_ID',  // Required for iOS offline mode and server authorization (same as webClientId)
     mode: 'online',  // 'online' or 'offline'
   }
 });
@@ -220,7 +220,7 @@ await SocialLogin.initialize({
 **Important Notes:**
 - `webClientId`: Required for Android and Web platforms
 - `iOSClientId`: Required for iOS platform  
-- `iOSServerClientId`: Required only when using `mode: 'offline'` on iOS (should be the same value as `webClientId`)
+- `iOSServerClientId`: Required when using `mode: 'offline'` on iOS or when you need to verify the token on the server (should be the same value as `webClientId`)
 - `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data
 - `mode: 'online'`: Returns user profile data and access tokens (default)
 
