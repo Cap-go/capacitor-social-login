@@ -44,13 +44,15 @@ public class SocialLoginPlugin extends Plugin {
             }
 
             boolean useProperTokenExchange = apple.has("useProperTokenExchange") ? apple.getBool("useProperTokenExchange") : false;
+            boolean useBroadcastChannel = apple.has("useBroadcastChannel") ? apple.getBool("useBroadcastChannel") : false;
 
             AppleProvider appleProvider = new AppleProvider(
                 androidAppleRedirect,
                 androidAppleClientId,
                 this.getActivity(),
                 this.getContext(),
-                useProperTokenExchange
+                useProperTokenExchange,
+                useBroadcastChannel
             );
 
             appleProvider.initialize();

@@ -167,7 +167,8 @@ await SocialLogin.initialize({
 const result = await SocialLogin.login({
   provider: 'apple',
   options: {
-    scopes: ['email', 'name']
+    scopes: ['email', 'name'],
+    useBroadcastChannel: true // Optional: Override the global setting for this specific login
   }
 });
 ```
@@ -199,17 +200,30 @@ For web testing, you can use a free tool like Cloudflare tunnel to expose your l
 
 ### Apple login on Android
 
-Apple login on android is hacky. Apple has no official support for `Sign in with Apple` on Android, so the solution is slightly hacky.
+Apple login on Android has two implementation approaches:
 
-Android currently uses a chrome tabs to display an OAuth2 website. This approach has the challanges:
+#### 1. Broadcast Channel Mode (Recommended - New)
 
-- Difficult configuration
+The new Broadcast Channel approach eliminates the need for complex server-side setup:
 
-- A backend is required
+```mermaid
+flowchart TD
+    A("await SocialLogin.login()") -->|Handled in the plugin|B(Create WebView with Broadcast Channel)
+    B --> C(Apple authentication page loads)
+    C --> D(User signs in with Apple)
+    D --> E(Broadcast Channel communicates result)
+    E --> F(Return to JS - No server needed!)
+```
 
-#### Understanding the login with Apple flow on android.
+**Benefits:**
+- ✅ No redirect URL configuration required
+- ✅ No backend server needed
+- ✅ Simpler setup and more reliable
+- ✅ Direct client communication via Broadcast Channel
 
-Let me use a diagram to explain the flow on android:
+#### 2. Traditional Redirect Mode (Legacy)
+
+The legacy approach uses Chrome Custom Tabs with server-side URL binding:
 
 ```mermaid
 flowchart TD
@@ -221,7 +235,35 @@ flowchart TD
     F --> G(Return to JS)
 ```
 
-Now that you are aware of the challlanges and the flow, let's begin the configuration.
+**Requirements:**
+- ❌ Complex server-side URL binding configuration
+- ❌ Backend server required
+- ❌ Intent filter setup needed
+
+#### Broadcast Channel Setup (Recommended)
+
+For the simplest setup, use Broadcast Channel mode:
+
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-service-id',
+    useBroadcastChannel: true // Enable Broadcast Channel mode
+    // Note: No redirectUrl needed!
+  }
+})
+
+const result = await SocialLogin.login({
+  provider: 'apple',
+  options: {}
+})
+```
+
+That's it! No additional server configuration required.
+
+#### Traditional Setup (Legacy)
+
+If you prefer the traditional approach or need to maintain backward compatibility:
 
 Let's login into the [Apple Developer Portal](https://developer.apple.com). Now, click on `Identifiers`.
 
@@ -425,18 +467,20 @@ env: {
 
 #### Using the plugin
 
-The usage of the `login` function doesn't change, it's the same as iOS. Please take a look at that section for more info. **HOWEVER**, the `initialize` method changes a bit.
+The `login` function usage is the same across all platforms. However, the `initialize` method differs based on the approach you choose:
+
+##### Option A: Broadcast Channel Mode (Recommended)
 
 ```typescript
 await SocialLogin.initialize({
   apple: {
-    clientId: 'ee.forgr.io.ionic.starter.service2',
-    redirectUrl: 'https://appleloginvps.wcaleniewolny.me/login/callback',
+    clientId: 'your-service-id',
+    useBroadcastChannel: true, // Enable Broadcast Channel mode
     useProperTokenExchange: false // Default: false (backward compatible)
+    // Note: No redirectUrl needed!
   }
 })
 
-// Login function
 async function loginApple() {
   const res = await SocialLogin.login({
     provider: 'apple',
@@ -451,10 +495,39 @@ async function loginApple() {
   // - With useProperTokenExchange: true → accessToken = real Apple access token (~1 hour)
   // - With useProperTokenExchange: false (default) → accessToken = authorization code (legacy)
 
+  // For Broadcast Channel mode, you can handle token exchange on the client side
+  // or send the authorization code to your backend if needed
+}
+```
+
+##### Option B: Traditional Redirect Mode (Legacy)
+
+```typescript
+await SocialLogin.initialize({
+  apple: {
+    clientId: 'your-service-id',
+    redirectUrl: 'https://your-backend.com/callback', // Required for legacy mode
+    useBroadcastChannel: false, // Default: false (traditional mode)
+    useProperTokenExchange: false // Default: false (backward compatible)
+  }
+})
+
+async function loginApple() {
+  const res = await SocialLogin.login({
+    provider: 'apple',
+    options: {}
+  })
+
+  // Get the tokens from the response (same as Broadcast Channel mode)
+  const idToken = res.result.idToken
+  const accessToken = res.result.accessToken?.token
+
   // Always send idToken to backend for user authentication
   // Only use accessToken for API calls when useProperTokenExchange is enabled
 }
 ```
+
+**Recommendation:** Use Broadcast Channel mode (`useBroadcastChannel: true`) for new Android implementations as it significantly simplifies the setup process.
 
 ### Token Exchange Configuration
 

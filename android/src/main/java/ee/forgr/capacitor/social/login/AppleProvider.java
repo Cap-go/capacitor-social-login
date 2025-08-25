@@ -17,7 +17,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.ConsoleMessage;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageButton;
@@ -69,6 +72,7 @@ public class AppleProvider implements SocialProvider {
     private final Activity activity;
     private final Context context;
     private final boolean useProperTokenExchange;
+    private final boolean useBroadcastChannel;
 
     private CustomTabsClient customTabsClient;
     private CustomTabsSession currentSession;
@@ -83,12 +87,20 @@ public class AppleProvider implements SocialProvider {
         public void onServiceDisconnected(ComponentName name) {}
     };
 
-    public AppleProvider(String redirectUrl, String clientId, Activity activity, Context context, boolean useProperTokenExchange) {
+    public AppleProvider(
+        String redirectUrl,
+        String clientId,
+        Activity activity,
+        Context context,
+        boolean useProperTokenExchange,
+        boolean useBroadcastChannel
+    ) {
         this.redirectUrl = redirectUrl;
         this.clientId = clientId;
         this.activity = activity;
         this.context = context;
         this.useProperTokenExchange = useProperTokenExchange;
+        this.useBroadcastChannel = useBroadcastChannel;
     }
 
     public void initialize() {
@@ -138,6 +150,72 @@ public class AppleProvider implements SocialProvider {
             call.reject("Last call is not null");
         }
 
+        // Check if Broadcast Channel is enabled
+        boolean useBroadcastChannel = config.optBoolean("useBroadcastChannel", this.useBroadcastChannel);
+
+        if (useBroadcastChannel) {
+            // Use Broadcast Channel approach - simplified flow
+            loginWithBroadcastChannel(call, config);
+        } else {
+            // Use traditional URL redirect approach
+            loginWithRedirect(call, config);
+        }
+    }
+
+    private void loginWithBroadcastChannel(PluginCall call, JSONObject config) {
+        String state = UUID.randomUUID().toString();
+
+        // Extract scopes from config
+        String scopes = DEFAULT_SCOPE;
+        if (config.has("scopes")) {
+            try {
+                JSONArray scopesArray = config.getJSONArray("scopes");
+                if (scopesArray.length() > 0) {
+                    scopes = String.join("%20", toStringArray(scopesArray));
+                }
+            } catch (JSONException e) {
+                Log.e(SocialLoginPlugin.LOG_TAG, "Error parsing scopes", e);
+            }
+        }
+
+        String nonce = null;
+        if (config.has("nonce")) {
+            try {
+                nonce = config.getString("nonce");
+            } catch (JSONException e) {
+                Log.e(SocialLoginPlugin.LOG_TAG, "Error parsing nonce", e);
+            }
+        }
+
+        // For Broadcast Channel, we use a special redirect URI that handles the channel communication
+        String broadcastRedirectUri = "https://capacitor-social-login.firebaseapp.com/__/auth/handler";
+
+        this.appleAuthURLFull =
+            AUTHURL +
+            "?client_id=" +
+            this.clientId +
+            "&redirect_uri=" +
+            broadcastRedirectUri +
+            "&response_type=code&scope=" +
+            scopes +
+            "&response_mode=form_post&state=" +
+            state;
+
+        if (nonce != null) {
+            this.appleAuthURLFull += "&nonce=" + nonce;
+        }
+
+        if (context == null || activity == null) {
+            call.reject("Context or Activity is null");
+            return;
+        }
+
+        this.lastcall = call;
+        call.setKeepAlive(true);
+        activity.runOnUiThread(() -> setupBroadcastChannelWebview(context, activity, call, appleAuthURLFull));
+    }
+
+    private void loginWithRedirect(PluginCall call, JSONObject config) {
         String state = UUID.randomUUID().toString();
 
         // Extract scopes from config
@@ -375,6 +453,220 @@ public class AppleProvider implements SocialProvider {
         CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(getCustomTabsSession());
 
         builder.build().launchUrl(context, Uri.parse(url));
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void setupBroadcastChannelWebview(Context context, Activity activity, PluginCall call, String url) {
+        // Create a custom WebView with Broadcast Channel support
+        Dialog dialog = new Dialog(activity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(true);
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        WebView webView = new WebView(context);
+        webView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // Enable JavaScript
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+        webSettings.setSupportMultipleWindows(false);
+
+        // Set up Broadcast Channel communication
+        webView.addJavascriptInterface(new BroadcastChannelInterface(call), "AndroidBridge");
+
+        // Set up WebViewClient to handle redirects
+        webView.setWebViewClient(
+            new WebViewClient() {
+                @Override
+                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                    String url = request.getUrl().toString();
+
+                    // Check if this is the Broadcast Channel redirect
+                    if (url.contains("capacitor-social-login.firebaseapp.com")) {
+                        // Extract authorization code from URL parameters
+                        Uri uri = Uri.parse(url);
+                        String success = uri.getQueryParameter("success");
+
+                        if ("true".equals(success)) {
+                            String accessToken = uri.getQueryParameter("access_token");
+                            if (accessToken != null) {
+                                // We have proper tokens from the backend
+                                String refreshToken = uri.getQueryParameter("refresh_token");
+                                String idToken = uri.getQueryParameter("id_token");
+                                try {
+                                    persistState(idToken, refreshToken, accessToken);
+                                    JSObject result = new JSObject();
+                                    result.put("accessToken", createAccessTokenObject(accessToken));
+                                    result.put("profile", createProfileObject(idToken));
+                                    result.put("idToken", idToken);
+
+                                    JSObject response = new JSObject();
+                                    response.put("provider", "apple");
+                                    response.put("result", result);
+
+                                    lastcall.resolve(response);
+                                } catch (JSONException e) {
+                                    Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", e);
+                                    lastcall.reject("Cannot persist state", e);
+                                }
+                            } else {
+                                // We only have authorization code, need to handle it
+                                String appleAuthCode = uri.getQueryParameter("code");
+                                String appleClientSecret = uri.getQueryParameter("client_secret");
+
+                                if (useProperTokenExchange) {
+                                    // For Broadcast Channel, we can handle the token exchange directly
+                                    // or pass the authorization code back to the client
+                                    JSObject result = new JSObject();
+                                    result.put("authorizationCode", appleAuthCode);
+                                    result.put("idToken", ""); // Will be filled by client-side token exchange
+
+                                    JSObject response = new JSObject();
+                                    response.put("provider", "apple");
+                                    response.put("result", result);
+
+                                    lastcall.resolve(response);
+                                } else {
+                                    // Legacy mode: use authorization code as access token
+                                    JSObject result = new JSObject();
+                                    result.put("accessToken", createAccessTokenObject(appleAuthCode));
+                                    result.put("profile", createProfileObject(""));
+                                    result.put("idToken", "");
+
+                                    JSObject response = new JSObject();
+                                    response.put("provider", "apple");
+                                    response.put("result", result);
+
+                                    lastcall.resolve(response);
+                                }
+                            }
+                        } else {
+                            lastcall.reject("Authentication failed");
+                        }
+
+                        dialog.dismiss();
+                        lastcall = null;
+                        return true;
+                    }
+
+                    return super.shouldOverrideUrlLoading(view, request);
+                }
+            }
+        );
+
+        // Inject Broadcast Channel polyfill and setup
+        webView.setWebChromeClient(
+            new WebChromeClient() {
+                @Override
+                public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                    Log.d("WebView", consoleMessage.message());
+                    return super.onConsoleMessage(consoleMessage);
+                }
+            }
+        );
+
+        dialog.setContentView(webView);
+
+        // Set dialog to fullscreen
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog.getWindow().setAttributes(lp);
+
+        // Load the Apple authentication URL
+        webView.loadUrl(url);
+
+        // Inject Broadcast Channel setup after page loads
+        webView.setWebViewClient(
+            new WebViewClient() {
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+
+                    // Inject Broadcast Channel setup
+                    String broadcastChannelScript =
+                        "javascript:" +
+                        "if (!window.BroadcastChannel) {" +
+                        "  window.BroadcastChannel = function(name) {" +
+                        "    this.name = name;" +
+                        "    this.onmessage = null;" +
+                        "    this.postMessage = function(data) {" +
+                        "      if (window.AndroidBridge) {" +
+                        "        window.AndroidBridge.postMessage(JSON.stringify({channel: this.name, data: data}));" +
+                        "      }" +
+                        "    };" +
+                        "    window.addEventListener('message', (event) => {" +
+                        "      if (this.onmessage) {" +
+                        "        this.onmessage({data: event.data});" +
+                        "      }" +
+                        "    });" +
+                        "  };" +
+                        "}" +
+                        "console.log('Broadcast Channel polyfill loaded');";
+
+                    view.evaluateJavascript(broadcastChannelScript, null);
+                }
+            }
+        );
+
+        dialog.show();
+    }
+
+    // JavaScript interface for Broadcast Channel communication
+    private class BroadcastChannelInterface {
+
+        private final PluginCall call;
+
+        BroadcastChannelInterface(PluginCall call) {
+            this.call = call;
+        }
+
+        @android.webkit.JavascriptInterface
+        public void postMessage(String message) {
+            try {
+                JSONObject data = new JSONObject(message);
+                String channel = data.getString("channel");
+                JSONObject messageData = data.getJSONObject("data");
+
+                Log.d("BroadcastChannel", "Received message from channel: " + channel);
+                Log.d("BroadcastChannel", "Message data: " + messageData.toString());
+
+                // Handle authentication messages
+                if ("auth".equals(channel)) {
+                    String type = messageData.getString("type");
+                    if ("success".equals(type)) {
+                        // Handle successful authentication
+                        String idToken = messageData.optString("idToken", "");
+                        String accessToken = messageData.optString("accessToken", "");
+
+                        try {
+                            persistState(idToken, "refresh_token_placeholder", accessToken);
+                            JSObject result = new JSObject();
+                            result.put("accessToken", createAccessTokenObject(accessToken));
+                            result.put("profile", createProfileObject(idToken));
+                            result.put("idToken", idToken);
+
+                            JSObject response = new JSObject();
+                            response.put("provider", "apple");
+                            response.put("result", result);
+
+                            lastcall.resolve(response);
+                        } catch (JSONException e) {
+                            Log.e(SocialLoginPlugin.LOG_TAG, "Cannot create response", e);
+                            lastcall.reject("Cannot create response", e);
+                        }
+                    } else if ("error".equals(type)) {
+                        String error = messageData.optString("error", "Authentication failed");
+                        lastcall.reject(error);
+                    }
+                }
+            } catch (JSONException e) {
+                Log.e("BroadcastChannel", "Error parsing message", e);
+                lastcall.reject("Error parsing authentication message", e);
+            }
+        }
     }
 
     private JSObject createAccessTokenObject(String accessToken) {

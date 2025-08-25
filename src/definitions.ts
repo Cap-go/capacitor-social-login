@@ -68,9 +68,10 @@ export interface InitializeOptions {
      * Apple Redirect URL, should be your backend url that is configured in your apple app
      *
      * **Note**: Use empty string `''` for iOS to prevent redirect.
+     * **Note**: Not required when using Broadcast Channel mode on Android.
      */
     redirectUrl?: string;
-        /**
+    /**
      * Use proper token exchange for Apple Sign-In
      * @description Controls how Apple Sign-In tokens are handled and what gets returned:
      *
@@ -97,6 +98,39 @@ export interface InitializeOptions {
      * // Result: idToken=JWT, accessToken=auth_code, authorizationCode=undefined
      */
     useProperTokenExchange?: boolean;
+    /**
+     * Use Broadcast Channel for Android Apple Sign-In (Recommended)
+     * @description When enabled, Android uses Broadcast Channel API instead of URL redirects.
+     * This eliminates the need for redirect URL configuration and server-side setup.
+     *
+     * **Benefits:**
+     * - No redirect URL configuration required
+     * - No backend server needed for Android
+     * - Simpler setup and more reliable communication
+     * - Direct client-server communication via Broadcast Channel
+     *
+     * **When `true`:**
+     * - Uses Broadcast Channel for authentication flow
+     * - `redirectUrl` is ignored
+     * - Requires Broadcast Channel compatible backend or direct token handling
+     *
+     * **When `false` (Default - Legacy mode):**
+     * - Uses traditional URL redirect flow
+     * - Requires `redirectUrl` configuration
+     * - Requires backend server for token exchange
+     *
+     * @default false
+     * @since 7.10.0
+     * @example
+     * // Enable Broadcast Channel mode (recommended for new Android implementations)
+     * useBroadcastChannel: true
+     * // Result: Simplified setup, no redirect URL needed
+     *
+     * // Legacy mode (backward compatibility)
+     * useBroadcastChannel: false
+     * // Result: Traditional URL redirect flow with server-side setup
+     */
+    useBroadcastChannel?: boolean;
   };
 }
 
@@ -206,6 +240,13 @@ export interface AppleProviderOptions {
    * @description state
    */
   state?: string;
+  /**
+   * Use Broadcast Channel for authentication flow
+   * @description When enabled, uses Broadcast Channel API for communication instead of URL redirects.
+   * Only applicable on platforms that support Broadcast Channel (Android).
+   * @default false
+   */
+  useBroadcastChannel?: boolean;
 }
 
 export interface AppleProviderResponse {

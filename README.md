@@ -509,7 +509,7 @@ Execute provider-specific calls
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; }</code>                                                                         |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; useBroadcastChannel?: boolean; }</code>                                          |
 
 
 #### FacebookLoginResponse
@@ -588,11 +588,12 @@ Execute provider-specific calls
 
 #### AppleProviderOptions
 
-| Prop         | Type                  | Description |
-| ------------ | --------------------- | ----------- |
-| **`scopes`** | <code>string[]</code> | Scopes      |
-| **`nonce`**  | <code>string</code>   | Nonce       |
-| **`state`**  | <code>string</code>   | State       |
+| Prop                      | Type                  | Description                                   | Default            |
+| ------------------------- | --------------------- | --------------------------------------------- | ------------------ |
+| **`scopes`**              | <code>string[]</code> | Scopes                                        |                    |
+| **`nonce`**               | <code>string</code>   | Nonce                                         |                    |
+| **`state`**               | <code>string</code>   | State                                         |                    |
+| **`useBroadcastChannel`** | <code>boolean</code>  | Use Broadcast Channel for authentication flow | <code>false</code> |
 
 
 #### isLoggedInOptions
