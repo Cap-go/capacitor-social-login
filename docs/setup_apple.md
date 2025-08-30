@@ -410,6 +410,8 @@ As you saw in the diagram, the backend performs a step called `Redirect back to 
   ```java
   @Override
   protected void onNewIntent(Intent intent) {
+      super.onNewIntent(intent);
+  
       String action = intent.getAction();
       Uri data = intent.getData();
   
@@ -427,7 +429,6 @@ As you saw in the diagram, the backend performs a step called `Redirect back to 
           ((SocialLoginPlugin) plugin).handleAppleLoginIntent(intent);
           return;
       }
-      super.onNewIntent(intent);
   }
   ```
   
