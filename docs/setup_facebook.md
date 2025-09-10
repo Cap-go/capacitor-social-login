@@ -140,9 +140,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
         
-        var handled: Bool
-        
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
         if (FBSDKCoreKit.ApplicationDelegate.shared.application(
             app,
             open: url,
@@ -153,8 +150,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         } else {
             return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
         }
-        
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 }
 ```
