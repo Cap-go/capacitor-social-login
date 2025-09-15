@@ -10,7 +10,7 @@ let package = Package(
             targets: ["SocialLoginPlugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.4.2"),
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.4.3"),
         // FBSDKCoreKit and FBSDKLoginKit
         .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "18.0.1")),
         // Add Google Sign-In dependency
