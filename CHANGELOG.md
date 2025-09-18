@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.11.6](https://github.com/Cap-go/capacitor-social-login/compare/7.11.5...7.11.6) (2025-09-18)
+
 ## [7.11.5](https://github.com/Cap-go/capacitor-social-login/compare/7.11.4...7.11.5) (2025-09-16)
 
 ## [7.11.4](https://github.com/Cap-go/capacitor-social-login/compare/7.11.3...7.11.4) (2025-09-15)
