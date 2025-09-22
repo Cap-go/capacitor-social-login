@@ -41,7 +41,7 @@ If you don't already have a Facebook app created, follow this tutorial to create
 2. Generate your Android key hash. This is a crucial security step required by Facebook. Open your terminal and run:
 
 ```bash
-keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore | openssl base64 -A
+keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore | openssl sha1 -binary | openssl base64 -A
 ```
 
 When prompted for a password, use: `android`
@@ -49,7 +49,7 @@ When prompted for a password, use: `android`
 For release builds, you'll need to use your release keystore:
 
 ```bash
-keytool -exportcert -alias your-key-name -keystore your-keystore-path | openssl base64 -A
+keytool -exportcert -alias your-key-name -keystore your-keystore-path | openssl sha1 -binary | openssl base64 -A
 ```
 
 3. Add the key hash to your Facebook app:
@@ -140,9 +140,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
         
-        var handled: Bool
-        
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
         if (FBSDKCoreKit.ApplicationDelegate.shared.application(
             app,
             open: url,
@@ -153,8 +150,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         } else {
             return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
         }
-        
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 }
 ```
