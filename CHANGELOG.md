@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.11.10](https://github.com/Cap-go/capacitor-social-login/compare/7.11.9...7.11.10) (2025-09-29)
+
+
+### Bug Fixes
+
+* **deps:** update dependency androidx.concurrent:concurrent-futures to v1.3.0 ([#257](https://github.com/Cap-go/capacitor-social-login/issues/257)) ([ff40b7b](https://github.com/Cap-go/capacitor-social-login/commit/ff40b7bd68c53d3afd11d9b3fe416fbc3193ba86))
+
 ## [7.11.9](https://github.com/Cap-go/capacitor-social-login/compare/7.11.8...7.11.9) (2025-09-29)
 
 ## [7.11.8](https://github.com/Cap-go/capacitor-social-login/compare/7.11.7...7.11.8) (2025-09-22)
