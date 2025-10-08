@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<resources>
+    <string name="app_name">Social Login example app</string>
+    <string name="title_activity_main">Social Login example app</string>
+    <string name="package_name">app.capgo.plugin.SocialLogin</string>
+    <string name="custom_url_scheme">app.capgo.plugin.SocialLogin</string>
+</resources>
