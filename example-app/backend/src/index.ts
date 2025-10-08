@@ -1,70 +1,85 @@
-import { Hono } from 'hono'
+import { Hono } from 'hono';
 
-const app = new Hono()
+const app = new Hono();
 
 app.post('/apple/callback', async (c) => {
   try {
     // Get request information
-    const url = c.req.url
-    const method = c.req.method
-    
+    const url = c.req.url;
+    const method = c.req.method;
+
     // Get headers safely
-    const headers: Record<string, string> = {}
+    const headers: Record<string, string> = {};
     const headerNames = [
-      'authorization', 'content-type', 'content-length', 'user-agent', 
-      'referer', 'origin', 'accept', 'accept-language', 'accept-encoding',
-      'x-forwarded-for', 'x-real-ip', 'x-forwarded-proto', 'host',
-      'connection', 'cache-control', 'pragma', 'sec-fetch-dest',
-      'sec-fetch-mode', 'sec-fetch-site', 'upgrade-insecure-requests'
-    ]
-    
+      'authorization',
+      'content-type',
+      'content-length',
+      'user-agent',
+      'referer',
+      'origin',
+      'accept',
+      'accept-language',
+      'accept-encoding',
+      'x-forwarded-for',
+      'x-real-ip',
+      'x-forwarded-proto',
+      'host',
+      'connection',
+      'cache-control',
+      'pragma',
+      'sec-fetch-dest',
+      'sec-fetch-mode',
+      'sec-fetch-site',
+      'upgrade-insecure-requests',
+    ];
+
     // Collect all headers
     for (const name of headerNames) {
-      const value = c.req.header(name)
+      const value = c.req.header(name);
       if (value) {
-        headers[name] = value
+        headers[name] = value;
       }
     }
-    
+
     // Also try to get all headers using raw method if available
     try {
-      const rawHeaders = c.req.raw?.headers
+      const rawHeaders = c.req.raw?.headers;
       if (rawHeaders) {
         for (const [key, value] of rawHeaders.entries()) {
-          headers[key.toLowerCase()] = value
+          headers[key.toLowerCase()] = value;
         }
       }
     } catch (e) {
-      console.log('Could not get raw headers:', e.message)
+      console.log('Could not get raw headers:', e.message);
     }
-    
-    const query = c.req.query()
-    
+
+    const query = c.req.query();
+
     // Get body content (for POST requests)
-    let body = null
+    let body = null;
     try {
-      const contentType = c.req.header('content-type')
+      const contentType = c.req.header('content-type');
       if (contentType?.includes('application/json')) {
-        body = await c.req.json()
+        body = await c.req.json();
       } else if (contentType?.includes('application/x-www-form-urlencoded')) {
-        body = await c.req.parseBody()
+        body = await c.req.parseBody();
       } else {
-        body = await c.req.text()
+        body = await c.req.text();
       }
     } catch (bodyError) {
-      body = `Error parsing body: ${bodyError}`
+      body = `Error parsing body: ${bodyError}`;
     }
 
     // Get additional request info
-    const userAgent = c.req.header('user-agent')
-    const referer = c.req.header('referer')
-    const origin = c.req.header('origin')
-    const contentLength = c.req.header('content-length')
-    const acceptLanguage = c.req.header('accept-language')
-    const acceptEncoding = c.req.header('accept-encoding')
-    const xForwardedFor = c.req.header('x-forwarded-for')
-    const xRealIp = c.req.header('x-real-ip')
-    
+    const userAgent = c.req.header('user-agent');
+    const referer = c.req.header('referer');
+    const origin = c.req.header('origin');
+    const contentLength = c.req.header('content-length');
+    const acceptLanguage = c.req.header('accept-language');
+    const acceptEncoding = c.req.header('accept-encoding');
+    const xForwardedFor = c.req.header('x-forwarded-for');
+    const xRealIp = c.req.header('x-real-ip');
+
     // Create comprehensive info object
     const requestInfo = {
       timestamp: new Date().toISOString(),
@@ -89,34 +104,34 @@ app.post('/apple/callback', async (c) => {
       host: new URL(url).host,
       hostname: new URL(url).hostname,
       port: new URL(url).port,
-    }
+    };
 
     // LOG EVERYTHING to console
-    console.log('='.repeat(80))
-    console.log('APPLE CALLBACK REQUEST RECEIVED')
-    console.log('='.repeat(80))
-    console.log('Timestamp:', requestInfo.timestamp)
-    console.log('Method:', requestInfo.method)
-    console.log('Full URL:', requestInfo.fullUrl)
-    console.log('Pathname:', requestInfo.pathname)
-    console.log('Search:', requestInfo.search)
-    console.log('Search Params:', JSON.stringify(requestInfo.searchParams, null, 2))
-    console.log('Query:', JSON.stringify(requestInfo.query, null, 2))
-    console.log('Headers:', JSON.stringify(requestInfo.headers, null, 2))
-    console.log('Body:', typeof body === 'string' ? body : JSON.stringify(body, null, 2))
-    console.log('User Agent:', requestInfo.userAgent)
-    console.log('Referer:', requestInfo.referer)
-    console.log('Origin:', requestInfo.origin)
-    console.log('Content Length:', requestInfo.contentLength)
-    console.log('Accept Language:', requestInfo.acceptLanguage)
-    console.log('Accept Encoding:', requestInfo.acceptEncoding)
-    console.log('X-Forwarded-For:', requestInfo.xForwardedFor)
-    console.log('X-Real-IP:', requestInfo.xRealIp)
-    console.log('Protocol:', requestInfo.protocol)
-    console.log('Host:', requestInfo.host)
-    console.log('Hostname:', requestInfo.hostname)
-    console.log('Port:', requestInfo.port)
-    console.log('='.repeat(80))
+    console.log('='.repeat(80));
+    console.log('APPLE CALLBACK REQUEST RECEIVED');
+    console.log('='.repeat(80));
+    console.log('Timestamp:', requestInfo.timestamp);
+    console.log('Method:', requestInfo.method);
+    console.log('Full URL:', requestInfo.fullUrl);
+    console.log('Pathname:', requestInfo.pathname);
+    console.log('Search:', requestInfo.search);
+    console.log('Search Params:', JSON.stringify(requestInfo.searchParams, null, 2));
+    console.log('Query:', JSON.stringify(requestInfo.query, null, 2));
+    console.log('Headers:', JSON.stringify(requestInfo.headers, null, 2));
+    console.log('Body:', typeof body === 'string' ? body : JSON.stringify(body, null, 2));
+    console.log('User Agent:', requestInfo.userAgent);
+    console.log('Referer:', requestInfo.referer);
+    console.log('Origin:', requestInfo.origin);
+    console.log('Content Length:', requestInfo.contentLength);
+    console.log('Accept Language:', requestInfo.acceptLanguage);
+    console.log('Accept Encoding:', requestInfo.acceptEncoding);
+    console.log('X-Forwarded-For:', requestInfo.xForwardedFor);
+    console.log('X-Real-IP:', requestInfo.xRealIp);
+    console.log('Protocol:', requestInfo.protocol);
+    console.log('Host:', requestInfo.host);
+    console.log('Hostname:', requestInfo.hostname);
+    console.log('Port:', requestInfo.port);
+    console.log('='.repeat(80));
 
     // Create detailed response text
     const responseText = `
@@ -159,14 +174,13 @@ ${typeof body === 'string' ? body : JSON.stringify(body, null, 2)}
 
 ==============================
 Request processed successfully!
-    `.trim()
+    `.trim();
 
-    return c.text(responseText)
-    
+    return c.text(responseText);
   } catch (error) {
-    console.error('ERROR in Apple callback:', error)
-    return c.text(`Error processing Apple callback: ${error}`, 500)
+    console.error('ERROR in Apple callback:', error);
+    return c.text(`Error processing Apple callback: ${error}`, 500);
   }
-})
+});
 
-export default app
+export default app;
