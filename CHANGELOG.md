@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.11.16](https://github.com/Cap-go/capacitor-social-login/compare/7.11.15...7.11.16) (2025-10-08)
+
+
+### Bug Fixes
+
+* swift version ([73fb2b6](https://github.com/Cap-go/capacitor-social-login/commit/73fb2b6e8406dd1db862825e0bc2f2d1af30b2cb))
+
 ## [7.11.15](https://github.com/Cap-go/capacitor-social-login/compare/7.11.14...7.11.15) (2025-10-08)
 
 ## [7.11.14](https://github.com/Cap-go/capacitor-social-login/compare/7.11.13...7.11.14) (2025-10-08)
