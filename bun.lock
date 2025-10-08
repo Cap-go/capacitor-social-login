@@ -12,7 +12,7 @@
         "@ionic/eslint-config": "^0.4.0",
         "@ionic/prettier-config": "^4.0.0",
         "@ionic/swiftlint-config": "^2.0.0",
-        "@types/google.accounts": "^0.0.17",
+        "@types/google.accounts": "^0.0.18",
         "@types/node": "^22.10.1",
         "eslint": "^8.57.0",
         "eslint-plugin-import": "^2.31.0",
@@ -141,7 +141,7 @@
 
     "@types/fs-extra": ["@types/fs-extra@8.1.5", "", { "dependencies": { "@types/node": "*" } }, "sha512-0dzKcwO+S8s2kuF5Z9oUWatQJj5Uq/iqphEtE3GQJVRRYm/tD1LglU2UnXi2A8jLq5umkGouOXOR9y0n613ZwQ=="],
 
-    "@types/google.accounts": ["@types/google.accounts@0.0.17", "", {}, "sha512-ZDOmep4Zslca9pFJ7oXgg/DdirGU+tPuWlXRGfIFNqMtBvkEgzktY292O3V03Ul6AA7ye4CDVZlMnd9m1FeIeg=="],
+    "@types/google.accounts": ["@types/google.accounts@0.0.18", "", {}, "sha512-yHaPznll97ZnMJlPABHyeiIlLn3u6gQaUjA5k/O9lrrpgFB9VT10CKPLuKM0qTHMl50uXpW5sIcG+utm8jMOHw=="],
 
     "@types/json-schema": ["@types/json-schema@7.0.15", "", {}, "sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA=="],
 
