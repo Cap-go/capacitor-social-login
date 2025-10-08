@@ -33,6 +33,11 @@
       "enabled": false
     },
     {
+      "matchPackageNames": ["capacitor-swift-pm"],
+      "matchManagers": ["swift"],
+      "enabled": false
+    },
+    {
       "matchDepTypes": ["peerDependencies"],
       "matchPackageNames": ["@capacitor/core"],
       "matchUpdateTypes": ["minor", "patch"],
