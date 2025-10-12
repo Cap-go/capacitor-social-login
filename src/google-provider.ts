@@ -310,7 +310,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     scopes,
     hostedDomain,
     nonce,
-    autoSelectEnabled = false,
+    autoSelectEnabled = true,
   }: GoogleLoginOptions & { hostedDomain?: string }): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
