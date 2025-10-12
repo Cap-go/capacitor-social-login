@@ -193,10 +193,10 @@ export interface GoogleLoginOptions {
    */
   filterByAuthorizedAccounts?: boolean;
   /**
-   * Auto select enabled (Android only)
+   * Auto select enabled (Android & Web only)
    * @description Automatically select the account if only one Google account is available.
-   * This option is only available for the 'bottom' style.
-   * @default false
+   * This option is only available for the 'bottom' style on Android.
+   * @default false (for Android) | true (for Web)
    */
   autoSelectEnabled?: boolean;
 }

@@ -58,6 +58,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       scopes,
       nonce,
       hostedDomain: this.hostedDomain,
+      autoSelectEnabled: options.autoSelectEnabled,
     });
   }
 
@@ -309,6 +310,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     scopes,
     hostedDomain,
     nonce,
+    autoSelectEnabled = false,
   }: GoogleLoginOptions & { hostedDomain?: string }): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
@@ -323,6 +325,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     });
     if (hostedDomain !== undefined) {
       params.append('hd', hostedDomain);
+    }
+
+    if (!autoSelectEnabled) {
+      params.append('prompt', 'select_account');
     }
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
