@@ -255,7 +255,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             let authorizationCode = String(data: appleIDCredential.authorizationCode ?? Data(), encoding: .utf8) ?? ""
             let idToken = String(data: appleIDCredential.identityToken ?? Data(), encoding: .utf8) ?? ""
 
-            var accessToken: AccessTokenApple? = nil
+            var accessToken: AccessTokenApple?
 
             if useProperTokenExchange {
                 // When using proper token exchange, set accessToken to nil

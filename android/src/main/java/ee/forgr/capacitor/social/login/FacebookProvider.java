@@ -52,26 +52,25 @@ public class FacebookProvider implements SocialProvider {
 
             this.callbackManager = CallbackManager.Factory.create();
 
-            LoginManager.getInstance()
-                .registerCallback(
-                    callbackManager,
-                    new FacebookCallback<LoginResult>() {
-                        @Override
-                        public void onSuccess(LoginResult loginResult) {
-                            Log.d(LOG_TAG, "LoginManager.onSuccess");
-                        }
-
-                        @Override
-                        public void onCancel() {
-                            Log.d(LOG_TAG, "LoginManager.onCancel");
-                        }
-
-                        @Override
-                        public void onError(FacebookException exception) {
-                            Log.e(LOG_TAG, "LoginManager.onError", exception);
-                        }
+            LoginManager.getInstance().registerCallback(
+                callbackManager,
+                new FacebookCallback<LoginResult>() {
+                    @Override
+                    public void onSuccess(LoginResult loginResult) {
+                        Log.d(LOG_TAG, "LoginManager.onSuccess");
                     }
-                );
+
+                    @Override
+                    public void onCancel() {
+                        Log.d(LOG_TAG, "LoginManager.onCancel");
+                    }
+
+                    @Override
+                    public void onError(FacebookException exception) {
+                        Log.e(LOG_TAG, "LoginManager.onError", exception);
+                    }
+                }
+            );
         } catch (JSONException e) {
             Log.e(LOG_TAG, "Error initializing Facebook SDK", e);
             throw new RuntimeException("Failed to initialize Facebook SDK: " + e.getMessage());
@@ -85,42 +84,41 @@ public class FacebookProvider implements SocialProvider {
             boolean limitedLogin = config.optBoolean("limitedLogin", false);
             String nonce = config.optString("nonce", "");
 
-            LoginManager.getInstance()
-                .registerCallback(
-                    callbackManager,
-                    new FacebookCallback<LoginResult>() {
-                        @Override
-                        public void onSuccess(LoginResult loginResult) {
-                            Log.d(LOG_TAG, "LoginManager.onSuccess");
-                            AccessToken accessToken = loginResult.getAccessToken();
-                            JSObject result = new JSObject();
-                            result.put("accessToken", createAccessTokenObject(accessToken));
-                            result.put("profile", createProfileObject(accessToken));
-                            result.put(
-                                "idToken",
-                                loginResult.getAuthenticationToken() != null ? loginResult.getAuthenticationToken().getToken() : null
-                            );
+            LoginManager.getInstance().registerCallback(
+                callbackManager,
+                new FacebookCallback<LoginResult>() {
+                    @Override
+                    public void onSuccess(LoginResult loginResult) {
+                        Log.d(LOG_TAG, "LoginManager.onSuccess");
+                        AccessToken accessToken = loginResult.getAccessToken();
+                        JSObject result = new JSObject();
+                        result.put("accessToken", createAccessTokenObject(accessToken));
+                        result.put("profile", createProfileObject(accessToken));
+                        result.put(
+                            "idToken",
+                            loginResult.getAuthenticationToken() != null ? loginResult.getAuthenticationToken().getToken() : null
+                        );
 
-                            JSObject response = new JSObject();
-                            response.put("provider", "facebook");
-                            response.put("result", result);
+                        JSObject response = new JSObject();
+                        response.put("provider", "facebook");
+                        response.put("result", result);
 
-                            call.resolve(response);
-                        }
-
-                        @Override
-                        public void onCancel() {
-                            Log.d(LOG_TAG, "LoginManager.onCancel");
-                            call.reject("Login cancelled");
-                        }
-
-                        @Override
-                        public void onError(FacebookException exception) {
-                            Log.e(LOG_TAG, "LoginManager.onError", exception);
-                            call.reject(exception.getMessage());
-                        }
+                        call.resolve(response);
                     }
-                );
+
+                    @Override
+                    public void onCancel() {
+                        Log.d(LOG_TAG, "LoginManager.onCancel");
+                        call.reject("Login cancelled");
+                    }
+
+                    @Override
+                    public void onError(FacebookException exception) {
+                        Log.e(LOG_TAG, "LoginManager.onError", exception);
+                        call.reject(exception.getMessage());
+                    }
+                }
+            );
 
             LoginManager loginManager = LoginManager.getInstance();
             if (limitedLogin) {
@@ -301,7 +299,8 @@ public class FacebookProvider implements SocialProvider {
 
         new Thread(() -> {
             request.executeAndWait();
-        }).start();
+        })
+            .start();
 
         try {
             latch.await();
