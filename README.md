@@ -575,15 +575,15 @@ Execute provider-specific calls
 
 #### GoogleLoginOptions
 
-| Prop                             | Type                                | Description                                                                                          | Default                 |
-| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------- |
-| **`scopes`**                     | <code>string[]</code>               | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                         |
-| **`nonce`**                      | <code>string</code>                 | Nonce                                                                                                |                         |
-| **`forceRefreshToken`**          | <code>boolean</code>                | Force refresh token (only for Android)                                                               | <code>false</code>      |
-| **`forcePrompt`**                | <code>boolean</code>                | Force account selection prompt (iOS)                                                                 | <code>false</code>      |
-| **`style`**                      | <code>'bottom' \| 'standard'</code> | Style                                                                                                | <code>'standard'</code> |
-| **`filterByAuthorizedAccounts`** | <code>boolean</code>                | Filter by authorized accounts (Android only)                                                         | <code>true</code>       |
-| **`autoSelectEnabled`**          | <code>boolean</code>                | Auto select enabled (Android only)                                                                   | <code>false</code>      |
+| Prop                             | Type                                | Description                                                                                          | Default                                            |
+| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **`scopes`**                     | <code>string[]</code>               | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                                                    |
+| **`nonce`**                      | <code>string</code>                 | Nonce                                                                                                |                                                    |
+| **`forceRefreshToken`**          | <code>boolean</code>                | Force refresh token (only for Android)                                                               | <code>false</code>                                 |
+| **`forcePrompt`**                | <code>boolean</code>                | Force account selection prompt (iOS)                                                                 | <code>false</code>                                 |
+| **`style`**                      | <code>'bottom' \| 'standard'</code> | Style                                                                                                | <code>'standard'</code>                            |
+| **`filterByAuthorizedAccounts`** | <code>boolean</code>                | Filter by authorized accounts (Android only)                                                         | <code>true</code>                                  |
+| **`autoSelectEnabled`**          | <code>boolean</code>                | Auto select enabled (Android & Web only)                                                             | <code>false (for Android) \| true (for Web)</code> |
 
 
 #### AppleProviderOptions
@@ -644,7 +644,7 @@ Execute provider-specific calls
 
 #### ProviderResponseMap
 
-<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; }</code>
+<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; }</code>
 
 
 #### GoogleLoginResponse
@@ -654,7 +654,7 @@ Execute provider-specific calls
 
 #### LoginOptions
 
-<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }</code>
+<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }</code>
 
 
 #### Extract
@@ -666,7 +666,7 @@ Execute provider-specific calls
 
 #### ProviderSpecificCallResponseMap
 
-<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingresponse">FacebookRequestTrackingResponse</a>; }</code>
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingresponse">FacebookRequestTrackingResponse</a>; }</code>
 
 
 #### ProviderSpecificCall
@@ -676,7 +676,7 @@ Execute provider-specific calls
 
 #### ProviderSpecificCallOptionsMap
 
-<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingoptions">FacebookRequestTrackingOptions</a>; }</code>
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingoptions">FacebookRequestTrackingOptions</a>; }</code>
 
 
 #### FacebookRequestTrackingOptions
