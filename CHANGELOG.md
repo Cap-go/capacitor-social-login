@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.11.23](https://github.com/Cap-go/capacitor-social-login/compare/7.11.22...7.11.23) (2025-10-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.androidbrowserhelper:androidbrowserhelper to v2.6.2 ([#267](https://github.com/Cap-go/capacitor-social-login/issues/267)) ([e85d1a0](https://github.com/Cap-go/capacitor-social-login/commit/e85d1a076b49222e71cc655cf9de6e0ddd11beb4))
+
 ## [7.11.22](https://github.com/Cap-go/capacitor-social-login/compare/7.11.21...7.11.22) (2025-10-20)
 
 
