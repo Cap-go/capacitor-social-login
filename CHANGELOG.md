@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.11.23](https://github.com/Cap-go/capacitor-social-login/compare/7.11.22...7.11.23) (2025-10-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.androidbrowserhelper:androidbrowserhelper to v2.6.2 ([#267](https://github.com/Cap-go/capacitor-social-login/issues/267)) ([e85d1a0](https://github.com/Cap-go/capacitor-social-login/commit/e85d1a076b49222e71cc655cf9de6e0ddd11beb4))
+
+## [7.11.22](https://github.com/Cap-go/capacitor-social-login/compare/7.11.21...7.11.22) (2025-10-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency com.google.android.gms:play-services-auth to v21.4.0 ([#266](https://github.com/Cap-go/capacitor-social-login/issues/266)) ([85867a2](https://github.com/Cap-go/capacitor-social-login/commit/85867a2e8ed116806e199456fb56db472d5e387e))
+
+## [7.11.21](https://github.com/Cap-go/capacitor-social-login/compare/7.11.20...7.11.21) (2025-10-15)
+
+
+### Bug Fixes
+
+* lock and lint ([8d5e45a](https://github.com/Cap-go/capacitor-social-login/commit/8d5e45abd8bf2562e0e35feec193e402de802fd0))
+
+## [7.11.20](https://github.com/Cap-go/capacitor-social-login/compare/7.11.19...7.11.20) (2025-10-15)
+
+
+### Bug Fixes
+
+* lint config ([c799bd5](https://github.com/Cap-go/capacitor-social-login/commit/c799bd5e52257b0729a971af23ba226dfa1f0ff7))
+
+## [7.11.19](https://github.com/Cap-go/capacitor-social-login/compare/7.11.18...7.11.19) (2025-10-14)
+
+## [7.11.18](https://github.com/Cap-go/capacitor-social-login/compare/7.11.17...7.11.18) (2025-10-13)
+
+## [7.11.17](https://github.com/Cap-go/capacitor-social-login/compare/7.11.16...7.11.17) (2025-10-08)
+
+## [7.11.16](https://github.com/Cap-go/capacitor-social-login/compare/7.11.15...7.11.16) (2025-10-08)
+
+
+### Bug Fixes
+
+* swift version ([73fb2b6](https://github.com/Cap-go/capacitor-social-login/commit/73fb2b6e8406dd1db862825e0bc2f2d1af30b2cb))
+
+## [7.11.15](https://github.com/Cap-go/capacitor-social-login/compare/7.11.14...7.11.15) (2025-10-08)
+
+## [7.11.14](https://github.com/Cap-go/capacitor-social-login/compare/7.11.13...7.11.14) (2025-10-08)
+
+## [7.11.13](https://github.com/Cap-go/capacitor-social-login/compare/7.11.12...7.11.13) (2025-10-08)
+
+## [7.11.12](https://github.com/Cap-go/capacitor-social-login/compare/7.11.11...7.11.12) (2025-10-06)
+
+## [7.11.11](https://github.com/Cap-go/capacitor-social-login/compare/7.11.10...7.11.11) (2025-10-06)
+
 ## [7.11.10](https://github.com/Cap-go/capacitor-social-login/compare/7.11.9...7.11.10) (2025-09-29)
 
 

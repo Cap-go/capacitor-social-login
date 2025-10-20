@@ -112,7 +112,7 @@ public class GoogleProvider implements SocialProvider {
     }
 
     public ListenableFuture<Boolean> accessTokenIsValid(String accessToken) {
-        return CallbackToFutureAdapter.getFuture(completer -> {
+        return CallbackToFutureAdapter.getFuture((completer) -> {
             OkHttpClient client = new OkHttpClient();
             Request tokenRequest = new Request.Builder().url(TOKEN_REQUEST_URL + "?" + "access_token=" + accessToken).get().build();
 
@@ -414,7 +414,7 @@ public class GoogleProvider implements SocialProvider {
         //
         //      return accessToken;
 
-        ListenableFuture<AuthorizationResult> future = CallbackToFutureAdapter.getFuture(completer -> {
+        ListenableFuture<AuthorizationResult> future = CallbackToFutureAdapter.getFuture((completer) -> {
             List<Scope> scopes = new ArrayList<>(this.scopes.length);
             for (String scope : this.scopes) {
                 scopes.add(new Scope(scope));
@@ -430,7 +430,7 @@ public class GoogleProvider implements SocialProvider {
 
             Identity.getAuthorizationClient(context)
                 .authorize(authorizationRequest)
-                .addOnSuccessListener(authorizationResult -> {
+                .addOnSuccessListener((authorizationResult) -> {
                     if (authorizationResult.hasResolution()) {
                         // Access needs to be granted by the user
                         PendingIntent pendingIntent = authorizationResult.getPendingIntent();
@@ -489,7 +489,7 @@ public class GoogleProvider implements SocialProvider {
                         completer.set(authorizationResult);
                     }
                 })
-                .addOnFailureListener(e -> {
+                .addOnFailureListener((e) -> {
                     completer.setException(new RuntimeException("Failed to authorize"));
                     Log.e(LOG_TAG, "Failed to authorize", e);
                 });

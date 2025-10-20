@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-social-login",
-  "version": "7.11.10",
+  "version": "7.11.23",
   "description": "All social logins in one plugin",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -69,7 +69,7 @@
     "rimraf": "^6.0.1",
     "rollup": "^4.34.0",
     "swiftlint": "^2.0.0",
-    "typescript": "5.9.2"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "@capacitor/core": ">=7.0.0"
