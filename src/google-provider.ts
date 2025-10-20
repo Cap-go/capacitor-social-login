@@ -58,6 +58,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       scopes,
       nonce,
       hostedDomain: this.hostedDomain,
+      prompt: options.prompt,
     });
   }
 
@@ -309,6 +310,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     scopes,
     hostedDomain,
     nonce,
+    prompt,
   }: GoogleLoginOptions & { hostedDomain?: string }): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
@@ -323,6 +325,9 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     });
     if (hostedDomain !== undefined) {
       params.append('hd', hostedDomain);
+    }
+    if (prompt !== undefined) {
+      params.append('prompt', prompt);
     }
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
