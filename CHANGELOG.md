@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.12.0](https://github.com/Cap-go/capacitor-social-login/compare/7.11.24...7.12.0) (2025-10-21)
+
+
+### Features
+
+* **google:** add prompt parameter for web OAuth flow ([27a44c7](https://github.com/Cap-go/capacitor-social-login/commit/27a44c7042f4f41cefab396a050f27554c383ec7)), closes [#254](https://github.com/Cap-go/capacitor-social-login/issues/254)
+
 ## [7.11.24](https://github.com/Cap-go/capacitor-social-login/compare/7.11.23...7.11.24) (2025-10-21)
 
 ## [7.11.23](https://github.com/Cap-go/capacitor-social-login/compare/7.11.22...7.11.23) (2025-10-20)
