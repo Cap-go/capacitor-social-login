@@ -83,7 +83,7 @@ const res = await SocialLogin.login({
 
 ## Facebook
 
-Docs: [How to setup facebook login](./docs/setup_facebook.md)
+Docs: [How to setup facebook login](https://capgo.app/docs/plugins/social-login/facebook/)
 
 ### Android configuration
 
@@ -689,7 +689,9 @@ Execute provider-specific calls
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 </docgen-api>
 
