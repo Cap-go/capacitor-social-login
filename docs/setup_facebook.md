@@ -189,7 +189,7 @@ async function loginWithFacebook() {
       provider: 'facebook',
       options: {
         permissions: ['email', 'public_profile'],
-        limitedLogin: false // this will depend if you want to use the limited login or not. Docs: https://developers.facebook.com/docs/facebook-login/limited-login
+        limitedLogin: false // See Limited Login section below for important details
       }
     });
     console.log('Facebook login result:', result);
@@ -200,6 +200,61 @@ async function loginWithFacebook() {
   }
 }
 ```
+
+### Limited Login (iOS Only)
+
+Facebook's Limited Login is an iOS-only feature that provides enhanced privacy by restricting the data shared during login. Here are the key points developers need to know:
+
+#### Important Limitations:
+1. **iOS Only**: Limited Login only affects iOS devices and has no impact on Android
+2. **ATT Override**: Even if you set `limitedLogin: false`, Facebook will automatically force it to `true` if the user hasn't granted App Tracking Transparency (ATT) permission
+3. **Always Handle Both Cases**: Your app should always be prepared to handle both limited and full login scenarios
+
+#### Checking ATT Status:
+```typescript
+// Check if user has granted tracking permission
+const trackingStatus = await SocialLogin.providerSpecificCall({
+  call: 'facebook#requestTracking',
+  options: {}
+});
+console.log('Tracking status:', trackingStatus.status); // 'authorized', 'denied', 'notDetermined', or 'restricted'
+```
+
+#### Recommended Implementation:
+```typescript
+async function loginWithFacebook() {
+  try {
+    // Check ATT status first
+    const trackingStatus = await SocialLogin.providerSpecificCall({
+      call: 'facebook#requestTracking',
+      options: {}
+    });
+    
+    const result = await SocialLogin.login({
+      provider: 'facebook',
+      options: {
+        permissions: ['email', 'public_profile'],
+        limitedLogin: trackingStatus.status === 'denied' // Auto-adjust based on ATT
+      }
+    });
+    
+    // Handle different response types based on limited login
+    if (result.result.accessToken) {
+      // Your app logic should work with both limited and full login
+      console.log('Login successful:', result);
+    }
+  } catch (error) {
+    console.error('Facebook login error:', error);
+  }
+}
+```
+
+#### What Happens in Limited Login:
+- **Reduced Data Access**: Some user data may not be available
+- **Different Token Types**: Access tokens may have different capabilities
+- **Privacy Compliance**: Helps comply with iOS privacy requirements
+
+**Important**: Always test your app with both limited and full login scenarios to ensure your app works correctly in both cases.
 
 ### Troubleshooting
 
