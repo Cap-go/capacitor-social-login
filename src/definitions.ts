@@ -142,7 +142,9 @@ export interface FacebookLoginOptions {
   permissions: string[];
   /**
    * Is Limited Login
-   * @description use limited login for Facebook IOS
+   * @description use limited login for Facebook iOS only. Important: This is iOS-only and doesn't affect Android. 
+   * Even if set to false, Facebook will automatically force it to true if App Tracking Transparency (ATT) permission is not granted.
+   * Developers should always be prepared to handle both limited and full login scenarios.
    * @default false
    */
   limitedLogin?: boolean;
