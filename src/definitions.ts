@@ -203,19 +203,19 @@ export interface GoogleLoginOptions {
    * Prompt parameter for Google OAuth (Web only)
    * @description A space-delimited, case-sensitive list of prompts to present the user.
    * If you don't specify this parameter, the user will be prompted only the first time your project requests access.
-   * 
+   *
    * **Possible values:**
    * - `none`: Don't display any authentication or consent screens. Must not be specified with other values.
    * - `consent`: Prompt the user for consent.
    * - `select_account`: Prompt the user to select an account.
-   * 
+   *
    * **Examples:**
    * - `prompt: 'consent'` - Always show consent screen
    * - `prompt: 'select_account'` - Always show account selection
    * - `prompt: 'consent select_account'` - Show both consent and account selection
-   * 
+   *
    * **Note:** This parameter only affects web platform behavior. Mobile platforms use their own native prompts.
-   * 
+   *
    * @example 'consent'
    * @example 'select_account'
    * @example 'consent select_account'
