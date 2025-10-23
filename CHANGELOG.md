@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.14.0](https://github.com/Cap-go/capacitor-social-login/compare/7.13.1...7.14.0) (2025-10-23)
+
+
+### Features
+
+* add getPluginVersion method to SocialLoginPlugin for version retrieval ([52cc03c](https://github.com/Cap-go/capacitor-social-login/commit/52cc03ccaceb05a9c680c032bf1f2852e4dba95d))
+
 ## [7.13.1](https://github.com/Cap-go/capacitor-social-login/compare/7.13.0...7.13.1) (2025-10-23)
 
 ## [7.13.0](https://github.com/Cap-go/capacitor-social-login/compare/7.12.0...7.13.0) (2025-10-21)
