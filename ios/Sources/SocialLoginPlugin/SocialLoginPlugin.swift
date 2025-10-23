@@ -7,6 +7,7 @@ import Capacitor
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
+    private let PLUGIN_VERSION: String = ""
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -17,7 +18,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getUserInfo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
     private let apple = AppleProvider()
     private let facebook = FacebookProvider()
@@ -386,4 +388,9 @@ struct SocialLoginUser {
     let idToken: String?
     let refreshToken: String?
     let expiresIn: Int?
+
+    @objc func getPluginVersion(_ call: CAPPluginCall) {
+        call.resolve(["version": self.PLUGIN_VERSION])
+    }
+
 }
