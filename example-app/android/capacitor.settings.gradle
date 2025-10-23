@@ -2,5 +2,104 @@
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
 
+include ':capgo-background-geolocation'
+project(':capgo-background-geolocation').projectDir = new File('../node_modules/@capgo/background-geolocation/android')
+
+include ':capgo-camera-preview'
+project(':capgo-camera-preview').projectDir = new File('../node_modules/@capgo/camera-preview/android')
+
+include ':capgo-capacitor-alarm'
+project(':capgo-capacitor-alarm').projectDir = new File('../node_modules/@capgo/capacitor-alarm/android')
+
+include ':capgo-capacitor-android-inline-install'
+project(':capgo-capacitor-android-inline-install').projectDir = new File('../node_modules/@capgo/capacitor-android-inline-install/android')
+
+include ':capgo-capacitor-android-usagestatsmanager'
+project(':capgo-capacitor-android-usagestatsmanager').projectDir = new File('../node_modules/@capgo/capacitor-android-usagestatsmanager/android')
+
+include ':capgo-capacitor-crisp'
+project(':capgo-capacitor-crisp').projectDir = new File('../node_modules/@capgo/capacitor-crisp/android')
+
+include ':capgo-capacitor-data-storage-sqlite'
+project(':capgo-capacitor-data-storage-sqlite').projectDir = new File('../node_modules/@capgo/capacitor-data-storage-sqlite/android')
+
+include ':capgo-capacitor-downloader'
+project(':capgo-capacitor-downloader').projectDir = new File('../node_modules/@capgo/capacitor-downloader/android')
+
+include ':capgo-capacitor-env'
+project(':capgo-capacitor-env').projectDir = new File('../node_modules/@capgo/capacitor-env/android')
+
+include ':capgo-capacitor-flash'
+project(':capgo-capacitor-flash').projectDir = new File('../node_modules/@capgo/capacitor-flash/android')
+
+include ':capgo-capacitor-health'
+project(':capgo-capacitor-health').projectDir = new File('../node_modules/@capgo/capacitor-health/android')
+
+include ':capgo-capacitor-is-root'
+project(':capgo-capacitor-is-root').projectDir = new File('../node_modules/@capgo/capacitor-is-root/android')
+
+include ':capgo-capacitor-jw-player'
+project(':capgo-capacitor-jw-player').projectDir = new File('../node_modules/@capgo/capacitor-jw-player/android')
+
+include ':capgo-capacitor-launch-navigator'
+project(':capgo-capacitor-launch-navigator').projectDir = new File('../node_modules/@capgo/capacitor-launch-navigator/android')
+
+include ':capgo-capacitor-llm'
+project(':capgo-capacitor-llm').projectDir = new File('../node_modules/@capgo/capacitor-llm/android')
+
+include ':capgo-capacitor-mute'
+project(':capgo-capacitor-mute').projectDir = new File('../node_modules/@capgo/capacitor-mute/android')
+
+include ':capgo-capacitor-mux-player'
+project(':capgo-capacitor-mux-player').projectDir = new File('../node_modules/@capgo/capacitor-mux-player/android')
+
+include ':capgo-capacitor-navigation-bar'
+project(':capgo-capacitor-navigation-bar').projectDir = new File('../node_modules/@capgo/capacitor-navigation-bar/android')
+
+include ':capgo-capacitor-persistent-account'
+project(':capgo-capacitor-persistent-account').projectDir = new File('../node_modules/@capgo/capacitor-persistent-account/android')
+
+include ':capgo-capacitor-photo-library'
+project(':capgo-capacitor-photo-library').projectDir = new File('../node_modules/@capgo/capacitor-photo-library/android')
+
+include ':capgo-capacitor-screen-recorder'
+project(':capgo-capacitor-screen-recorder').projectDir = new File('../node_modules/@capgo/capacitor-screen-recorder/android')
+
+include ':capgo-capacitor-shake'
+project(':capgo-capacitor-shake').projectDir = new File('../node_modules/@capgo/capacitor-shake/android')
+
 include ':capgo-capacitor-social-login'
-project(':capgo-capacitor-social-login').projectDir = new File('../../android')
+project(':capgo-capacitor-social-login').projectDir = new File('../node_modules/@capgo/capacitor-social-login/android')
+
+include ':capgo-capacitor-stream-call'
+project(':capgo-capacitor-stream-call').projectDir = new File('../node_modules/@capgo/capacitor-stream-call/android')
+
+include ':capgo-capacitor-textinteraction'
+project(':capgo-capacitor-textinteraction').projectDir = new File('../node_modules/@capgo/capacitor-textinteraction/android')
+
+include ':capgo-capacitor-twilio-voice'
+project(':capgo-capacitor-twilio-voice').projectDir = new File('../node_modules/@capgo/capacitor-twilio-voice/android')
+
+include ':capgo-capacitor-updater'
+project(':capgo-capacitor-updater').projectDir = new File('../node_modules/@capgo/capacitor-updater/android')
+
+include ':capgo-capacitor-uploader'
+project(':capgo-capacitor-uploader').projectDir = new File('../node_modules/@capgo/capacitor-uploader/android')
+
+include ':capgo-inappbrowser'
+project(':capgo-inappbrowser').projectDir = new File('../node_modules/@capgo/inappbrowser/android')
+
+include ':capgo-native-audio'
+project(':capgo-native-audio').projectDir = new File('../node_modules/@capgo/native-audio/android')
+
+include ':capgo-native-market'
+project(':capgo-native-market').projectDir = new File('../node_modules/@capgo/native-market/android')
+
+include ':capgo-native-purchases'
+project(':capgo-native-purchases').projectDir = new File('../node_modules/@capgo/native-purchases/android')
+
+include ':capgo-nativegeocoder'
+project(':capgo-nativegeocoder').projectDir = new File('../node_modules/@capgo/nativegeocoder/android')
+
+include ':capgo-ricoh360'
+project(':capgo-ricoh360').projectDir = new File('../node_modules/@capgo/ricoh360/android')

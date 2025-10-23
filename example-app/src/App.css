@@ -295,6 +295,130 @@
   word-break: break-word;
 }
 
+/* Giga Button Section */
+.giga-button-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: var(--app-input-bg);
+  border: 1px solid var(--app-border);
+}
+
+.giga-button-section h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--app-muted-strong);
+}
+
+.giga-button {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border-radius: 0.95rem;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--app-accent) 0%, var(--app-accent-strong) 100%);
+  color: #ffffff;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.giga-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(59, 89, 182, 0.4);
+}
+
+.giga-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.plugin-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plugin-results h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--app-muted-strong);
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.result-item {
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+}
+
+.result-item.success {
+  border-color: var(--app-success-border);
+  background: var(--app-success-bg);
+}
+
+.result-item.error {
+  border-color: var(--app-error-border);
+  background: var(--app-error-bg);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.result-name {
+  font-weight: 600;
+  color: var(--app-muted-strong);
+  font-size: 0.9rem;
+}
+
+.result-status {
+  font-size: 1.2rem;
+}
+
+.result-content {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow: auto;
+  max-height: 150px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.result-error {
+  color: var(--app-error-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: light) {
+  .result-content {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
 @media (max-width: 600px) {
   .app {
     padding: 2.25rem 1rem;
@@ -308,5 +432,14 @@
 
   .actions {
     flex-direction: column;
+  }
+
+  .giga-button-section {
+    padding: 1rem;
+  }
+
+  .giga-button {
+    font-size: 1rem;
+    padding: 0.85rem 1.25rem;
   }
 }

@@ -1,7 +1,7 @@
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '14.0'
-use_frameworks!
+platform :ios, '26.0'
+use_frameworks! :linkage => :static
 
 # workaround to avoid Xcode caching of Pods that requires
 # Product -> Clean Build Folder after new Cordova plugins installed
@@ -11,7 +11,40 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  pod 'CapgoCapacitorSocialLogin', :path => '../../..'
+  pod 'CapgoBackgroundGeolocation', :path => '../../node_modules/@capgo/background-geolocation'
+  pod 'CapgoCameraPreview', :path => '../../node_modules/@capgo/camera-preview'
+  pod 'CapgoCapacitorAlarm', :path => '../../node_modules/@capgo/capacitor-alarm'
+  pod 'CapgoCapacitorAndroidInlineInstall', :path => '../../node_modules/@capgo/capacitor-android-inline-install'
+  pod 'CapgoCapacitorAndroidUsagestatsmanager', :path => '../../node_modules/@capgo/capacitor-android-usagestatsmanager'
+  pod 'CapgoCapacitorCrisp', :path => '../../node_modules/@capgo/capacitor-crisp'
+  pod 'CapgoCapacitorDataStorageSqlite', :path => '../../node_modules/@capgo/capacitor-data-storage-sqlite'
+  pod 'CapgoCapacitorDownloader', :path => '../../node_modules/@capgo/capacitor-downloader'
+  pod 'CapgoCapacitorEnv', :path => '../../node_modules/@capgo/capacitor-env'
+  pod 'CapgoCapacitorFlash', :path => '../../node_modules/@capgo/capacitor-flash'
+  pod 'CapgoCapacitorHealth', :path => '../../node_modules/@capgo/capacitor-health'
+  pod 'CapgoCapacitorIsRoot', :path => '../../node_modules/@capgo/capacitor-is-root'
+  pod 'CapgoCapacitorJwPlayer', :path => '../../node_modules/@capgo/capacitor-jw-player'
+  pod 'CapgoCapacitorLaunchNavigator', :path => '../../node_modules/@capgo/capacitor-launch-navigator'
+  pod 'CapgoCapacitorLlm', :path => '../../node_modules/@capgo/capacitor-llm'
+  pod 'CapgoCapacitorMute', :path => '../../node_modules/@capgo/capacitor-mute'
+  pod 'CapgoCapacitorMuxPlayer', :path => '../../node_modules/@capgo/capacitor-mux-player'
+  pod 'CapgoCapacitorNavigationBar', :path => '../../node_modules/@capgo/capacitor-navigation-bar'
+  pod 'CapgoCapacitorPersistentAccount', :path => '../../node_modules/@capgo/capacitor-persistent-account'
+  pod 'CapgoCapacitorPhotoLibrary', :path => '../../node_modules/@capgo/capacitor-photo-library'
+  pod 'CapgoCapacitorScreenRecorder', :path => '../../node_modules/@capgo/capacitor-screen-recorder'
+  pod 'CapgoCapacitorShake', :path => '../../node_modules/@capgo/capacitor-shake'
+  pod 'CapgoCapacitorSocialLogin', :path => '../../node_modules/@capgo/capacitor-social-login'
+  pod 'CapgoCapacitorStreamCall', :path => '../../node_modules/@capgo/capacitor-stream-call'
+  pod 'CapgoCapacitorTextinteraction', :path => '../../node_modules/@capgo/capacitor-textinteraction'
+  pod 'CapgoCapacitorTwilioVoice', :path => '../../node_modules/@capgo/capacitor-twilio-voice'
+  pod 'CapgoCapacitorUpdater', :path => '../../node_modules/@capgo/capacitor-updater'
+  pod 'CapgoCapacitorUploader', :path => '../../node_modules/@capgo/capacitor-uploader'
+  pod 'CapgoInappbrowser', :path => '../../node_modules/@capgo/inappbrowser'
+  pod 'CapgoNativeAudio', :path => '../../node_modules/@capgo/native-audio'
+  pod 'CapgoNativeMarket', :path => '../../node_modules/@capgo/native-market'
+  pod 'CapgoNativePurchases', :path => '../../node_modules/@capgo/native-purchases'
+  pod 'CapgoNativegeocoder', :path => '../../node_modules/@capgo/nativegeocoder'
+  pod 'CapgoRicoh360', :path => '../../node_modules/@capgo/ricoh360'
 end
 
 target 'App' do
@@ -21,4 +54,25 @@ end
 
 post_install do |installer|
   assertDeploymentTarget(installer)
+
+    # Fix for static framework dependencies
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+      end
+      
+      # Specifically for MediaPipe pods
+      if target.name.include?('MediaPipeTasksGenAI')
+        target.build_configurations.each do |config|
+          config.build_settings['ENABLE_BITCODE'] = 'NO'
+        end
+      end
+    end
+
+    installer.pods_project.targets.each do |target|
+      next if target.name != 'StreamVideoSwiftUI' && target.name != 'StreamVideo' && target.name != 'SwiftProtobuf'
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      end
+    end
 end

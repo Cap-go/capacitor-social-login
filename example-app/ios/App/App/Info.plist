@@ -45,5 +45,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+    <key>CFBundleURLTypes</key>
+    <array>
+     <dict>
+       <key>CFBundleURLSchemes</key>
+       <array>
+         <string>com.googleusercontent.apps.44885413573-57pq0pothq40hh2pulaot47r8e06df64</string>
+       </array>
+     </dict>
+    </array>
+    <key>CAPACITOR_STREAM_VIDEO_APIKEY</key>
+    <string>vq4zdsazqxd7    </string>
 </dict>
 </plist>
