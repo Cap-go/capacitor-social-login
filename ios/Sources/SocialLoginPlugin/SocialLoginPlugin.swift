@@ -25,6 +25,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let facebook = FacebookProvider()
     private let google = GoogleProvider()
 
+    @objc func getPluginVersion(_ call: CAPPluginCall) {
+        call.resolve(["version": self.PLUGIN_VERSION])
+    }
+
     @objc func initialize(_ call: CAPPluginCall) {
         var initialized = false
 
@@ -388,9 +392,4 @@ struct SocialLoginUser {
     let idToken: String?
     let refreshToken: String?
     let expiresIn: Int?
-
-    @objc func getPluginVersion(_ call: CAPPluginCall) {
-        call.resolve(["version": self.PLUGIN_VERSION])
-    }
-
 }
