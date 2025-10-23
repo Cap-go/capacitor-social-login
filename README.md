@@ -379,6 +379,7 @@ await SocialLogin.login({
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
 * [`providerSpecificCall(...)`](#providerspecificcall)
+* [`getPluginVersion()`](#getpluginversion)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -496,6 +497,19 @@ Execute provider-specific calls
 | **`options`** | <code>{ call: T; options: ProviderSpecificCallOptionsMap[T]; }</code> |
 
 **Returns:** <code>Promise&lt;ProviderSpecificCallResponseMap[T]&gt;</code>
+
+--------------------
+
+
+### getPluginVersion()
+
+```typescript
+getPluginVersion() => Promise<{ version: string; }>
+```
+
+Get the native Capacitor plugin version
+
+**Returns:** <code>Promise&lt;{ version: string; }&gt;</code>
 
 --------------------
 
