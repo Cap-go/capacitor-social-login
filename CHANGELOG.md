@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.14.1](https://github.com/Cap-go/capacitor-social-login/compare/7.14.0...7.14.1) (2025-10-23)
+
+
+### Bug Fixes
+
+* remove footer in discord ([37c379e](https://github.com/Cap-go/capacitor-social-login/commit/37c379e198430d7e14fbcd5e83262ffca9e83cb0))
+* update Discord release username to include repository name ([c419c31](https://github.com/Cap-go/capacitor-social-login/commit/c419c319e01de3e156c25f4b3c92a064dae79ef2))
+
 ## [7.14.0](https://github.com/Cap-go/capacitor-social-login/compare/7.13.1...7.14.0) (2025-10-23)
 
 
