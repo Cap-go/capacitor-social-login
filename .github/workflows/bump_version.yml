@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - development
+    paths-ignore:
+      - 'example-app/**'
 
 jobs:
   bump-version:
