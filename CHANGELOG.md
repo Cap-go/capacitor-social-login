@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.14.3](https://github.com/Cap-go/capacitor-social-login/compare/7.14.2...7.14.3) (2025-10-26)
+
+
+### Bug Fixes
+
+* prevent bump for app ([5ded961](https://github.com/Cap-go/capacitor-social-login/commit/5ded961ddefd47cf3ba5e6ac46a9adf298492391))
+
 ## [7.14.2](https://github.com/Cap-go/capacitor-social-login/compare/7.14.1...7.14.2) (2025-10-23)
 
 
