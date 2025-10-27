@@ -10,13 +10,13 @@ let package = Package(
             targets: ["SocialLoginPlugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.4.4"),
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "7.0.0"),
         // FBSDKCoreKit and FBSDKLoginKit
-        .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "18.0.1")),
+        .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "7.0.0")),
         // Add Google Sign-In dependency
-        .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0")),
+        .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "7.0.0")),
         // Alamofire
-        .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.10.2"))
+        .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "7.0.0"))
     ],
     targets: [
         .target(
