@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.14.7](https://github.com/Cap-go/capacitor-social-login/compare/7.14.6...7.14.7) (2025-10-29)
+
+
+### Bug Fixes
+
+* CI/CD config ([b0eb788](https://github.com/Cap-go/capacitor-social-login/commit/b0eb788fef67128d38d8d9e2e509dee77995254c))
+* model github action ([acce29a](https://github.com/Cap-go/capacitor-social-login/commit/acce29a1363f21b2ead348ccc479b5ce32b56170))
+* update github action ([cd143ec](https://github.com/Cap-go/capacitor-social-login/commit/cd143ecabb1453755db143f37dce128c719b5ee2))
+
 ## [7.14.6](https://github.com/Cap-go/capacitor-social-login/compare/7.14.5...7.14.6) (2025-10-27)
 
 
