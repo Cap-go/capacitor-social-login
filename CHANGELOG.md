@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.14.8](https://github.com/Cap-go/capacitor-social-login/compare/7.14.7...7.14.8) (2025-10-29)
+
+
+### Bug Fixes
+
+* update dependency versions for Facebook SDK, Google Sign-In, and Alamofire ([fff4207](https://github.com/Cap-go/capacitor-social-login/commit/fff4207ca5d07ce0320a7f784d4ebba387c18f7f))
+
 ## [7.14.7](https://github.com/Cap-go/capacitor-social-login/compare/7.14.6...7.14.7) (2025-10-29)
 
 
