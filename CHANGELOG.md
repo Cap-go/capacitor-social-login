@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [7.14.9](https://github.com/Cap-go/capacitor-social-login/compare/7.14.8...7.14.9) (2025-10-30)
+
+
+### Bug Fixes
+
+* pluginVersion lint issue ([6073c16](https://github.com/Cap-go/capacitor-social-login/commit/6073c16e0d0346dafc59916e256d530b32cdd766))
+
 ## [7.14.8](https://github.com/Cap-go/capacitor-social-login/compare/7.14.7...7.14.8) (2025-10-29)
 
 
