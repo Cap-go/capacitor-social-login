@@ -7,7 +7,7 @@ import Capacitor
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let PLUGIN_VERSION: String = "7.14.8"
+    private let pluginVersion: String = "7.14.8"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     public let pluginMethods: [CAPPluginMethod] = [
@@ -26,7 +26,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let google = GoogleProvider()
 
     @objc func getPluginVersion(_ call: CAPPluginCall) {
-        call.resolve(["version": self.PLUGIN_VERSION])
+        call.resolve(["version": self.pluginVersion])
     }
 
     @objc func initialize(_ call: CAPPluginCall) {
