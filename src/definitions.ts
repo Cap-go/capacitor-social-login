@@ -42,10 +42,23 @@ export interface InitializeOptions {
     webClientId?: string;
     /**
      * The login mode, can be online or offline.
-     * - online: Returns user profile data and access tokens (default)
-     * - offline: Returns only serverAuthCode for backend authentication, no user profile data
-     * Note: offline mode requires iOSServerClientId to be set on iOS
-     * @example offline
+     *
+     * **Online mode (default):**
+     * - Returns user profile data and access tokens
+     * - Supports all methods: login, logout, isLoggedIn, getAuthorizationCode
+     *
+     * **Offline mode:**
+     * - Returns only serverAuthCode for backend authentication
+     * - No user profile data available
+     * - **Limitations:** The following methods are NOT supported in offline mode:
+     *   - `logout()` - Will reject with "not implemented when using offline mode"
+     *   - `isLoggedIn()` - Will reject with "not implemented when using offline mode"
+     *   - `getAuthorizationCode()` - Will reject with "not implemented when using offline mode"
+     * - Only `login()` method works in offline mode, returning serverAuthCode only
+     * - Requires `iOSServerClientId` to be set on iOS
+     *
+     * @example 'offline'
+     * @default 'online'
      * @since 3.1.0
      */
     mode?: 'online' | 'offline';
@@ -484,18 +497,38 @@ export interface SocialLoginPlugin {
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }>;
   /**
    * Logout
-   * @description logout the user
+   * @description Logout the user from the specified provider
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "logout is not implemented when using offline mode"
+   *
+   * @throws Error if Google provider is in offline mode
    */
   logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void>;
   /**
    * IsLoggedIn
-   * @description logout the user
+   * @description Check if the user is currently logged in with the specified provider
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "isLoggedIn is not implemented when using offline mode"
+   *
+   * @throws Error if Google provider is in offline mode
    */
   isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }>;
 
   /**
-   * Get the current access token
-   * @description get the current access token
+   * Get the current authorization code
+   * @description Get the authorization code for server-side authentication
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "getAuthorizationCode is not implemented when using offline mode"
+   *
+   * In offline mode, the authorization code (serverAuthCode) is already returned by the `login()` method.
+   *
+   * @throws Error if Google provider is in offline mode
    */
   getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode>;
   /**

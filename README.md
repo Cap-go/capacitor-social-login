@@ -458,7 +458,7 @@ IsLoggedIn
 getAuthorizationCode(options: AuthorizationCodeOptions) => Promise<AuthorizationCode>
 ```
 
-Get the current access token
+Get the current authorization code
 
 | Param         | Type                                                                          |
 | ------------- | ----------------------------------------------------------------------------- |
