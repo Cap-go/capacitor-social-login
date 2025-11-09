@@ -6,5 +6,5 @@ export default defineConfig({
   plugins: [react()],
   server: {
     allowedHosts: ['localhost', '192.168.1.100', 'example-webapp-08.beta.localcan.dev'],
-  }
+  },
 });
