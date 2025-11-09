@@ -35,7 +35,7 @@ export class AppleSocialLogin extends BaseSocialLogin {
 
     return new Promise((resolve, reject) => {
       AppleID.auth.init({
-        clientId: this.clientId!,
+        clientId: this.clientId ?? '',
         scope: options.scopes?.join(' ') || 'name email',
         redirectURI: this.redirectUrl || window.location.href,
         state: options.state,
