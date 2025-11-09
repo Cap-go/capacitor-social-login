@@ -42,10 +42,23 @@ export interface InitializeOptions {
     webClientId?: string;
     /**
      * The login mode, can be online or offline.
-     * - online: Returns user profile data and access tokens (default)
-     * - offline: Returns only serverAuthCode for backend authentication, no user profile data
-     * Note: offline mode requires iOSServerClientId to be set on iOS
-     * @example offline
+     *
+     * **Online mode (default):**
+     * - Returns user profile data and access tokens
+     * - Supports all methods: login, logout, isLoggedIn, getAuthorizationCode
+     *
+     * **Offline mode:**
+     * - Returns only serverAuthCode for backend authentication
+     * - No user profile data available
+     * - **Limitations:** The following methods are NOT supported in offline mode:
+     *   - `logout()` - Will reject with "not implemented when using offline mode"
+     *   - `isLoggedIn()` - Will reject with "not implemented when using offline mode"
+     *   - `getAuthorizationCode()` - Will reject with "not implemented when using offline mode"
+     * - Only `login()` method works in offline mode, returning serverAuthCode only
+     * - Requires `iOSServerClientId` to be set on iOS
+     *
+     * @example 'offline'
+     * @default 'online'
      * @since 3.1.0
      */
     mode?: 'online' | 'offline';
@@ -201,6 +214,30 @@ export interface GoogleLoginOptions {
    * @default false
    */
   autoSelectEnabled?: boolean;
+  /**
+   * Prompt parameter for Google OAuth (Web only)
+   * @description A space-delimited, case-sensitive list of prompts to present the user.
+   * If you don't specify this parameter, the user will be prompted only the first time your project requests access.
+   *
+   * **Possible values:**
+   * - `none`: Don't display any authentication or consent screens. Must not be specified with other values.
+   * - `consent`: Prompt the user for consent.
+   * - `select_account`: Prompt the user to select an account.
+   *
+   * **Examples:**
+   * - `prompt: 'consent'` - Always show consent screen
+   * - `prompt: 'select_account'` - Always show account selection
+   * - `prompt: 'consent select_account'` - Show both consent and account selection
+   *
+   * **Note:** This parameter only affects web platform behavior. Mobile platforms use their own native prompts.
+   *
+   * @example 'consent'
+   * @example 'select_account'
+   * @example 'consent select_account'
+   * @see [Google OAuth2 Prompt Parameter](https://developers.google.com/identity/protocols/oauth2/openid-connect#prompt)
+   * @since 7.12.0
+   */
+  prompt?: 'none' | 'consent' | 'select_account' | 'consent select_account' | 'select_account consent';
 }
 
 export interface GoogleLoginResponseOnline {
@@ -460,18 +497,38 @@ export interface SocialLoginPlugin {
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }>;
   /**
    * Logout
-   * @description logout the user
+   * @description Logout the user from the specified provider
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "logout is not implemented when using offline mode"
+   *
+   * @throws Error if Google provider is in offline mode
    */
   logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void>;
   /**
    * IsLoggedIn
-   * @description logout the user
+   * @description Check if the user is currently logged in with the specified provider
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "isLoggedIn is not implemented when using offline mode"
+   *
+   * @throws Error if Google provider is in offline mode
    */
   isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }>;
 
   /**
-   * Get the current access token
-   * @description get the current access token
+   * Get the current authorization code
+   * @description Get the authorization code for server-side authentication
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "getAuthorizationCode is not implemented when using offline mode"
+   *
+   * In offline mode, the authorization code (serverAuthCode) is already returned by the `login()` method.
+   *
+   * @throws Error if Google provider is in offline mode
    */
   getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode>;
   /**
@@ -488,4 +545,12 @@ export interface SocialLoginPlugin {
     call: T;
     options: ProviderSpecificCallOptionsMap[T];
   }): Promise<ProviderSpecificCallResponseMap[T]>;
+
+  /**
+   * Get the native Capacitor plugin version
+   *
+   * @returns {Promise<{ id: string }>} an Promise with version for this device
+   * @throws An error if the something went wrong
+   */
+  getPluginVersion(): Promise<{ version: string }>;
 }

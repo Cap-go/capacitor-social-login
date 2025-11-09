@@ -2,8 +2,8 @@
  <a href="https://capgo.app/"><img src='https://raw.githubusercontent.com/Cap-go/capgo/main/assets/capgo_banner.png' alt='Capgo - Instant updates for capacitor'/></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
+  <h2><a href="https://capgo.app/?ref=plugin_social_login"> ➡️ Get Instant updates for your App with Capgo</a></h2>
+  <h2><a href="https://capgo.app/consulting/?ref=plugin_social_login"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
 </div>
 
 ## Fork Information
@@ -83,7 +83,7 @@ const res = await SocialLogin.login({
 
 ## Facebook
 
-Docs: [How to setup facebook login](./docs/setup_facebook.md)
+Docs: [How to setup facebook login](https://capgo.app/docs/plugins/social-login/facebook/)
 
 ### Android configuration
 
@@ -379,6 +379,7 @@ await SocialLogin.login({
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
 * [`providerSpecificCall(...)`](#providerspecificcall)
+* [`getPluginVersion()`](#getpluginversion)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -457,7 +458,7 @@ IsLoggedIn
 getAuthorizationCode(options: AuthorizationCodeOptions) => Promise<AuthorizationCode>
 ```
 
-Get the current access token
+Get the current authorization code
 
 | Param         | Type                                                                          |
 | ------------- | ----------------------------------------------------------------------------- |
@@ -496,6 +497,19 @@ Execute provider-specific calls
 | **`options`** | <code>{ call: T; options: ProviderSpecificCallOptionsMap[T]; }</code> |
 
 **Returns:** <code>Promise&lt;ProviderSpecificCallResponseMap[T]&gt;</code>
+
+--------------------
+
+
+### getPluginVersion()
+
+```typescript
+getPluginVersion() => Promise<{ version: string; }>
+```
+
+Get the native Capacitor plugin version
+
+**Returns:** <code>Promise&lt;{ version: string; }&gt;</code>
 
 --------------------
 
@@ -575,15 +589,16 @@ Execute provider-specific calls
 
 #### GoogleLoginOptions
 
-| Prop                             | Type                                | Description                                                                                          | Default                 |
-| -------------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------- |
-| **`scopes`**                     | <code>string[]</code>               | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                         |
-| **`nonce`**                      | <code>string</code>                 | Nonce                                                                                                |                         |
-| **`forceRefreshToken`**          | <code>boolean</code>                | Force refresh token (only for Android)                                                               | <code>false</code>      |
-| **`forcePrompt`**                | <code>boolean</code>                | Force account selection prompt (iOS)                                                                 | <code>false</code>      |
-| **`style`**                      | <code>'bottom' \| 'standard'</code> | Style                                                                                                | <code>'standard'</code> |
-| **`filterByAuthorizedAccounts`** | <code>boolean</code>                | Filter by authorized accounts (Android only)                                                         | <code>true</code>       |
-| **`autoSelectEnabled`**          | <code>boolean</code>                | Auto select enabled (Android only)                                                                   | <code>false</code>      |
+| Prop                             | Type                                                                                                         | Description                                                                                          | Default                 | Since  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | ----------------------- | ------ |
+| **`scopes`**                     | <code>string[]</code>                                                                                        | Specifies the scopes required for accessing Google APIs The default is defined in the configuration. |                         |        |
+| **`nonce`**                      | <code>string</code>                                                                                          | Nonce                                                                                                |                         |        |
+| **`forceRefreshToken`**          | <code>boolean</code>                                                                                         | Force refresh token (only for Android)                                                               | <code>false</code>      |        |
+| **`forcePrompt`**                | <code>boolean</code>                                                                                         | Force account selection prompt (iOS)                                                                 | <code>false</code>      |        |
+| **`style`**                      | <code>'bottom' \| 'standard'</code>                                                                          | Style                                                                                                | <code>'standard'</code> |        |
+| **`filterByAuthorizedAccounts`** | <code>boolean</code>                                                                                         | Filter by authorized accounts (Android only)                                                         | <code>true</code>       |        |
+| **`autoSelectEnabled`**          | <code>boolean</code>                                                                                         | Auto select enabled (Android only)                                                                   | <code>false</code>      |        |
+| **`prompt`**                     | <code>'none' \| 'consent' \| 'select_account' \| 'consent select_account' \| 'select_account consent'</code> | Prompt parameter for Google OAuth (Web only)                                                         |                         | 7.12.0 |
 
 
 #### AppleProviderOptions

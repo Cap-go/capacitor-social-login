@@ -34,7 +34,7 @@
     },
     {
       "matchPackageNames": ["capacitor-swift-pm"],
-      "matchManagers": ["swift"],
+      "matchManagers": ["swift-pm"],
       "enabled": false
     },
     {
@@ -48,6 +48,11 @@
       "matchPackageNames": ["@capacitor/core"],
       "rangeStrategy": "replace",
       "allowedVersions": "/^>=\\d+\\.0\\.0$/"
+    },
+    {
+      "matchPackageNames": ["com.google.androidbrowserhelper:androidbrowserhelper"],
+      "matchManagers": ["gradle"],
+      "enabled": false
     }
   ]
 }

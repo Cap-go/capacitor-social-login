@@ -1,6 +1,6 @@
 {
   "name": "@capgo/capacitor-social-login",
-  "version": "7.11.24",
+  "version": "7.14.11",
   "description": "All social logins in one plugin",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -44,7 +44,7 @@
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
     "verify:web": "npm run build",
     "lint": "npm run eslint && npm run prettier -- --check && npm run swiftlint -- lint",
-    "fmt": "npm run eslint -- --fix && npm run prettier -- --write && npm run swiftlint -- --autocorrect --format",
+    "fmt": "npm run eslint -- --fix && npm run prettier -- --write && npm run swiftlint -- --fix --format",
     "eslint": "eslint . --ext .ts",
     "prettier": "prettier \"**/*.{css,html,ts,js,java}\" --plugin=prettier-plugin-java",
     "swiftlint": "node-swiftlint",
