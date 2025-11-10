@@ -106,6 +106,23 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "facebook": do {
+            self.facebook.getAuthorizationCode { res in
+                do {
+                    let result = try res.get()
+                    var response: [String: String] = [:]
+                    if let accessToken = result.accessToken {
+                        response["accessToken"] = accessToken
+                    }
+                    if let jwt = result.jwt {
+                        response["jwt"] = jwt
+                    }
+                    call.resolve(response)
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }

@@ -94,7 +94,7 @@ export class FacebookSocialLogin extends BaseSocialLogin {
     return new Promise((resolve, reject) => {
       FB.getLoginStatus((response) => {
         if (response.status === 'connected') {
-          resolve({ jwt: response.authResponse?.accessToken || '' });
+          resolve({ accessToken: response.authResponse?.accessToken || '' });
         } else {
           reject(new Error('No Facebook authorization code available'));
         }

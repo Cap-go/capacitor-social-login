@@ -146,7 +146,7 @@ public class FacebookProvider implements SocialProvider {
     public void getAuthorizationCode(PluginCall call) {
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
         if (accessToken != null && !accessToken.isExpired()) {
-            call.resolve(new JSObject().put("code", accessToken.getToken()));
+            call.resolve(new JSObject().put("accessToken", accessToken.getToken()));
         } else {
             call.reject("No valid access token found");
         }
