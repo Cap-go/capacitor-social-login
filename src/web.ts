@@ -36,13 +36,24 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       console.log('OAUTH_STATE_KEY found');
       const result = this.handleOAuthRedirect();
       if (result) {
-        window.opener?.postMessage(
-          {
-            type: 'oauth-response',
-            ...result.result,
-          },
-          window.location.origin,
-        );
+        // Check if it's an error result
+        if ('error' in result) {
+          window.opener?.postMessage(
+            {
+              type: 'oauth-error',
+              error: result.error,
+            },
+            window.location.origin,
+          );
+        } else {
+          window.opener?.postMessage(
+            {
+              type: 'oauth-response',
+              ...result.result,
+            },
+            window.location.origin,
+          );
+        }
         window.close();
       }
     }

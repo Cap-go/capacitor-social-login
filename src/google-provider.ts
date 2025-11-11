@@ -129,8 +129,17 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     return Promise.reject('Not implemented');
   }
 
-  handleOAuthRedirect(url: URL): LoginResult | null {
+  handleOAuthRedirect(url: URL): LoginResult | { error: string } | null {
     const paramsRaw = url.searchParams;
+    
+    // Check for errors in search params first (for offline mode)
+    const errorInParams = paramsRaw.get('error');
+    if (errorInParams) {
+      localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
+      const errorDescription = paramsRaw.get('error_description') || errorInParams;
+      return { error: errorDescription };
+    }
+    
     const code = paramsRaw.get('code');
 
     if (code && paramsRaw.has('scope')) {
@@ -145,10 +154,21 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
     const hash = url.hash.substring(1);
     console.log('handleOAuthRedirect', url.hash);
+    
     if (!hash) return null;
+    
+    const params = new URLSearchParams(hash);
+    
+    // Check for error cases in hash (e.g., user cancelled)
+    const error = params.get('error');
+    if (error) {
+      localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
+      const errorDescription = params.get('error_description') || error;
+      return { error: errorDescription };
+    }
+    
     console.log('handleOAuthRedirect ok');
 
-    const params = new URLSearchParams(hash);
     const accessToken = params.get('access_token');
     const idToken = params.get('id_token');
 
@@ -354,6 +374,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         if (event.data?.type === 'oauth-response') {
           window.removeEventListener('message', handleMessage);
           clearInterval(popupClosedInterval);
+          clearTimeout(timeoutHandle);
 
           if (this.loginType === 'online') {
             const { accessToken, idToken } = event.data;
@@ -391,6 +412,12 @@ export class GoogleSocialLogin extends BaseSocialLogin {
               },
             });
           }
+        } else if (event.data?.type === 'oauth-error') {
+          window.removeEventListener('message', handleMessage);
+          clearInterval(popupClosedInterval);
+          clearTimeout(timeoutHandle);
+          const errorMessage = event.data.error || 'User cancelled the OAuth flow';
+          reject(new Error(errorMessage));
         }
         // Don't reject for non-OAuth messages, just ignore them
       };
