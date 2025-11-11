@@ -7,7 +7,7 @@ import Capacitor
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "7.16.0"
+    private let pluginVersion: String = "7.17.0"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     public let pluginMethods: [CAPPluginMethod] = [
