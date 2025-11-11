@@ -13,5 +13,9 @@
             android:authorities="${applicationId}.FacebookInitProvider"
             android:exported="false"
             tools:node="remove" />
+        <activity
+            android:name="ee.forgr.capacitor.social.login.TwitterLoginActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
     </application>
 </manifest>

@@ -136,7 +136,7 @@ public class AppleProvider implements SocialProvider {
         String path = data.getPath(); // Additional path segments
         String query = data.getQuery(); // Query parameters
 
-        Log.i(SocialLoginPlugin.LOG_TAG, String.format("Recieved apple login intent: %s, %s, %s, %s", scheme, host, path, query));
+        Log.i(SocialLoginPlugin.LOG_TAG, String.format("Received apple login intent: %s, %s, %s, %s", scheme, host, path, query));
 
         handleUrl(data.toString());
         //    if (data.toString().contains("success=")) {

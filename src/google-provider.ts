@@ -131,7 +131,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
   handleOAuthRedirect(url: URL): LoginResult | { error: string } | null {
     const paramsRaw = url.searchParams;
-    
+
     // Check for errors in search params first (for offline mode)
     const errorInParams = paramsRaw.get('error');
     if (errorInParams) {
@@ -139,7 +139,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       const errorDescription = paramsRaw.get('error_description') || errorInParams;
       return { error: errorDescription };
     }
-    
+
     const code = paramsRaw.get('code');
 
     if (code && paramsRaw.has('scope')) {
@@ -154,11 +154,11 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
     const hash = url.hash.substring(1);
     console.log('handleOAuthRedirect', url.hash);
-    
+
     if (!hash) return null;
-    
+
     const params = new URLSearchParams(hash);
-    
+
     // Check for error cases in hash (e.g., user cancelled)
     const error = params.get('error');
     if (error) {
@@ -166,7 +166,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       const errorDescription = params.get('error_description') || error;
       return { error: errorDescription };
     }
-    
+
     console.log('handleOAuthRedirect ok');
 
     const accessToken = params.get('access_token');
@@ -355,7 +355,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     const height = 600;
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
-    localStorage.setItem(BaseSocialLogin.OAUTH_STATE_KEY, 'true');
+    localStorage.setItem(
+      BaseSocialLogin.OAUTH_STATE_KEY,
+      JSON.stringify({ provider: 'google', loginType: this.loginType }),
+    );
     const popup = window.open(url, 'Google Sign In', `width=${width},height=${height},left=${left},top=${top},popup=1`);
 
     let popupClosedInterval: number;

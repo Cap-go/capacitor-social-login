@@ -109,6 +109,28 @@ public class SocialLoginPlugin extends Plugin {
             }
         }
 
+        JSObject twitter = call.getObject("twitter");
+        if (twitter != null) {
+            String twitterClientId = twitter.getString("clientId");
+            String twitterRedirect = twitter.getString("redirectUrl");
+            if (twitterClientId == null || twitterClientId.isEmpty()) {
+                call.reject("twitter.clientId is null or empty");
+                return;
+            }
+            if (twitterRedirect == null || twitterRedirect.isEmpty()) {
+                call.reject("twitter.redirectUrl is null or empty");
+                return;
+            }
+            TwitterProvider twitterProvider = new TwitterProvider(this.getActivity(), this.getContext());
+            try {
+                twitterProvider.initialize(twitter);
+                this.socialProviderHashMap.put("twitter", twitterProvider);
+            } catch (JSONException e) {
+                call.reject("Failed to initialize Twitter provider: " + e.getMessage());
+                return;
+            }
+        }
+
         call.resolve();
     }
 
@@ -269,6 +291,15 @@ public class SocialLoginPlugin extends Plugin {
             boolean handled = ((FacebookProvider) facebookProvider).handleOnActivityResult(requestCode, resultCode, data);
             if (handled) {
                 Log.d(LOG_TAG, "Facebook activity result handled");
+                return;
+            }
+        }
+
+        SocialProvider twitterProvider = socialProviderHashMap.get("twitter");
+        if (twitterProvider instanceof TwitterProvider) {
+            boolean handled = ((TwitterProvider) twitterProvider).handleActivityResult(requestCode, resultCode, data);
+            if (handled) {
+                Log.d(LOG_TAG, "Twitter activity result handled");
                 return;
             }
         }

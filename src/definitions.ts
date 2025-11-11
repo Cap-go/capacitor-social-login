@@ -1,4 +1,33 @@
 export interface InitializeOptions {
+  twitter?: {
+    /**
+     * The OAuth 2.0 client identifier issued by X (Twitter) Developer Portal
+     * @example 'Y2xpZW50SWQ'
+     */
+    clientId: string;
+    /**
+     * Redirect URL that is registered inside the X Developer Portal.
+     * The plugin uses this URL on every platform to receive the authorization code.
+     * @example 'myapp://auth/x'
+     */
+    redirectUrl: string;
+    /**
+     * Default scopes appended to every login request when no custom scopes are provided.
+     * @description Defaults to the minimum required scopes for Log in with X.
+     * @default ['tweet.read','users.read']
+     */
+    defaultScopes?: string[];
+    /**
+     * Force the consent screen to show on every login attempt.
+     * Mirrors X's `force_login=true` flag.
+     * @default false
+     */
+    forceLogin?: boolean;
+    /**
+     * Optional audience value when your application has been approved for multi-tenant access.
+     */
+    audience?: string;
+  };
   facebook?: {
     /**
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
@@ -166,6 +195,34 @@ export interface FacebookLoginOptions {
    * @description A custom nonce to use for the login request
    */
   nonce?: string;
+}
+
+export interface TwitterLoginOptions {
+  /**
+   * Additional scopes to request during login.
+   * If omitted the plugin falls back to the default scopes configured during initialization.
+   * @example ['tweet.read','users.read','offline.access']
+   */
+  scopes?: string[];
+  /**
+   * Provide a custom OAuth state value.
+   * When not provided the plugin generates a cryptographically random value.
+   */
+  state?: string;
+  /**
+   * Provide a pre-computed PKCE code verifier (mostly used for testing).
+   * When omitted the plugin generates a secure verifier automatically.
+   */
+  codeVerifier?: string;
+  /**
+   * Override the redirect URI for a single login call.
+   * Useful when the same app supports multiple callback URLs per platform.
+   */
+  redirectUrl?: string;
+  /**
+   * Force the consent screen on every attempt, maps to `force_login=true`.
+   */
+  forceLogin?: boolean;
 }
 
 export interface GoogleLoginOptions {
@@ -346,6 +403,10 @@ export type LoginOptions =
   | {
       provider: 'apple';
       options: AppleProviderOptions;
+    }
+  | {
+      provider: 'twitter';
+      options: TwitterLoginOptions;
     };
 
 export type LoginResult =
@@ -360,6 +421,10 @@ export type LoginResult =
   | {
       provider: 'apple';
       result: AppleProviderResponse;
+    }
+  | {
+      provider: 'twitter';
+      result: TwitterLoginResponse;
     };
 
 export interface AccessToken {
@@ -370,6 +435,7 @@ export interface AccessToken {
   lastRefresh?: string;
   permissions?: string[];
   token: string;
+  tokenType?: string;
   refreshToken?: string;
   userId?: string;
 }
@@ -392,6 +458,24 @@ export interface FacebookLoginResponse {
   };
 }
 
+export interface TwitterProfile {
+  id: string;
+  username: string;
+  name: string | null;
+  profileImageUrl: string | null;
+  verified: boolean;
+  email?: string | null;
+}
+
+export interface TwitterLoginResponse {
+  accessToken: AccessToken | null;
+  refreshToken?: string | null;
+  scope: string[];
+  tokenType: 'bearer';
+  expiresIn?: number | null;
+  profile: TwitterProfile;
+}
+
 export interface AuthorizationCode {
   /**
    * Jwt
@@ -410,7 +494,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter';
 }
 
 export interface isLoggedInOptions {
@@ -418,7 +502,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter';
 }
 
 // Define the provider-specific call types
@@ -480,6 +564,7 @@ export type ProviderResponseMap = {
   facebook: FacebookLoginResponse;
   google: GoogleLoginResponse;
   apple: AppleProviderResponse;
+  twitter: TwitterLoginResponse;
 };
 
 export interface SocialLoginPlugin {
@@ -505,7 +590,7 @@ export interface SocialLoginPlugin {
    *
    * @throws Error if Google provider is in offline mode
    */
-  logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void>;
+  logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' }): Promise<void>;
   /**
    * IsLoggedIn
    * @description Check if the user is currently logged in with the specified provider

@@ -226,7 +226,7 @@ await SocialLogin.initialize({
 
 ### Android configuration
 
-The implemention use the new library of Google who use Google account at Os level, make sure your device does have at least one google account connected
+The implementation use the new library of Google who use Google account at Os level, make sure your device does have at least one google account connected
 
 Call the `initialize` method with the `google` provider:
 
@@ -406,14 +406,14 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login<T extends "apple" | "google" | "facebook">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
+login<T extends "apple" | "google" | "facebook" | "twitter">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
 
-| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt;</code> |
+| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt;</code> |
 
 **Returns:** <code>Promise&lt;{ provider: T; result: ProviderResponseMap[T]; }&gt;</code>
 
@@ -423,14 +423,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google' | 'facebook'; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter'; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                                          |
-| ------------- | ------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook'; }</code> |
+| Param         | Type                                                                       |
+| ------------- | -------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter'; }</code> |
 
 --------------------
 
@@ -521,6 +521,7 @@ Get the native Capacitor plugin version
 
 | Prop           | Type                                                                                                                                                                |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                          |
 | **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |
 | **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; useBroadcastChannel?: boolean; }</code>                                          |
@@ -546,6 +547,7 @@ Get the native Capacitor plugin version
 | **`lastRefresh`**         | <code>string</code>   |
 | **`permissions`**         | <code>string[]</code> |
 | **`token`**               | <code>string</code>   |
+| **`tokenType`**           | <code>string</code>   |
 | **`refreshToken`**        | <code>string</code>   |
 | **`userId`**              | <code>string</code>   |
 
@@ -576,6 +578,30 @@ Get the native Capacitor plugin version
 | **`idToken`**           | <code>string \| null</code>                                                                                  | Identity token (JWT) from Apple                                                       |
 | **`profile`**           | <code>{ user: string; email: string \| null; givenName: string \| null; familyName: string \| null; }</code> | User profile information                                                              |
 | **`authorizationCode`** | <code>string</code>                                                                                          | Authorization code for proper token exchange (when useProperTokenExchange is enabled) |
+
+
+#### TwitterLoginResponse
+
+| Prop               | Type                                                        |
+| ------------------ | ----------------------------------------------------------- |
+| **`accessToken`**  | <code><a href="#accesstoken">AccessToken</a> \| null</code> |
+| **`refreshToken`** | <code>string \| null</code>                                 |
+| **`scope`**        | <code>string[]</code>                                       |
+| **`tokenType`**    | <code>'bearer'</code>                                       |
+| **`expiresIn`**    | <code>number \| null</code>                                 |
+| **`profile`**      | <code><a href="#twitterprofile">TwitterProfile</a></code>   |
+
+
+#### TwitterProfile
+
+| Prop                  | Type                        |
+| --------------------- | --------------------------- |
+| **`id`**              | <code>string</code>         |
+| **`username`**        | <code>string</code>         |
+| **`name`**            | <code>string \| null</code> |
+| **`profileImageUrl`** | <code>string \| null</code> |
+| **`verified`**        | <code>boolean</code>        |
+| **`email`**           | <code>string \| null</code> |
 
 
 #### FacebookLoginOptions
@@ -611,11 +637,22 @@ Get the native Capacitor plugin version
 | **`useBroadcastChannel`** | <code>boolean</code>  | Use Broadcast Channel for authentication flow | <code>false</code> |
 
 
+#### TwitterLoginOptions
+
+| Prop               | Type                  | Description                                                                                                                             |
+| ------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **`scopes`**       | <code>string[]</code> | Additional scopes to request during login. If omitted the plugin falls back to the default scopes configured during initialization.     |
+| **`state`**        | <code>string</code>   | Provide a custom OAuth state value. When not provided the plugin generates a cryptographically random value.                            |
+| **`codeVerifier`** | <code>string</code>   | Provide a pre-computed PKCE code verifier (mostly used for testing). When omitted the plugin generates a secure verifier automatically. |
+| **`redirectUrl`**  | <code>string</code>   | Override the redirect URI for a single login call. Useful when the same app supports multiple callback URLs per platform.               |
+| **`forceLogin`**   | <code>boolean</code>  | Force the consent screen on every attempt, maps to `force_login=true`.                                                                  |
+
+
 #### isLoggedInOptions
 
-| Prop           | Type                                           | Description |
-| -------------- | ---------------------------------------------- | ----------- |
-| **`provider`** | <code>'apple' \| 'google' \| 'facebook'</code> | Provider    |
+| Prop           | Type                                                        | Description |
+| -------------- | ----------------------------------------------------------- | ----------- |
+| **`provider`** | <code>'apple' \| 'google' \| 'facebook' \| 'twitter'</code> | Provider    |
 
 
 #### AuthorizationCode
@@ -628,9 +665,9 @@ Get the native Capacitor plugin version
 
 #### AuthorizationCodeOptions
 
-| Prop           | Type                                           | Description |
-| -------------- | ---------------------------------------------- | ----------- |
-| **`provider`** | <code>'apple' \| 'google' \| 'facebook'</code> | Provider    |
+| Prop           | Type                                                        | Description |
+| -------------- | ----------------------------------------------------------- | ----------- |
+| **`provider`** | <code>'apple' \| 'google' \| 'facebook' \| 'twitter'</code> | Provider    |
 
 
 #### FacebookGetProfileResponse
@@ -659,7 +696,7 @@ Get the native Capacitor plugin version
 
 #### ProviderResponseMap
 
-<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; }</code>
+<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; }</code>
 
 
 #### GoogleLoginResponse
@@ -669,7 +706,7 @@ Get the native Capacitor plugin version
 
 #### LoginOptions
 
-<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }</code>
+<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }</code>
 
 
 #### Extract
@@ -777,4 +814,4 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
 ### Credits
 
 This plugin implementation of google is based on [CapacitorGoogleAuth](https://github.com/CodetrixStudio/CapacitorGoogleAuth) with a lot of rework, the current maintainer is unreachable, we are thankful for his work and are now going forward on our own!
-Thanks to [reslear](https://github.com/reslear) for helping to tranfer users to this plugin from the old one and all the work.
+Thanks to [reslear](https://github.com/reslear) for helping to transfer users to this plugin from the old one and all the work.

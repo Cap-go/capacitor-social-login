@@ -24,6 +24,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let apple = AppleProvider()
     private let facebook = FacebookProvider()
     private let google = GoogleProvider()
+    private let twitter = TwitterProvider()
 
     @objc func getPluginVersion(_ call: CAPPluginCall) {
         call.resolve(["version": self.pluginVersion])
@@ -68,6 +69,22 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             let redirectUrl = appleSettings["redirectUrl"] as? String
             let useProperTokenExchange = appleSettings["useProperTokenExchange"] as? Bool ?? false
             apple.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
+            initialized = true
+        }
+
+        if let twitterSettings = call.getObject("twitter") {
+            guard let clientId = twitterSettings["clientId"] as? String, !clientId.isEmpty else {
+                call.reject("twitter.clientId is required")
+                return
+            }
+            guard let redirectUrl = twitterSettings["redirectUrl"] as? String, !redirectUrl.isEmpty else {
+                call.reject("twitter.redirectUrl is required")
+                return
+            }
+            let defaultScopes = twitterSettings["defaultScopes"] as? [String]
+            let forceLogin = twitterSettings["forceLogin"] as? Bool ?? false
+            let audience = twitterSettings["audience"] as? String
+            twitter.initialize(clientId: clientId, redirectUri: redirectUrl, defaultScopes: defaultScopes, forceLogin: forceLogin, audience: audience)
             initialized = true
         }
 
@@ -123,6 +140,26 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "twitter": do {
+            self.twitter.getAuthorizationCode { res in
+                do {
+                    let token = try res.get()
+                    var response: [String: Any] = [
+                        "accessToken": token.token,
+                        "tokenType": token.tokenType as Any
+                    ]
+                    if let expiresIn = token.expiresIn {
+                        response["expiresIn"] = expiresIn
+                    }
+                    if let refreshToken = token.refreshToken {
+                        response["refreshToken"] = refreshToken
+                    }
+                    call.resolve(response)
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -160,6 +197,16 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.resolve([ "isLoggedIn": self.facebook.isLoggedIn() ])
 
         }
+        case "twitter": do {
+            self.twitter.isLoggedIn { res in
+                do {
+                    let status = try res.get()
+                    call.resolve([ "isLoggedIn": status ])
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -183,6 +230,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         case "apple":
             apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
+                self.handleLoginResult(result, call: call)
+            }
+        case "twitter":
+            twitter.login(payload: payload) { (result: Result<TwitterProfileResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         default:
@@ -247,6 +298,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             apple.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
+        case "twitter":
+            twitter.logout { result in
+                self.handleLogoutResult(result, call: call)
+            }
         default:
             call.reject("Invalid provider")
         }
@@ -269,6 +324,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         case "apple":
             apple.refresh { result in
+                self.handleRefreshResult(result, call: call)
+            }
+        case "twitter":
+            twitter.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
 
@@ -295,6 +354,13 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "idToken": user.idToken,
                     "refreshToken": user.refreshToken,
                     "expiresIn": user.expiresIn
+                ])
+            } else if let twitterResponse = response as? TwitterProfileResponse {
+                call.resolve([
+                    "accessToken": twitterResponse.accessToken.token,
+                    "idToken": NSNull(),
+                    "refreshToken": twitterResponse.accessToken.refreshToken ?? NSNull(),
+                    "expiresIn": twitterResponse.accessToken.expiresIn ?? NSNull()
                 ])
             } else {
                 call.reject("Invalid refresh response")
@@ -394,6 +460,32 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve([
                     "provider": "facebook",
                     "result": facebookResult
+                ])
+            } else if let twitterResponse = response as? TwitterProfileResponse {
+                let profile: [String: Any] = [
+                    "id": twitterResponse.profile.id,
+                    "username": twitterResponse.profile.username,
+                    "name": twitterResponse.profile.name ?? "",
+                    "profileImageUrl": twitterResponse.profile.profile_image_url ?? "",
+                    "verified": twitterResponse.profile.verified ?? false,
+                    "email": twitterResponse.profile.email ?? NSNull()
+                ]
+                let accessToken: [String: Any] = [
+                    "token": twitterResponse.accessToken.token,
+                    "expiresIn": twitterResponse.accessToken.expiresIn ?? NSNull(),
+                    "refreshToken": twitterResponse.accessToken.refreshToken ?? NSNull(),
+                    "tokenType": twitterResponse.accessToken.tokenType ?? NSNull()
+                ]
+                let twitterResult: [String: Any] = [
+                    "accessToken": accessToken,
+                    "profile": profile,
+                    "scope": twitterResponse.scope,
+                    "tokenType": twitterResponse.tokenType,
+                    "expiresIn": twitterResponse.expiresIn
+                ]
+                call.resolve([
+                    "provider": "twitter",
+                    "result": twitterResult
                 ])
             } else {
                 call.reject("Unsupported provider response")

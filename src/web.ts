@@ -13,9 +13,11 @@ import type {
   ProviderSpecificCall,
   ProviderSpecificCallOptionsMap,
   ProviderSpecificCallResponseMap,
+  LoginResult,
 } from './definitions';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
+import { TwitterSocialLogin } from './twitter-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
@@ -23,6 +25,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private googleProvider: GoogleSocialLogin;
   private appleProvider: AppleSocialLogin;
   private facebookProvider: FacebookSocialLogin;
+  private twitterProvider: TwitterSocialLogin;
 
   constructor() {
     super();
@@ -30,38 +33,72 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     this.googleProvider = new GoogleSocialLogin();
     this.appleProvider = new AppleSocialLogin();
     this.facebookProvider = new FacebookSocialLogin();
+    this.twitterProvider = new TwitterSocialLogin();
 
     // Set up listener for OAuth redirects if we have a pending OAuth flow
     if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
       console.log('OAUTH_STATE_KEY found');
-      const result = this.handleOAuthRedirect();
-      if (result) {
-        // Check if it's an error result
-        if ('error' in result) {
-          window.opener?.postMessage(
-            {
-              type: 'oauth-error',
-              error: result.error,
-            },
-            window.location.origin,
-          );
-        } else {
-          window.opener?.postMessage(
-            {
-              type: 'oauth-response',
-              ...result.result,
-            },
-            window.location.origin,
-          );
-        }
+      this.handleOAuthRedirect().catch((error) => {
+        console.error('Failed to finish OAuth redirect', error);
         window.close();
-      }
+      });
     }
   }
 
-  private handleOAuthRedirect() {
+  private async handleOAuthRedirect(): Promise<void> {
     const url = new URL(window.location.href);
-    return this.googleProvider.handleOAuthRedirect(url);
+    const stateRaw = localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY);
+    let provider: string | null = null;
+    let state: string | undefined;
+
+    if (stateRaw) {
+      try {
+        const parsed = JSON.parse(stateRaw);
+        provider = parsed.provider ?? null;
+        state = parsed.state;
+      } catch {
+        provider = stateRaw === 'true' ? 'google' : null;
+      }
+    }
+
+    let result: LoginResult | { error: string } | null = null;
+
+    switch (provider) {
+      case 'twitter':
+        result = await this.twitterProvider.handleOAuthRedirect(url, state);
+        break;
+      case 'google':
+      default:
+        result = this.googleProvider.handleOAuthRedirect(url);
+        break;
+    }
+
+    if (!result) {
+      return;
+    }
+
+    if ('error' in result) {
+      const resolvedProvider = provider ?? null;
+      window.opener?.postMessage(
+        {
+          type: 'oauth-error',
+          provider: resolvedProvider,
+          error: result.error,
+        },
+        window.location.origin,
+      );
+    } else {
+      window.opener?.postMessage(
+        {
+          type: 'oauth-response',
+          provider: result.provider,
+          ...result.result,
+        },
+        window.location.origin,
+      );
+    }
+
+    window.close();
   }
 
   async initialize(options: InitializeOptions): Promise<void> {
@@ -92,6 +129,18 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       initPromises.push(this.facebookProvider.initialize(options.facebook.appId, options.facebook.locale));
     }
 
+    if (options.twitter?.clientId) {
+      initPromises.push(
+        this.twitterProvider.initialize(
+          options.twitter.clientId,
+          options.twitter.redirectUrl,
+          options.twitter.defaultScopes,
+          options.twitter.forceLogin,
+          options.twitter.audience,
+        ),
+      );
+    }
+
     await Promise.all(initPromises);
   }
 
@@ -108,12 +157,17 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           provider: T;
           result: ProviderResponseMap[T];
         }>;
+      case 'twitter':
+        return this.twitterProvider.login(options.options as any) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
       default:
         throw new Error(`Login for ${options.provider} is not implemented on web`);
     }
   }
 
-  async logout(options: { provider: 'apple' | 'google' | 'facebook' }): Promise<void> {
+  async logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' }): Promise<void> {
     switch (options.provider) {
       case 'google':
         return this.googleProvider.logout();
@@ -121,6 +175,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.appleProvider.logout();
       case 'facebook':
         return this.facebookProvider.logout();
+      case 'twitter':
+        return this.twitterProvider.logout();
       default:
         throw new Error(`Logout for ${options.provider} is not implemented`);
     }
@@ -134,6 +190,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.appleProvider.isLoggedIn();
       case 'facebook':
         return this.facebookProvider.isLoggedIn();
+      case 'twitter':
+        return this.twitterProvider.isLoggedIn();
       default:
         throw new Error(`isLoggedIn for ${options.provider} is not implemented`);
     }
@@ -147,6 +205,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.appleProvider.getAuthorizationCode();
       case 'facebook':
         return this.facebookProvider.getAuthorizationCode();
+      case 'twitter':
+        return this.twitterProvider.getAuthorizationCode();
       default:
         throw new Error(`getAuthorizationCode for ${options.provider} is not implemented`);
     }
@@ -160,6 +220,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.appleProvider.refresh();
       case 'facebook':
         return this.facebookProvider.refresh(options.options as FacebookLoginOptions);
+      case 'twitter':
+        return this.twitterProvider.refresh();
       default:
         throw new Error(`Refresh for ${(options as any).provider} is not implemented`);
     }
