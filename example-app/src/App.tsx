@@ -5,51 +5,20 @@ import {
   type AppleProviderResponse,
   type GoogleLoginOptions,
   type GoogleLoginResponse,
+  type FacebookLoginOptions,
+  type FacebookLoginResponse,
+  type FacebookRequestTrackingResponse,
+  type AuthorizationCode,
 } from '../../src';
 import { Capacitor } from '@capacitor/core';
 import './App.css';
-
-// Import all Capgo plugins
-// import { BackgroundGeolocation } from '@capgo/background-geolocation';
-// import { CameraPreview } from '@capgo/camera-preview';
-// import { CapgoAlarm } from '@capgo/capacitor-alarm';
-// import { AndroidInlineInstall } from '@capgo/capacitor-android-inline-install';
-// import { CapacitorUsageStatsManager } from '@capgo/capacitor-android-usagestatsmanager';
-// import { CapacitorCrisp } from '@capgo/capacitor-crisp';
-// import { CapgoCapacitorDataStorageSqlite } from '@capgo/capacitor-data-storage-sqlite';
-// import { CapacitorDownloader } from '@capgo/capacitor-downloader';
-// import { Env } from '@capgo/capacitor-env';
-// import { InAppBrowser } from '@capgo/inappbrowser';
-// import { CapacitorFlash } from '@capgo/capacitor-flash';
-// import { IsRoot } from '@capgo/capacitor-is-root';
-// import { JwPlayer } from '@capgo/capacitor-jw-player';
-// import { LaunchNavigator } from '@capgo/capacitor-launch-navigator';
-// import { CapgoLLM } from '@capgo/capacitor-llm';
-// import { Mute } from '@capgo/capacitor-mute';
-// import { MuxPlayer } from '@capgo/capacitor-mux-player';
-// import { Health } from '@capgo/capacitor-health';
-// import { NavigationBar } from '@capgo/capacitor-navigation-bar';
-// import { CapacitorPersistentAccount } from '@capgo/capacitor-persistent-account';
-// import { PhotoLibrary } from '@capgo/capacitor-photo-library';
-// import { ScreenRecorder } from '@capgo/capacitor-screen-recorder';
-// import { CapacitorShake } from '@capgo/capacitor-shake';
-// import { StreamCall } from '@capgo/capacitor-stream-call';
-// import { TextInteraction } from '@capgo/capacitor-textinteraction';
-// import { CapacitorTwilioVoice } from '@capgo/capacitor-twilio-voice';
-// import { CapacitorUpdater } from '@capgo/capacitor-updater';
-// import { SocialLogin as CapgoSocialLogin } from '@capgo/capacitor-social-login';
-// import { NativeAudio } from '@capgo/native-audio';
-// import { NativeGeocoder } from '@capgo/nativegeocoder';
-import { NativeMarket } from '@capgo/native-market';
-// import { NativePurchases } from '@capgo/native-purchases';
-// import { Ricoh360Camera } from '@capgo/ricoh360';
 
 type Provider = 'apple' | 'google' | 'facebook';
 
 const providers: Array<{ id: Provider; label: string; disabled?: boolean }> = [
   { id: 'apple', label: 'Apple' },
   { id: 'google', label: 'Google' },
-  { id: 'facebook', label: 'Facebook', disabled: true },
+  { id: 'facebook', label: 'Facebook' },
 ];
 
 interface AppleConfigState {
@@ -67,6 +36,13 @@ interface GoogleConfigState {
   scopes: string;
   mode: 'online' | 'offline';
   hostedDomain: string;
+}
+
+interface FacebookConfigState {
+  appId: string;
+  clientToken: string;
+  permissions: string;
+  limitedLogin: boolean;
 }
 
 // Update the values below to pre-fill the form with your own defaults.
@@ -87,6 +63,13 @@ const googleConfigDefaults: GoogleConfigState = {
   hostedDomain: '',
 };
 
+const facebookConfigDefaults: FacebookConfigState = {
+  appId: '1640177526775785',
+  clientToken: '621ef94157c7a8e58a0343918e9b6615',
+  permissions: 'email,public_profile',
+  limitedLogin: false,
+};
+
 const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
@@ -105,13 +88,14 @@ function App() {
   const [selectedProvider, setSelectedProvider] = useState<Provider>('apple');
   const [appleConfig, setAppleConfig] = useState<AppleConfigState>(appleConfigDefaults);
   const [googleConfig, setGoogleConfig] = useState<GoogleConfigState>(googleConfigDefaults);
-  const [busyAction, setBusyAction] = useState<'initialize' | 'login' | null>(null);
+  const [facebookConfig, setFacebookConfig] = useState<FacebookConfigState>(facebookConfigDefaults);
+  const [busyAction, setBusyAction] = useState<'initialize' | 'login' | 'logout' | 'getAuthorizationCode' | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [loginResponse, setLoginResponse] = useState<AppleProviderResponse | GoogleLoginResponse | null>(null);
+  const [loginResponse, setLoginResponse] = useState<AppleProviderResponse | GoogleLoginResponse | FacebookLoginResponse | null>(null);
+  const [authorizationCode, setAuthorizationCode] = useState<AuthorizationCode | null>(null);
   const [isIOSMode, setIsIOSMode] = useState<boolean>(false);
-  const [pluginResults, setPluginResults] = useState<Array<{ name: string; success: boolean; response: any; error?: string }>>([]);
-  const [isTestingPlugins, setIsTestingPlugins] = useState(false);
+  const [trackingStatus, setTrackingStatus] = useState<FacebookRequestTrackingResponse['status'] | null>(null);
 
   // Check if running on iOS
   const isIOS = Capacitor.getPlatform() === 'ios';
@@ -132,6 +116,15 @@ function App() {
         .map((scope) => scope.trim())
         .filter((scope) => scope.length > 0),
     [googleConfig.scopes],
+  );
+
+  const parsedFacebookPermissions = useMemo(
+    () =>
+      facebookConfig.permissions
+        .split(',')
+        .map((permission) => permission.trim())
+        .filter((permission) => permission.length > 0),
+    [facebookConfig.permissions],
   );
 
   // Check Google login status on mount to invoke redirect handling
@@ -164,6 +157,13 @@ function App() {
     setErrorMessage(null);
   };
 
+  const updateFacebookConfig = <Key extends keyof FacebookConfigState>(key: Key, value: FacebookConfigState[Key]) => {
+    setFacebookConfig((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
+
   const updateAppleConfig = <Key extends keyof AppleConfigState>(key: Key, value: AppleConfigState[Key]) => {
     setAppleConfig((current) => ({
       ...current,
@@ -179,11 +179,6 @@ function App() {
   };
 
   const ensureProvider = () => {
-    if (selectedProvider !== 'apple' && selectedProvider !== 'google') {
-      setErrorMessage('Only Apple and Google login are available right now.');
-      setStatusMessage(null);
-      return false;
-    }
     return true;
   };
 
@@ -220,10 +215,20 @@ function App() {
             hostedDomain: googleConfig.hostedDomain || undefined,
           };
         }
+      } else if (selectedProvider === 'facebook') {
+        initOptions.facebook = {
+          appId: facebookConfig.appId || undefined,
+          clientToken: facebookConfig.clientToken || undefined,
+        };
       }
 
       await SocialLogin.initialize(initOptions);
-      setStatusMessage(`${selectedProvider === 'apple' ? 'Apple' : 'Google'} provider initialized.`);
+      const providerNames: Record<Provider, string> = {
+        apple: 'Apple',
+        google: 'Google',
+        facebook: 'Facebook',
+      };
+      setStatusMessage(`${providerNames[selectedProvider]} provider initialized.`);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -241,8 +246,8 @@ function App() {
     setErrorMessage(null);
 
     try {
-      let options: AppleProviderOptions | GoogleLoginOptions = {};
-      let provider: 'apple' | 'google';
+      let options: AppleProviderOptions | GoogleLoginOptions | FacebookLoginOptions = {};
+      let provider: 'apple' | 'google' | 'facebook';
 
       if (selectedProvider === 'apple') {
         provider = 'apple';
@@ -261,16 +266,46 @@ function App() {
           googleOptions.scopes = parsedGoogleScopes;
         }
         options = googleOptions;
+      } else if (selectedProvider === 'facebook') {
+        provider = 'facebook';
+        const facebookOptions: FacebookLoginOptions = {
+          permissions: parsedFacebookPermissions.length > 0 ? parsedFacebookPermissions : ['email', 'public_profile'],
+          limitedLogin: facebookConfig.limitedLogin,
+        };
+        options = facebookOptions;
       } else {
         throw new Error('Unsupported provider');
       }
 
-      const { result } = await SocialLogin.login({
-        provider,
-        options,
-      });
+      let result: AppleProviderResponse | GoogleLoginResponse | FacebookLoginResponse;
+      
+      if (provider === 'apple') {
+        const response = await SocialLogin.login({
+          provider: 'apple',
+          options: options as AppleProviderOptions,
+        });
+        result = response.result;
+      } else if (provider === 'google') {
+        const response = await SocialLogin.login({
+          provider: 'google',
+          options: options as GoogleLoginOptions,
+        });
+        result = response.result;
+      } else {
+        const response = await SocialLogin.login({
+          provider: 'facebook',
+          options: options as FacebookLoginOptions,
+        });
+        result = response.result;
+      }
+      
       setLoginResponse(result);
-      setStatusMessage(`${selectedProvider === 'apple' ? 'Apple' : 'Google'} login succeeded.`);
+      const providerNames: Record<Provider, string> = {
+        apple: 'Apple',
+        google: 'Google',
+        facebook: 'Facebook',
+      };
+      setStatusMessage(`${providerNames[selectedProvider]} login succeeded.`);
     } catch (error) {
       setLoginResponse(null);
       setErrorMessage(getErrorMessage(error));
@@ -279,298 +314,84 @@ function App() {
     }
   };
 
-  const handleTestAllPlugins = async () => {
-    setIsTestingPlugins(true);
-    setPluginResults([]);
-    
-    const results: Array<{ name: string; success: boolean; response: any; error?: string }> = [];
-
-    // Test Background Geolocation
-    // try {
-    //   const response = await BackgroundGeolocation.openSettings();
-    //   results.push({ name: 'Background Geolocation', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Background Geolocation', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Alarm
-    // try {
-    //   const response = await CapgoAlarm.getOSInfo();
-    //   results.push({ name: 'Capacitor Alarm', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capacitor Alarm', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Env
-    // try {
-    //   const response = await Env.getKey({ key: 'test' });
-    //   results.push({ name: 'Capacitor Env', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capacitor Env', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Flash
-    // try {
-    //   const response = await CapacitorFlash.isAvailable();
-    //   results.push({ name: 'Capacitor Flash', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capacitor Flash', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Is Root
-    // try {
-    //   const response = await IsRoot.isRooted();
-    //   results.push({ name: 'Capacitor Is Root', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capacitor Is Root', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Mute
-    // try {
-    //   const response = await Mute.isMuted();
-    //   results.push({ name: 'Capacitor Mute', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capacitor Mute', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Health
-    // try {
-    //   const response = await Health.isAvailable();
-    //   results.push({ name: 'Health', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Health', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Navigation Bar
-    // try {
-    //   const response = await NavigationBar.getNavigationBarColor();
-    //   results.push({ name: 'Navigation Bar', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Navigation Bar', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Persistent Account
-    // try {
-    //   const response = await CapacitorPersistentAccount.readAccount();
-    //   results.push({ name: 'Persistent Account', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Persistent Account', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Social Login
-    // try {
-    //   const response = await SocialLogin.isLoggedIn({ provider: 'google' });
-    //   results.push({ name: 'Social Login', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Social Login', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capgo Social Login (from npm)
-    // try {
-    //   const response = await CapgoSocialLogin.isLoggedIn({ provider: 'google' });
-    //   results.push({ name: 'Capgo Social Login', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capgo Social Login', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Crisp
-    // try {
-    //   await CapacitorCrisp.openMessenger();
-    //   results.push({ name: 'Capacitor Crisp', success: true, response: 'Messenger opened' });
-    // } catch (error: any) {
-    //   results.push({ name: 'Capacitor Crisp', success: false, response: null, error: error.message });
-    // }
-
-    // // Test InAppBrowser
-    // try {
-    //   await InAppBrowser.open({ url: 'https://capacitorjs.com' });
-    //   results.push({ name: 'InAppBrowser', success: true, response: 'Browser opened' });
-    // } catch (error: any) {
-    //   results.push({ name: 'InAppBrowser', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Native Market
-    try {
-      await NativeMarket.openStoreListing({ appId: 'com.hulu.plus' });
-      results.push({ name: 'Native Market', success: true, response: 'Store opened' });
-    } catch (error: any) {
-      results.push({ name: 'Native Market', success: false, response: null, error: error.message });
+  const handleRequestTracking = async () => {
+    if (selectedProvider !== 'facebook') {
+      return;
     }
 
-    // // Test Native Geocoder - using reverse geocode with sample coordinates
-    // try {
-    //   const response = await NativeGeocoder.reverseGeocode({
-    //     latitude: 37.4219983,
-    //     longitude: -122.084,
-    //   });
-    //   results.push({ name: 'Native Geocoder', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Native Geocoder', success: false, response: null, error: error.message });
-    // }
+    setStatusMessage(null);
+    setErrorMessage(null);
 
-    // // Test Photo Library
-    // try {
-    //   const response = await PhotoLibrary.checkAuthorization();
-    //   results.push({ name: 'Photo Library', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Photo Library', success: false, response: null, error: error.message });
-    // }
+    try {
+      const response = await SocialLogin.providerSpecificCall({
+        call: 'facebook#requestTracking',
+        options: {},
+      });
+      const trackingResponse = response as FacebookRequestTrackingResponse;
+      setTrackingStatus(trackingResponse.status);
+      
+      const statusMessages: Record<FacebookRequestTrackingResponse['status'], string> = {
+        authorized: 'Tracking permission granted ✅',
+        denied: 'Tracking permission denied ❌',
+        notDetermined: 'Tracking permission not determined',
+        restricted: 'Tracking permission restricted',
+      };
+      setStatusMessage(statusMessages[trackingResponse.status]);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    }
+  };
 
-    // // Test Capacitor Data Storage Sqlite
-    // try {
-    //   const response = await CapgoCapacitorDataStorageSqlite.openStore({ database: 'test_db', table: 'test_table' });
-    //   results.push({ name: 'Data Storage Sqlite', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Data Storage Sqlite', success: false, response: null, error: error.message });
-    // }
+  const handleLogout = async () => {
+    if (!ensureProvider()) {
+      return;
+    }
 
-    // // Test Capacitor Downloader
-    // try {
-    //   const response = await CapacitorDownloader.checkStatus('test');
-    //   results.push({ name: 'Downloader', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Downloader', success: false, response: null, error: error.message });
-    // }
+    setBusyAction('logout');
+    setStatusMessage(null);
+    setErrorMessage(null);
 
-    // // Test Capacitor Screen Recorder
-    // try {
-    //   await ScreenRecorder.stop();
-    //   results.push({ name: 'Screen Recorder', success: true, response: 'Stop called' });
-    // } catch (error: any) {
-    //   results.push({ name: 'Screen Recorder', success: false, response: null, error: error.message });
-    // }
+    try {
+      await SocialLogin.logout({ provider: selectedProvider });
+      setLoginResponse(null);
+      setAuthorizationCode(null);
+      const providerNames: Record<Provider, string> = {
+        apple: 'Apple',
+        google: 'Google',
+        facebook: 'Facebook',
+      };
+      setStatusMessage(`${providerNames[selectedProvider]} logout succeeded.`);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setBusyAction(null);
+    }
+  };
 
-    // // Test Capacitor Updater
-    // try {
-    //   const response = await CapacitorUpdater.getLatest();
-    //   results.push({ name: 'Updater', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Updater', success: false, response: null, error: error.message });
-    // }
+  const handleGetAuthorizationCode = async () => {
+    if (!ensureProvider()) {
+      return;
+    }
 
-    // // Test Uploader
-    // // try {
-    // //   const response = await Uploader.startUpload({ filePath: 'test', serverUrl: 'http://test', headers: {} });
-    // //   results.push({ name: 'Uploader', success: true, response });
-    // // } catch (error: any) {
-    // //   results.push({ name: 'Uploader', success: false, response: null, error: error.message });
-    // // }
+    setBusyAction('getAuthorizationCode');
+    setStatusMessage(null);
+    setErrorMessage(null);
 
-    // // Test Native Audio
-    // try {
-    //   const response = await NativeAudio.preload({ assetId: 'test', assetPath: 'test.mp3' });
-    //   results.push({ name: 'Native Audio', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Native Audio', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Native Purchases
-    // try {
-    //   const response = await NativePurchases.getPurchases();
-    //   results.push({ name: 'Native Purchases', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Native Purchases', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Text Interaction
-    // try {
-    //   const response = await TextInteraction.toggle({ enabled: true });
-    //   results.push({ name: 'Text Interaction', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Text Interaction', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Camera Preview
-    // try {
-    //   const response = await CameraPreview.stop();
-    //   results.push({ name: 'Camera Preview', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Camera Preview', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Shake - add listener
-    // try {
-    //   const listener = await CapacitorShake.addListener('shake', () => {});
-    //   await listener.remove();
-    //   results.push({ name: 'Shake', success: true, response: 'Listener added and removed' });
-    // } catch (error: any) {
-    //   results.push({ name: 'Shake', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Capacitor Stream Call
-    // try {
-    //   const response = await StreamCall.getCallStatus();
-    //   results.push({ name: 'Stream Call', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Stream Call', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Ricoh360
-    // try {
-    //   const response = await Ricoh360Camera.listFiles();
-    //   results.push({ name: 'Ricoh360', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Ricoh360', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Android Inline Install
-    // try {
-    //   const response = await AndroidInlineInstall.startInlineInstall({ id: 'com.test.app' });
-    //   results.push({ name: 'Android Inline Install', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Android Inline Install', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Android Usage Stats Manager
-    // try {
-    //   const response = await CapacitorUsageStatsManager.isUsageStatsPermissionGranted();
-    //   results.push({ name: 'Android Usage Stats', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Android Usage Stats', success: false, response: null, error: error.message });
-    // }
-
-    // // Test JW Player
-    // try {
-    //   const response = await JwPlayer.stop();
-    //   results.push({ name: 'JW Player', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'JW Player', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Launch Navigator
-    // try {
-    //   const response = await LaunchNavigator.getAvailableApps();
-    //   results.push({ name: 'Launch Navigator', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Launch Navigator', success: false, response: null, error: error.message });
-    // }
-
-    // // Test LLM
-    // try {
-    //   const response = await CapgoLLM.getReadiness();
-    //   results.push({ name: 'LLM', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'LLM', success: false, response: null, error: error.message });
-    // }
-
-    // // Test Mux Player
-    // try {
-    //   const response = await MuxPlayer.isActive();
-    //   results.push({ name: 'Mux Player', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Mux Player', success: false, response: null, error: error.message });
-    // }
-
-    // Test Twilio Voice
-    // try {
-    //   const response = await CapacitorTwilioVoice.getCallStatus();
-    //   results.push({ name: 'Twilio Voice', success: true, response });
-    // } catch (error: any) {
-    //   results.push({ name: 'Twilio Voice', success: false, response: null, error: error.message });
-    // }
-
-    setPluginResults(results);
-    setIsTestingPlugins(false);
+    try {
+      const code = await SocialLogin.getAuthorizationCode({ provider: selectedProvider });
+      setAuthorizationCode(code);
+      const providerNames: Record<Provider, string> = {
+        apple: 'Apple',
+        google: 'Google',
+        facebook: 'Facebook',
+      };
+      setStatusMessage(`${providerNames[selectedProvider]} authorization code retrieved.`);
+    } catch (error) {
+      setAuthorizationCode(null);
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   return (
@@ -578,44 +399,8 @@ function App() {
       <div className="app-card">
         <header className="app-header">
           <h1>Capacitor Social Login</h1>
-          <p>Select a provider and try the initialize/login flow. Apple and Google are available, Facebook is coming soon.</p>
+          <p>Select a provider and try the initialize/login flow. Apple, Google, and Facebook are all available.</p>
         </header>
-
-        {/* Giga Button Section */}
-        <section className="giga-button-section">
-          <h2>🧪 Test All Capgo Plugins</h2>
-          <button 
-            type="button" 
-            onClick={handleTestAllPlugins} 
-            disabled={isTestingPlugins}
-            className="giga-button"
-          >
-            {isTestingPlugins ? 'Testing all plugins...' : '🚀 Test All Plugins (Giga Button)'}
-          </button>
-          
-          {pluginResults.length > 0 && (
-            <div className="plugin-results">
-              <h3>Plugin Test Results:</h3>
-              <div className="results-list">
-                {pluginResults.map((result, index) => (
-                  <div key={index} className={`result-item ${result.success ? 'success' : 'error'}`}>
-                    <div className="result-header">
-                      <span className="result-name">{result.name}</span>
-                      <span className={`result-status ${result.success ? 'success' : 'error'}`}>
-                        {result.success ? '✅' : '❌'}
-                      </span>
-                    </div>
-                    {result.success ? (
-                      <pre className="result-content">{JSON.stringify(result.response, null, 2)}</pre>
-                    ) : (
-                      <div className="result-error">{result.error}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
 
         <section className="provider-switch" aria-label="Social login provider">
           <span className="section-title">Provider</span>
@@ -653,9 +438,116 @@ function App() {
         )}
 
         <section className="config">
-          <span className="section-title">{selectedProvider === 'apple' ? 'Apple' : 'Google'} configuration</span>
+          <span className="section-title">
+            {selectedProvider === 'apple' ? 'Apple' : selectedProvider === 'google' ? 'Google' : 'Facebook'} configuration
+          </span>
 
-          {selectedProvider === 'apple' ? (
+          {selectedProvider === 'facebook' ? (
+            <>
+              <div className="field">
+                <label htmlFor="facebookAppId">App ID</label>
+                <input
+                  id="facebookAppId"
+                  type="text"
+                  placeholder="1234567890123456"
+                  value={facebookConfig.appId}
+                  onChange={(event) => updateFacebookConfig('appId', event.target.value)}
+                  autoComplete="off"
+                />
+                <p className="hint">Facebook App ID from Facebook Developer Console.</p>
+              </div>
+
+              <div className="field">
+                <label htmlFor="facebookClientToken">Client Token</label>
+                <input
+                  id="facebookClientToken"
+                  type="text"
+                  placeholder="your-client-token"
+                  value={facebookConfig.clientToken}
+                  onChange={(event) => updateFacebookConfig('clientToken', event.target.value)}
+                  autoComplete="off"
+                />
+                <p className="hint">Facebook Client Token from Facebook Developer Console.</p>
+              </div>
+
+              <div className="field">
+                <label htmlFor="facebookPermissions">Permissions</label>
+                <input
+                  id="facebookPermissions"
+                  type="text"
+                  placeholder="email,public_profile"
+                  value={facebookConfig.permissions}
+                  onChange={(event) => updateFacebookConfig('permissions', event.target.value)}
+                  autoComplete="off"
+                />
+                <p className="hint">Comma-separated permissions (e.g., email, public_profile).</p>
+                {parsedFacebookPermissions.length > 0 ? (
+                  <div className="scope-chips" aria-live="polite">
+                    {parsedFacebookPermissions.map((permission) => (
+                      <span key={permission} className="scope-chip">
+                        {permission}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              {isIOS && (
+                <>
+                  <div className="field field--toggle">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={facebookConfig.limitedLogin}
+                        onChange={(event) => updateFacebookConfig('limitedLogin', event.target.checked)}
+                      />
+                      Limited Login (iOS only)
+                    </label>
+                    <p className="hint">Use limited login for Facebook iOS. Note: This is iOS-only and doesn't affect Android.</p>
+                  </div>
+
+                  <div className="field">
+                    <label>App Tracking Transparency (iOS only)</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleRequestTracking}
+                        style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: '0.85rem',
+                          border: 'none',
+                          fontSize: '0.9rem',
+                          fontWeight: 600,
+                          background: 'var(--app-accent)',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = '0 8px 16px rgba(59, 89, 182, 0.3)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        Request Tracking Permission
+                      </button>
+                      {trackingStatus && (
+                        <div className={`status ${trackingStatus === 'authorized' ? 'status--success' : trackingStatus === 'denied' ? 'status--error' : ''}`} style={{ margin: 0 }}>
+                          Status: <strong>{trackingStatus}</strong>
+                        </div>
+                      )}
+                    </div>
+                    <p className="hint">
+                      Request App Tracking Transparency permission. This affects whether Facebook login returns access tokens (authorized) or JWT tokens (denied/notDetermined).
+                    </p>
+                  </div>
+                </>
+              )}
+            </>
+          ) : selectedProvider === 'apple' ? (
             <div className="field">
               <label htmlFor="clientId">Client ID</label>
               <input
@@ -689,7 +581,7 @@ function App() {
             </div>
           )}
 
-          {!(selectedProvider === 'google' && isIOSMode) && (
+          {selectedProvider !== 'facebook' && !(selectedProvider === 'google' && isIOSMode) && (
             <div className="field">
               <label htmlFor="redirectUrl">Redirect URL</label>
               <input
@@ -714,7 +606,7 @@ function App() {
             </div>
           )}
 
-          {!(selectedProvider === 'google' && isIOSMode) && (
+          {selectedProvider !== 'facebook' && !(selectedProvider === 'google' && isIOSMode) && (
             <div className="field">
               <label htmlFor="scopes">Scopes</label>
               <input
@@ -770,7 +662,7 @@ function App() {
                 <p className="hint">Skip redirect URLs by opting into the Broadcast Channel flow.</p>
               </div>
             </>
-          ) : (
+          ) : selectedProvider === 'google' ? (
             <>
               {!isIOSMode && (
                 <div className="field">
@@ -802,7 +694,7 @@ function App() {
                 </div>
               )}
             </>
-          )}
+          ) : null}
         </section>
 
         <div className="actions">
@@ -812,6 +704,14 @@ function App() {
           <button type="button" onClick={handleLogin} disabled={busyAction !== null}>
             {busyAction === 'login' ? 'logging in...' : 'login()'}
           </button>
+          <button type="button" onClick={handleLogout} disabled={busyAction !== null}>
+            {busyAction === 'logout' ? 'logging out...' : 'logout()'}
+          </button>
+          {selectedProvider === 'facebook' && (
+            <button type="button" onClick={handleGetAuthorizationCode} disabled={busyAction !== null}>
+              {busyAction === 'getAuthorizationCode' ? 'getting code...' : 'getAuthorizationCode()'}
+            </button>
+          )}
         </div>
 
         {statusMessage ? <div className="status status--success">{statusMessage}</div> : null}
@@ -819,8 +719,15 @@ function App() {
 
         {loginResponse ? (
           <section className="response">
-            <h2>Last response</h2>
+            <h2>Last login response</h2>
             <pre>{JSON.stringify(loginResponse, null, 2)}</pre>
+          </section>
+        ) : null}
+
+        {authorizationCode ? (
+          <section className="response">
+            <h2>Authorization Code</h2>
+            <pre>{JSON.stringify(authorizationCode, null, 2)}</pre>
           </section>
         ) : null}
       </div>
