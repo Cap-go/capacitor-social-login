@@ -53,6 +53,23 @@
          <string>com.googleusercontent.apps.44885413573-57pq0pothq40hh2pulaot47r8e06df64</string>
        </array>
      </dict>
+     <dict>
+       <key>CFBundleURLSchemes</key>
+       <array>
+         <string>fb1640177526775785</string>
+       </array>
+     </dict>
+    </array>
+    <key>FacebookAppID</key>
+    <string>1640177526775785</string>
+    <key>FacebookClientToken</key>
+    <string>621ef94157c7a8e58a0343918e9b6615</string>
+    <key>FacebookDisplayName</key>
+    <string>Captime-demo</string>
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>fbapi</string>
+    	<string>fb-messenger-share-api</string>
     </array>
     <key>CAPACITOR_STREAM_VIDEO_APIKEY</key>
     <string>vq4zdsazqxd7    </string>

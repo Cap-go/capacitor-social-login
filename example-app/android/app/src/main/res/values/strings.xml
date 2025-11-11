@@ -4,4 +4,7 @@
     <string name="title_activity_main">Social Login example app</string>
     <string name="package_name">app.capgo.plugin.SocialLogin</string>
     <string name="custom_url_scheme">app.capgo.plugin.SocialLogin</string>
+    <string name="facebook_app_id">1640177526775785</string>
+    <string name="fb_login_protocol_scheme">fb1640177526775785</string>
+    <string name="facebook_client_token">621ef94157c7a8e58a0343918e9b6615</string>
 </resources>
