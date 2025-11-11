@@ -215,4 +215,18 @@ class FacebookProvider {
             }
         }
     }
+
+    func getAuthorizationCode(completion: @escaping (Result<(accessToken: String?, jwt: String?), Error>) -> Void) {
+        // First check if access token exists and is not expired
+        if let accessToken = AccessToken.current, !accessToken.isExpired {
+            // User is connected with access token, return it
+            completion(.success((accessToken: accessToken.tokenString, jwt: nil)))
+        } else if let authToken = AuthenticationToken.current, !authToken.tokenString.isEmpty {
+            // Access token not found but idToken (JWT) is available, return JWT
+            completion(.success((accessToken: nil, jwt: authToken.tokenString)))
+        } else {
+            // Neither access token nor idToken available
+            completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No Facebook authorization code available"])))
+        }
+    }
 }
