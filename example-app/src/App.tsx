@@ -36,6 +36,7 @@ interface GoogleConfigState {
   scopes: string;
   mode: 'online' | 'offline';
   hostedDomain: string;
+  forceRefreshToken: boolean;
 }
 
 interface FacebookConfigState {
@@ -61,6 +62,7 @@ const googleConfigDefaults: GoogleConfigState = {
   scopes: 'profile,email',
   mode: 'online',
   hostedDomain: '',
+  forceRefreshToken: false,
 };
 
 const facebookConfigDefaults: FacebookConfigState = {
@@ -96,6 +98,7 @@ function App() {
   const [authorizationCode, setAuthorizationCode] = useState<AuthorizationCode | null>(null);
   const [isIOSMode, setIsIOSMode] = useState<boolean>(false);
   const [trackingStatus, setTrackingStatus] = useState<FacebookRequestTrackingResponse['status'] | null>(null);
+  const [calendarResponse, setCalendarResponse] = useState<any>(null);
 
   // Check if running on iOS
   const isIOS = Capacitor.getPlatform() === 'ios';
@@ -265,6 +268,9 @@ function App() {
         if (parsedGoogleScopes.length > 0) {
           googleOptions.scopes = parsedGoogleScopes;
         }
+        if (googleConfig.forceRefreshToken) {
+          googleOptions.forceRefreshToken = true;
+        }
         options = googleOptions;
       } else if (selectedProvider === 'facebook') {
         provider = 'facebook';
@@ -391,6 +397,103 @@ function App() {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setBusyAction(null);
+    }
+  };
+
+  const handleAddCalendarScope = () => {
+    if (selectedProvider !== 'google') {
+      setErrorMessage('Calendar scope can only be added for Google provider');
+      return;
+    }
+
+    const calendarScope = 'https://www.googleapis.com/auth/calendar.readonly';
+    const currentScopes = googleConfig.scopes.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+    
+    if (!currentScopes.includes(calendarScope)) {
+      const newScopes = [...currentScopes, calendarScope].join(',');
+      updateGoogleConfig('scopes', newScopes);
+      setStatusMessage(`Added calendar scope: ${calendarScope}`);
+      setErrorMessage(null);
+    } else {
+      setStatusMessage('Calendar scope already added');
+      setErrorMessage(null);
+    }
+  };
+
+  const handleTestCalendarAPI = async () => {
+    if (selectedProvider !== 'google') {
+      setErrorMessage('Calendar API test is only available for Google provider');
+      return;
+    }
+
+    setStatusMessage(null);
+    setErrorMessage(null);
+    setCalendarResponse(null);
+
+    try {
+      // Get access token from login response or authorization code
+      let accessToken: string | null = null;
+
+      if (loginResponse && 'responseType' in loginResponse && loginResponse.responseType === 'online') {
+        // GoogleLoginResponseOnline
+        if (loginResponse.accessToken?.token) {
+          accessToken = loginResponse.accessToken.token;
+        }
+      }
+
+      if (!accessToken && authorizationCode?.accessToken) {
+        accessToken = authorizationCode.accessToken;
+      }
+
+      if (!accessToken) {
+        // Try to get authorization code
+        try {
+          const code = await SocialLogin.getAuthorizationCode({ provider: 'google' });
+          accessToken = code.accessToken || null;
+        } catch (error) {
+          setErrorMessage('No access token available. Please login first.');
+          return;
+        }
+      }
+
+      if (!accessToken) {
+        setErrorMessage('No access token available. Please login first.');
+        return;
+      }
+
+      // Test calendar API
+      const response = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorDetails: any;
+        try {
+          errorDetails = JSON.parse(errorText);
+        } catch {
+          errorDetails = { raw: errorText };
+        }
+
+        setErrorMessage(
+          `Calendar API request failed:\nStatus: ${response.status} ${response.statusText}\n${JSON.stringify(errorDetails, null, 2)}`
+        );
+        setCalendarResponse({ error: errorDetails, status: response.status, statusText: response.statusText });
+        return;
+      }
+
+      const calendarData = await response.json();
+      setCalendarResponse(calendarData);
+      setStatusMessage('Calendar API test successful!');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      setErrorMessage(
+        `Error testing Calendar API:\n${errorMessage}${errorStack ? `\n\nStack:\n${errorStack}` : ''}`
+      );
+      setCalendarResponse({ error: errorMessage, stack: errorStack });
     }
   };
 
@@ -693,6 +796,20 @@ function App() {
                   <p className="hint">Filter visible accounts by hosted domain (e.g., G Suite accounts).</p>
                 </div>
               )}
+
+              {!isIOSMode && (
+                <div className="field field--toggle">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={googleConfig.forceRefreshToken}
+                      onChange={(event) => updateGoogleConfig('forceRefreshToken', event.target.checked)}
+                    />
+                    Force Refresh Token (Android only)
+                  </label>
+                  <p className="hint">Force refresh the access token even if cached tokens are available. This option is primarily used in offline mode to request a new server auth code.</p>
+                </div>
+              )}
             </>
           ) : null}
         </section>
@@ -712,6 +829,16 @@ function App() {
               {busyAction === 'getAuthorizationCode' ? 'getting code...' : 'getAuthorizationCode()'}
             </button>
           )}
+          {selectedProvider === 'google' && (
+            <>
+              <button type="button" onClick={handleAddCalendarScope} disabled={busyAction !== null}>
+                Add Calendar Scope
+              </button>
+              <button type="button" onClick={handleTestCalendarAPI} disabled={busyAction !== null}>
+                Test Calendar API
+              </button>
+            </>
+          )}
         </div>
 
         {statusMessage ? <div className="status status--success">{statusMessage}</div> : null}
@@ -728,6 +855,13 @@ function App() {
           <section className="response">
             <h2>Authorization Code</h2>
             <pre>{JSON.stringify(authorizationCode, null, 2)}</pre>
+          </section>
+        ) : null}
+
+        {calendarResponse ? (
+          <section className="response">
+            <h2>Calendar API Response</h2>
+            <pre>{JSON.stringify(calendarResponse, null, 2)}</pre>
           </section>
         ) : null}
       </div>
