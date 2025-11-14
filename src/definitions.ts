@@ -242,6 +242,7 @@ export interface GoogleLoginOptions {
    * Force refresh token (only for Android)
    * @description force refresh token
    * @default false
+   * @note On Android, the OS caches access tokens, and if a token is invalid (e.g., user revoked app access), the plugin might return an invalid accessToken. Using getAuthorizationCode() is recommended to ensure the token is valid.
    */
   forceRefreshToken?: boolean;
   /**
