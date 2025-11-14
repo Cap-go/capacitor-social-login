@@ -11,6 +11,7 @@ import {
   type AuthorizationCode,
 } from '../../src';
 import { Capacitor } from '@capacitor/core';
+import { PrivacyScreen } from '@capacitor/privacy-screen';
 import './App.css';
 
 type Provider = 'apple' | 'google' | 'facebook';
@@ -99,6 +100,7 @@ function App() {
   const [isIOSMode, setIsIOSMode] = useState<boolean>(false);
   const [trackingStatus, setTrackingStatus] = useState<FacebookRequestTrackingResponse['status'] | null>(null);
   const [calendarResponse, setCalendarResponse] = useState<any>(null);
+  const [privacyScreenEnabled, setPrivacyScreenEnabled] = useState<boolean>(false);
 
   // Check if running on iOS
   const isIOS = Capacitor.getPlatform() === 'ios';
@@ -145,6 +147,21 @@ function App() {
     };
 
     checkGoogleLoginStatus();
+  }, []);
+
+  // Check privacy screen status on mount
+  useEffect(() => {
+    const checkPrivacyScreenStatus = async () => {
+      try {
+        const { enabled } = await PrivacyScreen.isEnabled();
+        setPrivacyScreenEnabled(enabled);
+      } catch (error) {
+        // Ignore errors - privacy screen might not be available on web
+        console.log('Privacy screen status check completed');
+      }
+    };
+
+    checkPrivacyScreenStatus();
   }, []);
 
   const handleProviderChange = (nextProvider: Provider) => {
@@ -206,9 +223,12 @@ function App() {
           useBroadcastChannel: appleConfig.useBroadcastChannel || undefined,
         };
       } else if (selectedProvider === 'google') {
-        if (isIOSMode) {
+        if (isIOS || isIOSMode) {
           initOptions.google = {
             iOSClientId: googleConfig.iOSClientId || undefined,
+            iOSServerClientId: googleConfig.webClientId || undefined,
+            mode: googleConfig.mode || undefined,
+            hostedDomain: googleConfig.hostedDomain || undefined,
           };
         } else {
           initOptions.google = {
@@ -494,6 +514,33 @@ function App() {
         `Error testing Calendar API:\n${errorMessage}${errorStack ? `\n\nStack:\n${errorStack}` : ''}`
       );
       setCalendarResponse({ error: errorMessage, stack: errorStack });
+    }
+  };
+
+  const handleTogglePrivacyScreen = async () => {
+    if (selectedProvider !== 'google') {
+      return;
+    }
+
+    setStatusMessage(null);
+    setErrorMessage(null);
+
+    try {
+      if (privacyScreenEnabled) {
+        await PrivacyScreen.disable();
+        setPrivacyScreenEnabled(false);
+        setStatusMessage('Privacy screen disabled');
+      } else {
+        await PrivacyScreen.enable({
+          ios: {
+            blurEffect: 'light',
+          },
+        });
+        setPrivacyScreenEnabled(true);
+        setStatusMessage('Privacy screen enabled (blurEffect: light)');
+      }
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
     }
   };
 
@@ -831,6 +878,9 @@ function App() {
           )}
           {selectedProvider === 'google' && (
             <>
+              <button type="button" onClick={handleTogglePrivacyScreen} disabled={busyAction !== null}>
+                {privacyScreenEnabled ? 'Disable Privacy Screen' : 'Enable Privacy Screen'}
+              </button>
               <button type="button" onClick={handleAddCalendarScope} disabled={busyAction !== null}>
                 Add Calendar Scope
               </button>

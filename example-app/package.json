@@ -14,6 +14,7 @@
     "@capacitor/cli": "^7.4.3",
     "@capacitor/core": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
+    "@capacitor/privacy-screen": "^1.1.1",
     "@capgo/capacitor-social-login": "file:../",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
