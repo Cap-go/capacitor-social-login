@@ -1,6 +1,14 @@
 import Foundation
 import Capacitor
 
+#if canImport(FBSDKLoginKit)
+import FBSDKLoginKit
+#endif
+
+#if canImport(GoogleSignIn)
+import GoogleSignIn
+#endif
+
 /**
  * Please read the Capacitor iOS Plugin Development Guide
  * here: https://capacitorjs.com/docs/plugins/ios
@@ -21,10 +29,114 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
+    
+    // Providers - conditionally initialized based on available dependencies
+    #if canImport(Alamofire)
     private let apple = AppleProvider()
+    #else
+    private let apple: AppleProvider? = nil
+    #endif
+    
+    #if canImport(FBSDKLoginKit)
     private let facebook = FacebookProvider()
+    #else
+    private let facebook: FacebookProvider? = nil
+    #endif
+    
+    #if canImport(GoogleSignIn)
     private let google = GoogleProvider()
+    #else
+    private let google: GoogleProvider? = nil
+    #endif
+    
     private let twitter = TwitterProvider()
+    
+    // Helper to get Facebook provider (returns nil if unavailable)
+    private var facebookProvider: FacebookProvider? {
+        #if canImport(FBSDKLoginKit)
+        return facebook
+        #else
+        return nil
+        #endif
+    }
+    
+    // Helper to get Google provider (returns nil if unavailable)
+    private var googleProvider: GoogleProvider? {
+        #if canImport(GoogleSignIn)
+        return google
+        #else
+        return nil
+        #endif
+    }
+    
+    // Helper to get Apple provider (returns nil if unavailable)
+    private var appleProvider: AppleProvider? {
+        #if canImport(Alamofire)
+        return apple
+        #else
+        return nil
+        #endif
+    }
+    
+    /**
+     * Check if a provider is enabled in Capacitor config.
+     * Returns true if not set (default enabled).
+     */
+    private func isProviderEnabledInConfig(_ providerName: String) -> Bool {
+        let config = self.getConfig().getConfigJSON()
+    
+        guard let providers = config["providers"] as? [String: Any] else {
+            return true
+        }
+        
+        // Check if provider is explicitly set to false
+        if let value = providers[providerName] {
+            if let boolValue = value as? Bool {
+                return boolValue
+            }
+            // If it's a string "false", treat as disabled
+            if let stringValue = value as? String, stringValue.lowercased() == "false" {
+                return false
+            }
+        }
+        
+        return true // Default to enabled
+    }
+    
+    /**
+     * Check if a provider is available (dependencies are included or enabled via config)
+     */
+    private func isProviderAvailable(_ provider: String) -> Bool {
+        switch provider.lowercased() {
+        case "apple":
+            // Check config first (for "fake disable"), then check Alamofire dependency
+            if !isProviderEnabledInConfig("apple") {
+                return false
+            }
+            #if canImport(Alamofire)
+            return true
+            #else
+            return false
+            #endif
+        case "facebook":
+            #if canImport(FBSDKLoginKit)
+            return true
+            #else
+            return false
+            #endif
+        case "google":
+            #if canImport(GoogleSignIn)
+            return true
+            #else
+            return false
+            #endif
+        case "twitter":
+            // Check config first (for "fake disable")
+            return isProviderEnabledInConfig("twitter")
+        default:
+            return false
+        }
+    }
 
     @objc func getPluginVersion(_ call: CAPPluginCall) {
         call.resolve(["version": self.pluginVersion])
@@ -35,7 +147,12 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         if let facebookSettings = call.getObject("facebook") {
             if facebookSettings["appId"] is String {
-                facebook.initialize()
+                // Check if Facebook dependencies are available
+                guard let fbProvider = facebookProvider else {
+                    call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                    return
+                }
+                fbProvider.initialize()
                 initialized = true
             }
         }
@@ -60,15 +177,24 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
 
             if let clientId = iOSClientId {
-                google.initialize(clientId: clientId, mode: mode, serverClientId: iOSServerClientId, hostedDomain: hostedDomain)
+                // Check if Google dependencies are available
+                guard let gProvider = googleProvider else {
+                    call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
+                    return
+                }
+                gProvider.initialize(clientId: clientId, mode: mode, serverClientId: iOSServerClientId, hostedDomain: hostedDomain)
                 initialized = true
             }
         }
 
         if let appleSettings = call.getObject("apple") {
+            guard let apProvider = appleProvider else {
+                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
+                return
+            }
             let redirectUrl = appleSettings["redirectUrl"] as? String
             let useProperTokenExchange = appleSettings["useProperTokenExchange"] as? Bool ?? false
-            apple.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
+            apProvider.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
             initialized = true
         }
 
@@ -103,7 +229,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "apple": do {
-            if let idToken = apple.idToken {
+            guard let apProvider = appleProvider else {
+                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
+                return
+            }
+            if let idToken = apProvider.idToken {
                 if !idToken.isEmpty {
                     call.resolve([ "jwt": idToken ])
                 } else {
@@ -114,7 +244,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         case "google": do {
-            self.google.getAuthorizationCode { res in
+            guard let gProvider = googleProvider else {
+                call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
+                return
+            }
+            gProvider.getAuthorizationCode { res in
                 do {
                     let authorizationCode = try res.get()
                     call.resolve([ "jwt": authorizationCode.idToken ?? "", "accessToken": authorizationCode.accessToken ])
@@ -124,7 +258,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         case "facebook": do {
-            self.facebook.getAuthorizationCode { res in
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
+            fbProvider.getAuthorizationCode { res in
                 do {
                     let result = try res.get()
                     var response: [String: String] = [:]
@@ -173,7 +311,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "apple": do {
-            if let idToken = apple.idToken {
+            guard let apProvider = appleProvider else {
+                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
+                return
+            }
+            if let idToken = apProvider.idToken {
                 if !idToken.isEmpty {
                     call.resolve([ "isLoggedIn": true ])
                 } else {
@@ -184,7 +326,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         case "google": do {
-            self.google.isLoggedIn { res in
+            guard let gProvider = googleProvider else {
+                call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
+                return
+            }
+            gProvider.isLoggedIn { res in
                 do {
                     let isLogged = try res.get()
                     call.resolve([ "isLoggedIn": isLogged ])
@@ -194,8 +340,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         }
         case "facebook": do {
-            call.resolve([ "isLoggedIn": self.facebook.isLoggedIn() ])
-
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
+            call.resolve([ "isLoggedIn": fbProvider.isLoggedIn() ])
         }
         case "twitter": do {
             self.twitter.isLoggedIn { res in
@@ -221,15 +370,27 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "facebook":
-            facebook.login(payload: payload) { (result: Result<FacebookLoginResponse, Error>) in
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
+            fbProvider.login(payload: payload) { (result: Result<FacebookLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "google":
-            google.login(payload: payload) { (result: Result<GoogleLoginResponse, Error>) in
+            guard let gProvider = googleProvider else {
+                call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
+                return
+            }
+            gProvider.login(payload: payload) { (result: Result<GoogleLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "apple":
-            apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
+            guard let apProvider = appleProvider else {
+                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
+                return
+            }
+            apProvider.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "twitter":
@@ -248,6 +409,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         switch customCall {
         case "facebook#getProfile":
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
             guard let options = call.getObject("options") else {
                 call.reject("options are required")
                 return
@@ -257,7 +422,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
 
-            facebook.getProfile(fields: fields, completion: { res in
+            fbProvider.getProfile(fields: fields, completion: { res in
                 switch res {
                 case .success(let profile):
                     call.resolve(["profile": profile as Any])
@@ -266,7 +431,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             })
         case "facebook#requestTracking":
-            facebook.requestTracking(completion: { res in
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
+            fbProvider.requestTracking(completion: { res in
                 switch res {
                 case .success(let status):
                     call.resolve(["status": status])
@@ -287,15 +456,27 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "facebook":
-            facebook.logout { result in
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
+            fbProvider.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
         case "google":
-            google.logout { result in
+            guard let gProvider = googleProvider else {
+                call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
+                return
+            }
+            gProvider.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
         case "apple":
-            apple.logout { result in
+            guard let apProvider = appleProvider else {
+                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
+                return
+            }
+            apProvider.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
         case "twitter":
@@ -315,15 +496,27 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "facebook":
-            facebook.refresh(viewController: self.bridge?.viewController) { result in
+            guard let fbProvider = facebookProvider else {
+                call.reject("Facebook provider is disabled. Dependencies are not available. Ensure Facebook Login dependencies are included in your Podfile")
+                return
+            }
+            fbProvider.refresh(viewController: self.bridge?.viewController) { result in
                 self.handleRefreshResult(result, call: call)
             }
         case "google":
-            google.refresh { result in
+            guard let gProvider = googleProvider else {
+                call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
+                return
+            }
+            gProvider.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
         case "apple":
-            apple.refresh { result in
+            guard let apProvider = appleProvider else {
+                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
+                return
+            }
+            apProvider.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
         case "twitter":
