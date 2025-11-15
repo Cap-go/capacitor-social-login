@@ -37,6 +37,68 @@ npm install @capgo/capacitor-social-login
 npx cap sync
 ```
 
+## Dynamic Provider Dependencies
+
+You can configure which providers to include to reduce app size. This is especially useful if you only need specific providers.
+
+### Configuration
+
+Add provider configuration to your `capacitor.config.ts`:
+
+```typescript
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.example.app',
+  appName: 'MyApp',
+  webDir: 'dist',
+  plugins: {
+    SocialLogin: {
+      providers: {
+        google: true,      // true = enabled (bundled), false = disabled (not bundled)
+        facebook: true,   // Use false to reduce app size
+        apple: true,      // Apple uses system APIs, no external deps
+        twitter: false   // false = disabled (not bundled)
+      }
+    }
+  }
+};
+
+export default config;
+```
+
+### Provider Configuration
+
+- **`true`** (default): Provider is enabled - dependencies are bundled in final APK/IPA
+- **`false`**: Provider is disabled - dependencies are not bundled in final APK/IPA
+
+### Notes
+
+- Changes require running `npx cap sync` to take effect
+- If configuration is not provided, all providers default to `true` (enabled, backward compatible)
+- **Important**: Disabling a provider (`false`) will make it unavailable at runtime, regardless of whether it actually adds any dependencies. The provider will be disabled even if it uses only system APIs.
+- This configuration only affects iOS and Android platforms; it does not affect the web platform.
+- **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
+- Apple Sign-In on Android uses OAuth flow without external SDK dependencies
+- Twitter uses standard OAuth 2.0 flow without external SDK dependencies
+
+### Example: Reduce App Size
+
+To only include Google Sign-In and disable others:
+
+```typescript
+plugins: {
+  SocialLogin: {
+    providers: {
+      google: true,      // Enabled
+      facebook: false,   // Disabled (not bundled)
+      apple: true,       // Enabled
+      twitter: false     // Disabled (not bundled)
+    }
+  }
+}
+```
+
 ## Apple
 
 [How to get the credentials](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_apple.md)
@@ -740,7 +802,9 @@ Get the native Capacitor plugin version
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 </docgen-api>
 

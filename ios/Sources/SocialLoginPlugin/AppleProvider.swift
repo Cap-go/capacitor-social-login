@@ -1,6 +1,10 @@
 import Foundation
 import AuthenticationServices
+
+#if canImport(Alamofire)
 import Alamofire
+#endif
+
 import UIKit
 import Security
 
@@ -98,6 +102,7 @@ extension AppleProviderError: LocalizedError {
     }
 }
 
+#if canImport(Alamofire)
 class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private var completion: ((Result<AppleProviderResponse, Error>) -> Void)?
 
@@ -615,3 +620,33 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         return (userNames["givenName"], userNames["familyName"])
     }
 }
+#else
+// Stub class when Alamofire is not available
+class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    var idToken: String?
+    var refreshToken: String?
+    var accessToken: String?
+    
+    func initialize(redirectUrl: String? = nil, useProperTokenExchange: Bool = false) {
+        fatalError("Apple Sign-In is not available. Include Alamofire dependency in your Podfile.")
+    }
+    
+    func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
+        completion(.failure(NSError(domain: "AppleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Alamofire is not available. Include Alamofire dependency in your Podfile."])))
+    }
+    
+    func logout(completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.failure(NSError(domain: "AppleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Alamofire is not available. Include Alamofire dependency in your Podfile."])))
+    }
+    
+    func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.failure(NSError(domain: "AppleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Alamofire is not available. Include Alamofire dependency in your Podfile."])))
+    }
+    
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {}
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {}
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        return UIApplication.shared.windows.first!
+    }
+}
+#endif
