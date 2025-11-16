@@ -44,9 +44,13 @@ class GoogleProvider {
                     scopes = Array(Set(scopes + ["offline_access"]))
                 }
 
+                // Extract nonce from payload if provided
+                let nonce = payload["nonce"] as? String
+
                 GIDSignIn.sharedInstance.signIn(
                     withPresenting: presentingVc,
                     hint: nil,
+                    nonce: nonce,
                     additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes
                 ) { result, error in
                     if let error = error {
