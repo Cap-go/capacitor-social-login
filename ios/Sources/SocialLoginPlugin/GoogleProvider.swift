@@ -50,8 +50,8 @@ class GoogleProvider {
                 GIDSignIn.sharedInstance.signIn(
                     withPresenting: presentingVc,
                     hint: nil,
-                    nonce: nonce,
-                    additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes
+                    additionalScopes: payload["scopes"] as? [String] ?? self.defaultGrantedScopes,
+                    nonce: nonce
                 ) { result, error in
                     if let error = error {
                         completion(.failure(error))
