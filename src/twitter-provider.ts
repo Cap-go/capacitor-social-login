@@ -137,6 +137,7 @@ export class TwitterSocialLogin extends BaseSocialLogin {
             return;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { provider: _ignoredProvider, ...payload } = event.data as TwitterLoginResponse & {
             provider?: string;
           };
