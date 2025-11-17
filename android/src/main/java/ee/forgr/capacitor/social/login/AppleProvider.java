@@ -148,7 +148,12 @@ public class AppleProvider implements SocialProvider {
     public void login(PluginCall call, JSONObject config) {
         if (this.lastcall != null) {
             call.reject("Last call is not null");
+            return;
         }
+
+        // Save the call reference immediately so it's always available
+        this.lastcall = call;
+        call.setKeepAlive(true);
 
         // Check if Broadcast Channel is enabled
         boolean useBroadcastChannel = config.optBoolean("useBroadcastChannel", this.useBroadcastChannel);
@@ -206,12 +211,11 @@ public class AppleProvider implements SocialProvider {
         }
 
         if (context == null || activity == null) {
-            call.reject("Context or Activity is null");
+            this.lastcall.reject("Context or Activity is null");
+            this.lastcall = null;
             return;
         }
 
-        this.lastcall = call;
-        call.setKeepAlive(true);
         activity.runOnUiThread(() -> setupBroadcastChannelWebview(context, activity, call, appleAuthURLFull));
     }
 
@@ -256,12 +260,11 @@ public class AppleProvider implements SocialProvider {
         }
 
         if (context == null || activity == null) {
-            call.reject("Context or Activity is null");
+            this.lastcall.reject("Context or Activity is null");
+            this.lastcall = null;
             return;
         }
 
-        this.lastcall = call;
-        call.setKeepAlive(true);
         activity.runOnUiThread(() -> setupWebview(context, activity, call, appleAuthURLFull));
     }
 
@@ -310,6 +313,11 @@ public class AppleProvider implements SocialProvider {
     }
 
     public void handleUrl(String url) {
+        if (this.lastcall == null) {
+            Log.e(SocialLoginPlugin.LOG_TAG, "handleUrl called but lastcall is null");
+            return;
+        }
+
         Uri uri = Uri.parse(url);
         String success = uri.getQueryParameter("success");
         if ("true".equals(success)) {
@@ -351,6 +359,7 @@ public class AppleProvider implements SocialProvider {
                 } else {
                     // Legacy mode: exchange the authorization code for tokens
                     requestForAccessToken(appleAuthCode, appleClientSecret);
+                    return; // Don't clear lastcall here, it will be cleared in the callback
                 }
             }
         } else {
@@ -377,8 +386,12 @@ public class AppleProvider implements SocialProvider {
                 new Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                        AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-                        AppleProvider.this.lastcall = null;
+                        if (AppleProvider.this.lastcall != null) {
+                            AppleProvider.this.lastcall.reject("Cannot get access_token", e);
+                            AppleProvider.this.lastcall = null;
+                        } else {
+                            Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
+                        }
                     }
 
                     @Override
@@ -407,11 +420,19 @@ public class AppleProvider implements SocialProvider {
                             appleResponse.put("provider", "apple");
                             appleResponse.put("result", result);
 
-                            AppleProvider.this.lastcall.resolve(appleResponse);
-                            AppleProvider.this.lastcall = null;
+                            if (AppleProvider.this.lastcall != null) {
+                                AppleProvider.this.lastcall.resolve(appleResponse);
+                                AppleProvider.this.lastcall = null;
+                            } else {
+                                Log.e(SocialLoginPlugin.LOG_TAG, "Cannot resolve access_token response: lastcall is null. Response: " + appleResponse.toString());
+                            }
                         } catch (Exception e) {
-                            AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-                            AppleProvider.this.lastcall = null;
+                            if (AppleProvider.this.lastcall != null) {
+                                AppleProvider.this.lastcall.reject("Cannot get access_token", e);
+                                AppleProvider.this.lastcall = null;
+                            } else {
+                                Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
+                            }
                         } finally {
                             response.close();
                         }
@@ -487,6 +508,12 @@ public class AppleProvider implements SocialProvider {
                         // Extract authorization code from URL parameters
                         Uri uri = Uri.parse(url);
                         String success = uri.getQueryParameter("success");
+
+                        if (lastcall == null) {
+                            Log.e(SocialLoginPlugin.LOG_TAG, "setupBroadcastChannelWebview: lastcall is null");
+                            dialog.dismiss();
+                            return true;
+                        }
 
                         if ("true".equals(success)) {
                             String accessToken = uri.getQueryParameter("access_token");
@@ -635,6 +662,11 @@ public class AppleProvider implements SocialProvider {
 
                 // Handle authentication messages
                 if ("auth".equals(channel)) {
+                    if (lastcall == null) {
+                        Log.e(SocialLoginPlugin.LOG_TAG, "BroadcastChannelInterface.postMessage: lastcall is null");
+                        return;
+                    }
+
                     String type = messageData.getString("type");
                     if ("success".equals(type)) {
                         // Handle successful authentication
@@ -653,18 +685,24 @@ public class AppleProvider implements SocialProvider {
                             response.put("result", result);
 
                             lastcall.resolve(response);
+                            lastcall = null;
                         } catch (JSONException e) {
                             Log.e(SocialLoginPlugin.LOG_TAG, "Cannot create response", e);
                             lastcall.reject("Cannot create response", e);
+                            lastcall = null;
                         }
                     } else if ("error".equals(type)) {
                         String error = messageData.optString("error", "Authentication failed");
                         lastcall.reject(error);
+                        lastcall = null;
                     }
                 }
             } catch (JSONException e) {
                 Log.e("BroadcastChannel", "Error parsing message", e);
-                lastcall.reject("Error parsing authentication message", e);
+                if (lastcall != null) {
+                    lastcall.reject("Error parsing authentication message", e);
+                    lastcall = null;
+                }
             }
         }
     }
