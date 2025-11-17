@@ -200,12 +200,16 @@ class FacebookProvider {
     }
 
     func refresh(viewController: UIViewController?, completion: @escaping (Result<SocialLoginUser, Error>) -> Void) {
+        guard let viewController = viewController else {
+            completion(.failure(NSError(domain: "FacebookProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "viewController was not provided"])))
+            return
+        }
         DispatchQueue.main.async {
             if let token = AccessToken.current, !token.isExpired, !token.isDataAccessExpired {
                 // let expiresIn = Int(token.expirationDate.timeIntervalSinceNow)
                 completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
             } else {
-                self.loginManager.reauthorizeDataAccess(from: viewController!) { loginResult, error in
+                self.loginManager.reauthorizeDataAccess(from: viewController) { loginResult, error in
                     if let token = loginResult?.token {
                         completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
                     } else {
