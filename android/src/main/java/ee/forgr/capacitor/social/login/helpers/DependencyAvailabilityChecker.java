@@ -37,22 +37,9 @@ public class DependencyAvailabilityChecker {
         }
         
         try {
-            JSObject config = pluginInstance.getConfig();
-            if (config == null) {
-                return true;
-            }
+            JSObject config = JSObject.fromJSONObject(pluginInstance.getConfig().getConfigJSON());
             
-            JSObject plugins = config.getJSObject("plugins");
-            if (plugins == null) {
-                return true;
-            }
-            
-            JSObject socialLogin = plugins.getJSObject("SocialLogin");
-            if (socialLogin == null) {
-                return true;
-            }
-            
-            JSObject providers = socialLogin.getJSObject("providers");
+            JSObject providers = config.getJSObject("providers");
             if (providers == null) {
                 return true;
             }
