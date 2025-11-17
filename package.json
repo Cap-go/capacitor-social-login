@@ -40,7 +40,7 @@
     "oauth2"
   ],
   "scripts": {
-    "capacitor:sync:after": "node scripts/configure-dependencies.js",
+    "capacitor:sync:before": "node scripts/configure-dependencies.js",
     "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
     "verify:ios": "xcodebuild -scheme CapgoCapacitorSocialLogin -destination generic/platform=iOS",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
