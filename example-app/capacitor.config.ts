@@ -7,10 +7,10 @@ const config: CapacitorConfig = {
   plugins: {
     SocialLogin: {
       providers: {
-        google: true,      // compileOnly (not bundled)
-        facebook: true,    // compileOnly (not bundled)
-        apple: true,        // implementation (bundled)
-        twitter: true       // implementation (bundled)
+        google: true,      // enabled (bundled)
+        facebook: true,    // enabled (bundled)
+        apple: true,       // enabled (bundled)
+        twitter: true      // enabled (bundled)
       }
     }
   }
