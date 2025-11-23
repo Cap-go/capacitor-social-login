@@ -16,8 +16,10 @@
     "@capacitor/ios": "^7.4.3",
     "@capacitor/privacy-screen": "^1.1.1",
     "@capgo/capacitor-social-login": "file:../",
+    "firebase": "^12.6.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

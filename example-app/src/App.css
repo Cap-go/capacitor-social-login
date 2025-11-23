@@ -64,10 +64,237 @@
   }
 }
 
+.app-header-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .app-header h1 {
   margin: 0;
   font-size: 1.9rem;
   font-weight: 700;
+  flex: 1;
+}
+
+.firebase-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.firebase-button:hover {
+  background: rgba(255, 145, 0, 0.1);
+  border-color: rgba(255, 145, 0, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 145, 0, 0.2);
+}
+
+.firebase-button:active {
+  transform: translateY(0);
+}
+
+.firebase-button svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+  color: var(--app-muted-strong);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.back-button:hover {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(90, 123, 255, 0.3);
+}
+
+.back-button:active {
+  transform: translateY(0);
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.firebase-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.firebase-form .field input[type='email'],
+.firebase-form .field input[type='password'] {
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+  color: inherit;
+  font-size: 0.95rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.firebase-form .field input[type='email']:focus,
+.firebase-form .field input[type='password']:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px rgba(90, 123, 255, 0.3);
+  outline: none;
+}
+
+.firebase-form .field input[type='email']:disabled,
+.firebase-form .field input[type='password']:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.create-account-text {
+  margin: 0;
+  text-align: center;
+  color: var(--app-muted);
+  font-size: 0.9rem;
+}
+
+.create-account-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--app-accent);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s ease;
+}
+
+.create-account-link:hover:not(:disabled) {
+  color: var(--app-accent-strong);
+}
+
+.create-account-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.key-value-item {
+  margin-bottom: 1.5rem;
+}
+
+.key-value-item:last-child {
+  margin-bottom: 0;
+}
+
+.readonly-input {
+  background: var(--app-input-bg);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.key-value-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.key-value-actions button {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.key-value-actions .edit-button {
+  background: var(--app-accent);
+  color: #ffffff;
+}
+
+.key-value-actions .edit-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(90, 123, 255, 0.3);
+}
+
+.key-value-actions .save-button {
+  background: var(--app-success-text);
+  color: #ffffff;
+}
+
+.key-value-actions .save-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.key-value-actions .cancel-button {
+  background: var(--app-muted);
+  color: #ffffff;
+}
+
+.key-value-actions .cancel-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+}
+
+.key-value-actions .remove-button {
+  background: var(--app-error-text);
+  color: #ffffff;
+}
+
+.key-value-actions .remove-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.key-value-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .app-header p {
@@ -428,6 +655,34 @@
     padding: 1.75rem;
     border-radius: 1.25rem;
     gap: 1.5rem;
+  }
+
+  .app-header-title {
+    gap: 0.75rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.6rem;
+  }
+
+  .firebase-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .firebase-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .back-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .back-button svg {
+    width: 18px;
+    height: 18px;
   }
 
   .actions {
