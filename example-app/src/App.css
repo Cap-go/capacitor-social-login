@@ -216,6 +216,129 @@
   cursor: not-allowed;
 }
 
+.social-auth-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--app-border);
+}
+
+.social-auth-divider {
+  text-align: center;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.social-auth-divider span {
+  position: relative;
+  background: var(--app-surface);
+  padding: 0 0.75rem;
+  color: var(--app-muted);
+  font-size: 0.85rem;
+}
+
+.social-auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--app-border);
+}
+
+.social-auth-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.social-auth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+  color: var(--app-muted-strong);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.social-auth-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.social-auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.social-auth-button svg {
+  flex-shrink: 0;
+}
+
+.social-auth-button--google {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: #e2e8f0;
+}
+
+.social-auth-button--google:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.social-auth-button--apple {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.social-auth-button--apple:hover:not(:disabled) {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+.social-auth-button--facebook {
+  background: #1877f2;
+  color: #ffffff;
+  border-color: #1877f2;
+}
+
+.social-auth-button--facebook:hover:not(:disabled) {
+  background: #166fe5;
+  border-color: #166fe5;
+}
+
+.social-auth-button--twitter {
+  background: #1da1f2;
+  color: #ffffff;
+  border-color: #1da1f2;
+}
+
+.social-auth-button--twitter:hover:not(:disabled) {
+  background: #1a91da;
+  border-color: #1a91da;
+}
+
+@media (prefers-color-scheme: light) {
+  .social-auth-button--google {
+    background: #ffffff;
+    border-color: #e2e8f0;
+  }
+}
+
 .key-value-item {
   margin-bottom: 1.5rem;
 }
