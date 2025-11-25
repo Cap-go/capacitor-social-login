@@ -424,7 +424,10 @@ public class AppleProvider implements SocialProvider {
                                 AppleProvider.this.lastcall.resolve(appleResponse);
                                 AppleProvider.this.lastcall = null;
                             } else {
-                                Log.e(SocialLoginPlugin.LOG_TAG, "Cannot resolve access_token response: lastcall is null. Response: " + appleResponse.toString());
+                                Log.e(
+                                    SocialLoginPlugin.LOG_TAG,
+                                    "Cannot resolve access_token response: lastcall is null. Response: " + appleResponse.toString()
+                                );
                             }
                         } catch (Exception e) {
                             if (AppleProvider.this.lastcall != null) {
