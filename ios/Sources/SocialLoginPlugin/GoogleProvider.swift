@@ -1,11 +1,15 @@
 import Foundation
+
+#if canImport(GoogleSignIn)
 import GoogleSignIn
+#endif
 
 enum GoogleProviderLoginType {
     case OFFLINE
     case ONLINE
 }
 
+#if canImport(GoogleSignIn)
 class GoogleProvider {
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
@@ -218,6 +222,34 @@ class GoogleProvider {
             ), email: nil, familyName: nil, givenName: nil, id: nil, name: nil, imageUrl: nil, serverAuthCode: serverAuthCode)
     }
 }
+#else
+// Stub class when GoogleSignIn is not available
+class GoogleProvider {
+    func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil, hostedDomain: String? = nil) {
+        fatalError("Google Sign-In is not available. Include GoogleSignIn dependency in your Podfile.")
+    }
+
+    func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
+        completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
+    }
+
+    func logout(completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
+    }
+
+    func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
+        completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
+    }
+
+    func getAuthorizationCode(completion: @escaping (Result<GoogleLoginResponse.Authentication, Error>) -> Void) {
+        completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
+    }
+
+    func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
+    }
+}
+#endif
 
 struct GoogleLoginResponse {
     let authentication: Authentication
