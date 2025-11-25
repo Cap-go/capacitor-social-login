@@ -19,7 +19,7 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "SocialLogin")
 public class SocialLoginPlugin extends Plugin {
 
-    private final String pluginVersion = "7.19.1";
+    private final String pluginVersion = "7.20.0";
 
     public static String LOG_TAG = "CapgoSocialLogin";
 
