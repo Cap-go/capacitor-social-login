@@ -1,0 +1,313 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, doc, setDoc, deleteDoc, getDocs, query } from 'firebase/firestore';
+import { auth, db } from './firebase';
+import './App.css';
+
+interface KeyValuePair {
+  key: string;
+  value: string;
+}
+
+function DashboardPage() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [keyValuePairs, setKeyValuePairs] = useState<KeyValuePair[]>([]);
+  const [newKey, setNewKey] = useState('');
+  const [newValue, setNewValue] = useState('');
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        await loadAllKeyValuePairs(currentUser.uid);
+      } else {
+        navigate('/firebase');
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const loadAllKeyValuePairs = async (userId: string) => {
+    try {
+      const dataCollection = collection(db, 'users', userId, 'data');
+      const querySnapshot = await getDocs(query(dataCollection));
+      
+      const pairs: KeyValuePair[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        pairs.push({
+          key: docSnap.id,
+          value: data.value || '',
+        });
+      });
+      
+      setKeyValuePairs(pairs);
+    } catch (error: any) {
+      console.error('Error loading values:', error);
+      setErrorMessage('Failed to load data');
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!user || !newKey.trim() || !newValue.trim()) {
+      setErrorMessage('Please enter both key and value');
+      return;
+    }
+
+    setIsSaving(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const dataDocRef = doc(db, 'users', user.uid, 'data', newKey.trim());
+      await setDoc(dataDocRef, {
+        value: newValue.trim(),
+      });
+
+      setNewKey('');
+      setNewValue('');
+      await loadAllKeyValuePairs(user.uid);
+      setStatusMessage(`Key "${newKey.trim()}" added successfully!`);
+    } catch (error: any) {
+      console.error('Error adding value:', error);
+      setErrorMessage('Failed to add value');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEdit = async (key: string) => {
+    if (!user || !editingValue.trim()) {
+      setErrorMessage('Please enter a value');
+      return;
+    }
+
+    setIsSaving(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const dataDocRef = doc(db, 'users', user.uid, 'data', key);
+      await setDoc(dataDocRef, {
+        value: editingValue.trim(),
+      }, { merge: true });
+
+      setEditingKey(null);
+      setEditingValue('');
+      await loadAllKeyValuePairs(user.uid);
+      setStatusMessage(`Key "${key}" updated successfully!`);
+    } catch (error: any) {
+      console.error('Error updating value:', error);
+      setErrorMessage('Failed to update value');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRemove = async (key: string) => {
+    if (!user) return;
+
+    setIsRemoving(key);
+    setStatusMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const dataDocRef = doc(db, 'users', user.uid, 'data', key);
+      await deleteDoc(dataDocRef);
+
+      await loadAllKeyValuePairs(user.uid);
+      setStatusMessage(`Key "${key}" removed successfully!`);
+    } catch (error: any) {
+      console.error('Error removing value:', error);
+      setErrorMessage('Failed to remove value');
+    } finally {
+      setIsRemoving(null);
+    }
+  };
+
+  const startEditing = (pair: KeyValuePair) => {
+    setEditingKey(pair.key);
+    setEditingValue(pair.value);
+  };
+
+  const cancelEditing = () => {
+    setEditingKey(null);
+    setEditingValue('');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/firebase');
+    } catch (error: any) {
+      setErrorMessage('Failed to sign out');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="app">
+        <div className="app-card">
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      <div className="app-card">
+        <header className="app-header">
+          <div className="app-header-title">
+            <h1>Dashboard</h1>
+            <button
+              type="button"
+              className="back-button"
+              onClick={handleLogout}
+              aria-label="Sign out"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+              </svg>
+            </button>
+          </div>
+          <p>Welcome, {user?.email}</p>
+        </header>
+
+        <section className="config">
+          <span className="section-title">Add New Key-Value Pair</span>
+          
+          <div className="field">
+            <label htmlFor="new-key">Key</label>
+            <input
+              id="new-key"
+              type="text"
+              placeholder="Enter key (e.g., testing)"
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              disabled={isSaving || isRemoving !== null}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="new-value">Value</label>
+            <input
+              id="new-value"
+              type="text"
+              placeholder="Enter value (e.g., very much so)"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              disabled={isSaving || isRemoving !== null}
+            />
+            <p className="hint">Data is stored in Firestore subcollection: users/{user?.uid}/data/</p>
+          </div>
+
+          {statusMessage ? <div className="status status--success">{statusMessage}</div> : null}
+          {errorMessage ? <div className="status status--error">{errorMessage}</div> : null}
+
+          <div className="actions">
+            <button 
+              type="button" 
+              onClick={handleAdd} 
+              disabled={isSaving || isRemoving !== null || !newKey.trim() || !newValue.trim()}
+            >
+              {isSaving ? 'Adding...' : 'Add Key-Value Pair'}
+            </button>
+          </div>
+        </section>
+
+        {keyValuePairs.length > 0 && (
+          <section className="config">
+            <span className="section-title">Existing Key-Value Pairs</span>
+            
+            {keyValuePairs.map((pair) => (
+              <div key={pair.key} className="key-value-item">
+                <div className="field">
+                  <label>{pair.key}</label>
+                  {editingKey === pair.key ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editingValue}
+                        onChange={(e) => setEditingValue(e.target.value)}
+                        disabled={isSaving || isRemoving !== null}
+                      />
+                      <div className="key-value-actions">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(pair.key)}
+                          disabled={isSaving || isRemoving !== null || !editingValue.trim()}
+                          className="save-button"
+                        >
+                          {isSaving ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditing}
+                          disabled={isSaving || isRemoving !== null}
+                          className="cancel-button"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        value={pair.value}
+                        readOnly
+                        className="readonly-input"
+                      />
+                      <div className="key-value-actions">
+                        <button
+                          type="button"
+                          onClick={() => startEditing(pair)}
+                          disabled={isSaving || isRemoving !== null}
+                          className="edit-button"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(pair.key)}
+                          disabled={isSaving || isRemoving !== null}
+                          className="remove-button"
+                        >
+                          {isRemoving === pair.key ? 'Removing...' : 'Remove'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {keyValuePairs.length > 0 && (
+          <section className="response">
+            <h2>All Data</h2>
+            <pre>{JSON.stringify(keyValuePairs.reduce((acc, pair) => ({ ...acc, [pair.key]: pair.value }), {}), null, 2)}</pre>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default DashboardPage;
+

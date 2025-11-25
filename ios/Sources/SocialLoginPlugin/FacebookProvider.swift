@@ -1,9 +1,8 @@
 import Foundation
+import UIKit
 
 #if canImport(FBSDKLoginKit)
 import FBSDKLoginKit
-#else
-import FacebookLogin
 #endif
 
 #if canImport(AppTrackingTransparency)
@@ -16,6 +15,7 @@ struct FacebookLoginResponse {
     let idToken: String?
 }
 
+#if canImport(FBSDKLoginKit)
 class FacebookProvider {
     private let loginManager = LoginManager()
     private let dateFormatter = ISO8601DateFormatter()
@@ -200,12 +200,16 @@ class FacebookProvider {
     }
 
     func refresh(viewController: UIViewController?, completion: @escaping (Result<SocialLoginUser, Error>) -> Void) {
+        guard let viewController = viewController else {
+            completion(.failure(NSError(domain: "FacebookProvider", code: 1, userInfo: [NSLocalizedDescriptionKey: "viewController was not provided"])))
+            return
+        }
         DispatchQueue.main.async {
             if let token = AccessToken.current, !token.isExpired, !token.isDataAccessExpired {
                 // let expiresIn = Int(token.expirationDate.timeIntervalSinceNow)
                 completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
             } else {
-                self.loginManager.reauthorizeDataAccess(from: viewController!) { loginResult, error in
+                self.loginManager.reauthorizeDataAccess(from: viewController) { loginResult, error in
                     if let token = loginResult?.token {
                         completion(.success(SocialLoginUser(accessToken: token.tokenString, idToken: nil, refreshToken: nil, expiresIn: nil)))
                     } else {
@@ -230,3 +234,39 @@ class FacebookProvider {
         }
     }
 }
+#else
+// Stub class when FBSDKLoginKit is not available
+class FacebookProvider {
+    func initialize() {
+        fatalError("Facebook Login is not available. Include FBSDKLoginKit dependency in your Podfile.")
+    }
+
+    func getProfile(fields: [String], completion: @escaping (Result<[String: Any]?, Error>) -> Void) {
+        completion(.failure(NSError(domain: "FacebookProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Facebook Login is not available"])))
+    }
+
+    func isLoggedIn() -> Bool {
+        return false
+    }
+
+    func login(payload: [String: Any], completion: @escaping (Result<FacebookLoginResponse, Error>) -> Void) {
+        completion(.failure(NSError(domain: "FacebookProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Facebook Login is not available"])))
+    }
+
+    func logout(completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.failure(NSError(domain: "FacebookProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Facebook Login is not available"])))
+    }
+
+    func refresh(viewController: UIViewController?, completion: @escaping (Result<SocialLoginUser, Error>) -> Void) {
+        completion(.failure(NSError(domain: "FacebookProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Facebook Login is not available"])))
+    }
+
+    func getAuthorizationCode(completion: @escaping (Result<(accessToken: String?, jwt: String?), Error>) -> Void) {
+        completion(.failure(NSError(domain: "FacebookProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Facebook Login is not available"])))
+    }
+
+    func requestTracking(completion: @escaping (Result<String, Error>) -> Void) {
+        completion(.failure(NSError(domain: "FacebookProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Facebook Login is not available"])))
+    }
+}
+#endif
