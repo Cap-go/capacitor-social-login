@@ -29,28 +29,28 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
     ]
-    
+
     // Providers - conditionally initialized based on available dependencies
     #if canImport(Alamofire)
     private let apple = AppleProvider()
     #else
     private let apple: AppleProvider? = nil
     #endif
-    
+
     #if canImport(FBSDKLoginKit)
     private let facebook = FacebookProvider()
     #else
     private let facebook: FacebookProvider? = nil
     #endif
-    
+
     #if canImport(GoogleSignIn)
     private let google = GoogleProvider()
     #else
     private let google: GoogleProvider? = nil
     #endif
-    
+
     private let twitter = TwitterProvider()
-    
+
     // Helper to get Facebook provider (returns nil if unavailable)
     private var facebookProvider: FacebookProvider? {
         #if canImport(FBSDKLoginKit)
@@ -59,7 +59,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         return nil
         #endif
     }
-    
+
     // Helper to get Google provider (returns nil if unavailable)
     private var googleProvider: GoogleProvider? {
         #if canImport(GoogleSignIn)
@@ -68,7 +68,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         return nil
         #endif
     }
-    
+
     // Helper to get Apple provider (returns nil if unavailable)
     private var appleProvider: AppleProvider? {
         #if canImport(Alamofire)
@@ -77,18 +77,18 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         return nil
         #endif
     }
-    
+
     /**
      * Check if a provider is enabled in Capacitor config.
      * Returns true if not set (default enabled).
      */
     private func isProviderEnabledInConfig(_ providerName: String) -> Bool {
         let config = self.getConfig().getConfigJSON()
-    
+
         guard let providers = config["providers"] as? [String: Any] else {
             return true
         }
-        
+
         // Check if provider is explicitly set to false
         if let value = providers[providerName] {
             if let boolValue = value as? Bool {
@@ -99,10 +99,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 return false
             }
         }
-        
+
         return true // Default to enabled
     }
-    
+
     /**
      * Check if a provider is available (dependencies are included or enabled via config)
      */

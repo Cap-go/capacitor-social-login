@@ -29,7 +29,7 @@ public class SocialLoginPlugin extends Plugin {
     public void initialize(PluginCall call) {
         // Set plugin instance for config access
         DependencyAvailabilityChecker.setPluginInstance(this);
-        
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             call.reject("Your android device is too old");
             return;
@@ -39,11 +39,13 @@ public class SocialLoginPlugin extends Plugin {
         if (apple != null) {
             // Check if Apple dependencies are available
             if (!DependencyAvailabilityChecker.isProviderAvailable("apple")) {
-                call.reject("Apple Sign-In provider is disabled. " +
-                           "Dependencies are not available. Ensure JWT decode and CustomTabs dependencies are included in your app's build.gradle");
+                call.reject(
+                    "Apple Sign-In provider is disabled. " +
+                        "Dependencies are not available. Ensure JWT decode and CustomTabs dependencies are included in your app's build.gradle"
+                );
                 return;
             }
-            
+
             String androidAppleRedirect = apple.getString("redirectUrl");
             if (androidAppleRedirect == null || androidAppleRedirect.isEmpty()) {
                 call.reject("apple.android.redirectUrl is null or empty");
@@ -102,11 +104,13 @@ public class SocialLoginPlugin extends Plugin {
         if (facebook != null) {
             // Check if Facebook dependencies are available
             if (!DependencyAvailabilityChecker.isProviderAvailable("facebook")) {
-                call.reject("Facebook provider is disabled. " +
-                           "Dependencies are not available. Ensure Facebook Login dependencies are included in your app's build.gradle");
+                call.reject(
+                    "Facebook provider is disabled. " +
+                        "Dependencies are not available. Ensure Facebook Login dependencies are included in your app's build.gradle"
+                );
                 return;
             }
-            
+
             String facebookAppId = facebook.getString("appId");
             String facebookClientToken = facebook.getString("clientToken");
             if (facebookAppId == null || facebookAppId.isEmpty()) {
@@ -131,11 +135,13 @@ public class SocialLoginPlugin extends Plugin {
         if (twitter != null) {
             // Check if Twitter dependencies are available
             if (!DependencyAvailabilityChecker.isProviderAvailable("twitter")) {
-                call.reject("Twitter provider is disabled. " +
-                           "Dependencies are not available. Ensure OkHttp dependencies are included in your app's build.gradle");
+                call.reject(
+                    "Twitter provider is disabled. " +
+                        "Dependencies are not available. Ensure OkHttp dependencies are included in your app's build.gradle"
+                );
                 return;
             }
-            
+
             String twitterClientId = twitter.getString("clientId");
             String twitterRedirect = twitter.getString("redirectUrl");
             if (twitterClientId == null || twitterClientId.isEmpty()) {
@@ -172,8 +178,13 @@ public class SocialLoginPlugin extends Plugin {
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
             if (!DependencyAvailabilityChecker.isProviderAvailable(providerStr)) {
-                call.reject(String.format("Provider '%s' is disabled. Dependencies are not available. " +
-                         "Ensure required dependencies are included in your app's build.gradle", providerStr));
+                call.reject(
+                    String.format(
+                        "Provider '%s' is disabled. Dependencies are not available. " +
+                            "Ensure required dependencies are included in your app's build.gradle",
+                        providerStr
+                    )
+                );
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
@@ -194,8 +205,13 @@ public class SocialLoginPlugin extends Plugin {
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
             if (!DependencyAvailabilityChecker.isProviderAvailable(providerStr)) {
-                call.reject(String.format("Provider '%s' is disabled. Dependencies are not available. " +
-                         "Ensure required dependencies are included in your app's build.gradle", providerStr));
+                call.reject(
+                    String.format(
+                        "Provider '%s' is disabled. Dependencies are not available. " +
+                            "Ensure required dependencies are included in your app's build.gradle",
+                        providerStr
+                    )
+                );
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
@@ -216,8 +232,13 @@ public class SocialLoginPlugin extends Plugin {
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
             if (!DependencyAvailabilityChecker.isProviderAvailable(providerStr)) {
-                call.reject(String.format("Provider '%s' is disabled. Dependencies are not available. " +
-                         "Ensure required dependencies are included in your app's build.gradle", providerStr));
+                call.reject(
+                    String.format(
+                        "Provider '%s' is disabled. Dependencies are not available. " +
+                            "Ensure required dependencies are included in your app's build.gradle",
+                        providerStr
+                    )
+                );
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
@@ -238,8 +259,13 @@ public class SocialLoginPlugin extends Plugin {
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
             if (!DependencyAvailabilityChecker.isProviderAvailable(providerStr)) {
-                call.reject(String.format("Provider '%s' is disabled. Dependencies are not available. " +
-                         "Ensure required dependencies are included in your app's build.gradle", providerStr));
+                call.reject(
+                    String.format(
+                        "Provider '%s' is disabled. Dependencies are not available. " +
+                            "Ensure required dependencies are included in your app's build.gradle",
+                        providerStr
+                    )
+                );
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
@@ -260,8 +286,13 @@ public class SocialLoginPlugin extends Plugin {
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
             if (!DependencyAvailabilityChecker.isProviderAvailable(providerStr)) {
-                call.reject(String.format("Provider '%s' is disabled. Dependencies are not available. " +
-                         "Ensure required dependencies are included in your app's build.gradle", providerStr));
+                call.reject(
+                    String.format(
+                        "Provider '%s' is disabled. Dependencies are not available. " +
+                            "Ensure required dependencies are included in your app's build.gradle",
+                        providerStr
+                    )
+                );
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }

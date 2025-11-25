@@ -224,23 +224,23 @@ class GoogleProvider {
     func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil, hostedDomain: String? = nil) {
         fatalError("Google Sign-In is not available. Include GoogleSignIn dependency in your Podfile.")
     }
-    
+
     func login(payload: [String: Any], completion: @escaping (Result<GoogleLoginResponse, Error>) -> Void) {
         completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
     }
-    
+
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
         completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
     }
-    
+
     func isLoggedIn(completion: @escaping (Result<Bool, Error>) -> Void) {
         completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
     }
-    
+
     func getAuthorizationCode(completion: @escaping (Result<GoogleLoginResponse.Authentication, Error>) -> Void) {
         completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
     }
-    
+
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
         completion(.failure(NSError(domain: "GoogleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "Google Sign-In is not available"])))
     }
