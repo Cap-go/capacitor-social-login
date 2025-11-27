@@ -2,13 +2,9 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.USE_CREDENTIALS" />
     <uses-permission android:name="android.permission.INTERNET"/>
-    
-    <!-- Remove AD_ID permission if you're not using Facebook login to avoid Google Play Console errors -->
-    <!-- Uncomment the line below if you're only using Google/Apple login and getting AD_ID permission errors -->
-    <!-- <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" /> -->
-    
+
     <application>
-        <provider 
+        <provider
             android:name="com.facebook.internal.FacebookInitProvider"
             android:authorities="${applicationId}.FacebookInitProvider"
             android:exported="false"

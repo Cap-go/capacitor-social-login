@@ -3,6 +3,10 @@ ext {
     androidxAppCompatVersion = project.hasProperty('androidxAppCompatVersion') ? rootProject.ext.androidxAppCompatVersion : '1.7.0'
     androidxJunitVersion = project.hasProperty('androidxJunitVersion') ? rootProject.ext.androidxJunitVersion : '1.2.1'
     androidxEspressoCoreVersion = project.hasProperty('androidxEspressoCoreVersion') ? rootProject.ext.androidxEspressoCoreVersion : '3.6.1'
+
+    // Read provider configuration from gradle.properties (set by hook script)
+    // These need to be at ext level so they can be used in sourceSets
+    includeFacebook = project.findProperty('socialLogin.facebook.include') ?: 'true'
 }
 
 buildscript {
@@ -40,6 +44,15 @@ android {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
     }
+
+    // Conditionally include Facebook stub classes when Facebook is disabled
+    sourceSets {
+        main {
+            if (includeFacebook != 'true') {
+                java.srcDirs += 'src/facebookStubs/java'
+            }
+        }
+    }
 }
 
 repositories {
@@ -62,8 +75,7 @@ dependencies {
     def googleDependencyType = project.findProperty('socialLogin.google.dependencyType') ?: 'implementation'
     def includeGoogle = project.findProperty('socialLogin.google.include') ?: 'true'
     
-    def facebookDependencyType = project.findProperty('socialLogin.facebook.dependencyType') ?: 'implementation'
-    def includeFacebook = project.findProperty('socialLogin.facebook.include') ?: 'true'
+    // Note: includeFacebook is defined in ext block at the top
     
     def appleDependencyType = project.findProperty('socialLogin.apple.dependencyType') ?: 'implementation'
     def includeApple = project.findProperty('socialLogin.apple.include') ?: 'true'
@@ -85,11 +97,12 @@ dependencies {
     }
     
     // Facebook dependencies
-    if (facebookDependencyType == 'compileOnly') {
-        compileOnly 'com.facebook.android:facebook-login:18.1.3'
-    } else if (includeFacebook == 'true') {
+    // When Facebook is disabled, stub classes from src/facebookStubs are used instead
+    if (includeFacebook == 'true') {
         implementation 'com.facebook.android:facebook-login:18.1.3'
     }
+    // When includeFacebook != 'true', no Facebook SDK is included
+    // and the stub classes provide the necessary API for compilation
     
     // Apple dependencies
     if (appleDependencyType == 'compileOnly') {

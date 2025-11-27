@@ -359,42 +359,29 @@ If you get this error on App Store Connect:
 
 **Problem**: After submitting your app to Google Play, you receive this error:
 ```
-Google Api Error: Invalid request - This release includes the com.google.android.gms.permission.AD_ID permission 
-but your declaration on Play Console says your app doesn't use advertising ID. You must update your advertising 
-ID declaration.
+Google Api Error: Invalid request - This release includes the com.google.android.gms.permission.AD_ID permission
+but your declaration on Play Console says your app doesn't use advertising ID.
 ```
 
-**Root Cause**: The Facebook SDK automatically includes the `com.google.android.gms.permission.AD_ID` permission, even when you're only using Google and Apple sign-in.
+**Root Cause**: The Facebook SDK includes `AD_ID` and other advertising-related permissions.
 
-**Solutions**:
+**Solution**: If you're not using Facebook login, set `facebook: false` in your `capacitor.config.ts`:
 
-#### Solution 1: Remove AD_ID Permission (Recommended)
-If you're not using Facebook login, add this to your app's `android/app/src/main/AndroidManifest.xml`:
-```xml
-<uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+```typescript
+const config: CapacitorConfig = {
+  plugins: {
+    SocialLogin: {
+      providers: {
+        google: true,
+        facebook: false,  // Completely excludes Facebook SDK and its permissions
+        apple: true,
+      },
+    },
+  },
+};
 ```
 
-Make sure you have the tools namespace declared:
-```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-```
-
-#### Solution 2: Update Google Play Console Declaration
-In Google Play Console → App content → Data safety:
-1. Select "Yes, my app collects or shares user data"
-2. Under "Data types" → "Device or other IDs" → Select "Advertising ID"
-3. Specify usage purpose (usually "App functionality" and/or "Analytics")
-
-#### Solution 3: Conditional Facebook Dependencies (Advanced)
-For advanced users who want to completely exclude Facebook from builds, you can use Gradle's conditional dependencies, but this requires custom build configuration.
-
-**Verification**: After implementing Solution 1, run:
-```bash
-./gradlew :app:dependencies --configuration debugRuntimeClasspath | grep facebook
-```
-
-The Facebook dependencies should still be present (for compatibility), but the AD_ID permission should be removed from your final APK.
+Then run `npx cap sync`. The plugin uses stub classes instead of the real Facebook SDK, so no Facebook dependencies or permissions are included in your build.
 
 ### Google Sign-In with Family Link Supervised Accounts
 
