@@ -13,45 +13,86 @@
   },
   "packageRules": [
     {
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "matchCurrentVersion": "!/^0/",
       "automerge": true
     },
     {
-      "matchPackageNames": ["eslint"],
-      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "eslint"
+      ],
+      "matchManagers": [
+        "npm"
+      ],
       "enabled": false
     },
     {
-      "matchPackagePatterns": ["^com\\.google\\..*"],
+      "matchPackagePatterns": [
+        "^com\\.google\\..*"
+      ],
       "matchCurrentVersion": "/^.*-android$/",
       "allowedVersions": "/^.*-android$/"
     },
     {
-      "matchPackagePatterns": ["^com\\.android\\.tools\\.build\\:gradle$"],
-      "matchManagers": ["gradle"],
+      "matchPackagePatterns": [
+        "^com\\.android\\.tools\\.build\\:gradle$"
+      ],
+      "matchManagers": [
+        "gradle"
+      ],
       "enabled": false
     },
     {
-      "matchPackageNames": ["ionic-team/capacitor-swift-pm"],
-      "matchManagers": ["swift-pm"],
+      "matchPackageNames": [
+        "ionic-team/capacitor-swift-pm"
+      ],
+      "matchManagers": [
+        "swift-pm"
+      ],
       "enabled": false
     },
     {
-      "matchDepTypes": ["peerDependencies"],
-      "matchPackageNames": ["@capacitor/core"],
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": [
+        "peerDependencies"
+      ],
+      "matchPackageNames": [
+        "@capacitor/core"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "enabled": false
     },
     {
-      "matchDepTypes": ["peerDependencies"],
-      "matchPackageNames": ["@capacitor/core"],
+      "matchDepTypes": [
+        "peerDependencies"
+      ],
+      "matchPackageNames": [
+        "@capacitor/core"
+      ],
       "rangeStrategy": "replace",
       "allowedVersions": "/^>=\\d+\\.0\\.0$/"
     },
     {
-      "matchPackageNames": ["com.google.androidbrowserhelper:androidbrowserhelper"],
-      "matchManagers": ["gradle"],
+      "matchPackageNames": [
+        "com.google.androidbrowserhelper:androidbrowserhelper"
+      ],
+      "matchManagers": [
+        "gradle"
+      ],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "androidx.core:core"
+      ],
+      "matchManagers": [
+        "gradle"
+      ],
       "enabled": false
     }
   ]
