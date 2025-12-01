@@ -16,6 +16,7 @@
     "@capacitor/ios": "^7.4.3",
     "@capacitor/privacy-screen": "^1.1.1",
     "@capgo/capacitor-social-login": "file:../",
+    "@supabase/supabase-js": "^2.86.0",
     "firebase": "^12.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
