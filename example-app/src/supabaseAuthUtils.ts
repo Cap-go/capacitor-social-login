@@ -1,4 +1,4 @@
-import { SocialLogin, type GoogleLoginOptions, type GoogleLoginResponseOnline } from '../../src';
+import { SocialLogin, type GoogleLoginOptions, type GoogleLoginResponseOnline, type AppleProviderResponse } from '../../src';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabase';
 
@@ -226,12 +226,66 @@ export const authenticateWithGoogleSupabase = async (retry: boolean = false): Pr
 /**
  * Authenticate with Apple using Capacitor Social Login plugin
  * and then sign in to Supabase Auth
+ * 
+ * Supports both iOS (native) and Android (OAuth redirect flow)
  */
 export const authenticateWithAppleSupabase = async (): Promise<{ success: boolean; error?: string; user?: any }> => {
-  return {
-    success: false,
-    error: 'Apple authentication not yet implemented',
-  };
+  try {
+    const platform = Capacitor.getPlatform();
+
+    // Initialize Apple Sign-In
+    // On iOS: redirectUrl can be empty string or omitted
+    // On Android: redirectUrl must point to your backend (Supabase edge function)
+    const redirectUrl = platform === 'android' 
+      ? 'https://ravietjurodcepyjsgcu.supabase.co/functions/v1/apple-signin-callback'
+      : undefined;
+
+    await SocialLogin.initialize({
+      apple: {
+        clientId: platform === 'android' 
+          ? 'app.capgo.plugin.SocialLogin.service' // Your Apple Service ID for Android
+          : undefined, // iOS uses bundle ID automatically
+        redirectUrl: redirectUrl,
+      },
+    });
+
+    // Login with Apple via Capacitor plugin
+    const response = await SocialLogin.login({
+      provider: 'apple',
+      options: {},
+    });
+
+    // Extract idToken from response
+    const appleResponse = response.result as AppleProviderResponse;
+
+    if (!appleResponse.idToken) {
+      return {
+        success: false,
+        error: 'Failed to get Apple ID token',
+      };
+    }
+
+    // Sign in to Supabase with the Apple ID token
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: appleResponse.idToken,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      success: true,
+      user: data.user,
+    };
+  } catch (error: any) {
+    console.error('Apple authentication error:', error);
+    return {
+      success: false,
+      error: error.message || 'Apple authentication failed',
+    };
+  }
 };
 
 /**

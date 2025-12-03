@@ -31,6 +31,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="@string/fb_login_protocol_scheme" />
             </intent-filter>
+            
+            <!-- Apple Sign-In Deep Linking -->
+            <!-- Change android:scheme and android:host to match your BASE_REDIRECT_URL -->
+            <!-- Example: BASE_REDIRECT_URL = "capgo-demo-app://path" -->
+            <!-- Then: android:scheme="capgo-demo-app" android:host="path" -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="capgo-demo-app" android:host="path" />
+            </intent-filter>
         </activity>
 
         <!-- Facebook Activity for Login -->
