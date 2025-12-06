@@ -599,11 +599,15 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "familyName": appleResponse.profile.familyName ?? ""
                 ]
 
-                let appleResult: [String: Any] = [
+                var appleResult: [String: Any] = [
                     "accessToken": accessTokenObject ?? NSNull(),
                     "profile": profileObject,
                     "idToken": appleResponse.idToken ?? ""
                 ]
+                
+                if let authorizationCode = appleResponse.authorizationCode {
+                    appleResult["authorizationCode"] = authorizationCode
+                }
 
                 call.resolve([
                     "provider": "apple",
