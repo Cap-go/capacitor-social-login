@@ -12,7 +12,7 @@ Pod::Spec.new do |s|
   s.source = { :git => package['repository']['url'], :tag => s.version.to_s }
   s.source_files = 'ios/Sources/**/*.{swift,h,m,c,cc,mm,cpp}'
   s.exclude_files = '**/node_modules/**/*', '**/examples/**/*'
-  s.ios.deployment_target = '14.0'
+  s.ios.deployment_target = '15.0'
   s.dependency 'Capacitor'
   # Provider dependencies (conditionally included via hook script)
   # Hook script modifies these lines based on capacitor.config.ts
