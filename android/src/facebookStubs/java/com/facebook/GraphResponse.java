@@ -14,6 +14,7 @@ public class GraphResponse {
     }
 
     public static class FacebookRequestError {
+
         public String getErrorMessage() {
             return "Facebook SDK is not available (stub)";
         }

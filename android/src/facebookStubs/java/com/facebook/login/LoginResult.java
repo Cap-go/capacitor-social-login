@@ -20,6 +20,7 @@ public class LoginResult {
     }
 
     public static class AuthenticationToken {
+
         public String getToken() {
             return "";
         }

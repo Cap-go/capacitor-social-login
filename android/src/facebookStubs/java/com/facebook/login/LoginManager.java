@@ -25,11 +25,20 @@ public class LoginManager {
         // Stub - no-op
     }
 
-    public void logIn(ActivityResultRegistryOwner activityResultRegistryOwner, CallbackManager callbackManager, Collection<String> permissions) {
+    public void logIn(
+        ActivityResultRegistryOwner activityResultRegistryOwner,
+        CallbackManager callbackManager,
+        Collection<String> permissions
+    ) {
         // Stub - no-op
     }
 
-    public void logIn(ActivityResultRegistryOwner activityResultRegistryOwner, CallbackManager callbackManager, Collection<String> permissions, String nonce) {
+    public void logIn(
+        ActivityResultRegistryOwner activityResultRegistryOwner,
+        CallbackManager callbackManager,
+        Collection<String> permissions,
+        String nonce
+    ) {
         // Stub - no-op
     }
 

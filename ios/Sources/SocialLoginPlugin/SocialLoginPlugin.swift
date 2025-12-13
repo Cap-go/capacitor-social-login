@@ -604,7 +604,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "profile": profileObject,
                     "idToken": appleResponse.idToken ?? ""
                 ]
-                
+
                 if let authorizationCode = appleResponse.authorizationCode {
                     appleResult["authorizationCode"] = authorizationCode
                 }
