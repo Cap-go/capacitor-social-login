@@ -26,6 +26,7 @@
   "bugs": {
     "url": "https://github.com/Cap-go/capacitor-social-login/issues"
   },
+  "homepage": "https://capgo.app/docs/plugins/social-login/",
   "keywords": [
     "capacitor",
     "plugin",
