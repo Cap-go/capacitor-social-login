@@ -14,14 +14,14 @@ If you're currently using `@codetrix-studio/capacitor-google-auth`, we recommend
 ## About
 All social logins in one plugin
 
-This plugin implement social auth for:
+This plugin implements social auth for:
 - Google (with credential manager)
-- Apple (with 0auth on android)
-- Facebook ( with latest SDK)
+- Apple (with OAuth on android)
+- Facebook (with latest SDK)
+- Twitter/X (OAuth 2.0)
+- Generic OAuth2 (supports multiple providers: GitHub, Azure AD, Auth0, Okta, and any OAuth2-compliant server)
 
-We plan in the future to keep adding others social login and make this plugin the all in one solution.
-
-This plugin is the only one who implement all 3 majors social login on WEB, IOS and Android
+This plugin is the all-in-one solution for social authentication on Web, iOS, and Android.
 
 ## Documentation
 
@@ -343,6 +343,137 @@ When using `mode: 'offline'`, the login response will only contain:
 
 Initialize method to create a script tag with Google lib. We cannot know when it's ready so be sure to do it early in web otherwise it will fail.
 
+## OAuth2 (Generic)
+
+The plugin supports generic OAuth2 authentication, allowing you to integrate with any OAuth2-compliant provider (GitHub, Azure AD, Auth0, Okta, custom servers, etc.). You can configure multiple OAuth2 providers simultaneously.
+
+### Multi-Provider Configuration
+
+```typescript
+await SocialLogin.initialize({
+  oauth2: {
+    // GitHub OAuth2
+    github: {
+      appId: 'your-github-client-id',
+      authorizationBaseUrl: 'https://github.com/login/oauth/authorize',
+      accessTokenEndpoint: 'https://github.com/login/oauth/access_token',
+      redirectUrl: 'myapp://oauth/github',
+      scope: 'read:user user:email',
+      pkceEnabled: true,
+    },
+    // Azure AD OAuth2
+    azure: {
+      appId: 'your-azure-client-id',
+      authorizationBaseUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+      accessTokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+      redirectUrl: 'myapp://oauth/azure',
+      scope: 'openid profile email',
+      pkceEnabled: true,
+      resourceUrl: 'https://graph.microsoft.com/v1.0/me',
+    },
+    // Auth0 OAuth2
+    auth0: {
+      appId: 'your-auth0-client-id',
+      authorizationBaseUrl: 'https://your-tenant.auth0.com/authorize',
+      accessTokenEndpoint: 'https://your-tenant.auth0.com/oauth/token',
+      redirectUrl: 'myapp://oauth/auth0',
+      scope: 'openid profile email offline_access',
+      pkceEnabled: true,
+      additionalParameters: {
+        audience: 'https://your-api.example.com',
+      },
+    },
+  },
+});
+```
+
+### Login with a Specific Provider
+
+```typescript
+// Login with GitHub
+const githubResult = await SocialLogin.login({
+  provider: 'oauth2',
+  options: {
+    providerId: 'github',  // Required: must match key from initialize()
+  },
+});
+
+// Login with Azure AD
+const azureResult = await SocialLogin.login({
+  provider: 'oauth2',
+  options: {
+    providerId: 'azure',
+    scope: 'openid profile email',  // Optional: override default scopes
+  },
+});
+
+console.log('Access Token:', azureResult.result.accessToken?.token);
+console.log('ID Token:', azureResult.result.idToken);
+console.log('User Data:', azureResult.result.resourceData);
+```
+
+### Check Login Status
+
+```typescript
+const status = await SocialLogin.isLoggedIn({
+  provider: 'oauth2',
+  providerId: 'github',  // Required for OAuth2
+});
+console.log('Is logged in:', status.isLoggedIn);
+```
+
+### Logout
+
+```typescript
+await SocialLogin.logout({
+  provider: 'oauth2',
+  providerId: 'github',  // Required for OAuth2
+});
+```
+
+### Refresh Token
+
+```typescript
+await SocialLogin.refresh({
+  provider: 'oauth2',
+  options: {
+    providerId: 'github',  // Required for OAuth2
+  },
+});
+```
+
+### OAuth2 Configuration Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `appId` | string | Yes | OAuth2 Client ID |
+| `authorizationBaseUrl` | string | Yes | Authorization endpoint URL |
+| `accessTokenEndpoint` | string | No* | Token endpoint URL (*Required for code flow) |
+| `redirectUrl` | string | Yes | Callback URL for OAuth redirect |
+| `responseType` | 'code' \| 'token' | No | OAuth flow type (default: 'code') |
+| `pkceEnabled` | boolean | No | Enable PKCE (default: true) |
+| `scope` | string | No | Default scopes to request |
+| `resourceUrl` | string | No | URL to fetch user profile after auth |
+| `additionalParameters` | Record<string, string> | No | Extra params for authorization URL |
+| `additionalResourceHeaders` | Record<string, string> | No | Extra headers for resource request |
+| `logoutUrl` | string | No | URL to open on logout |
+| `logsEnabled` | boolean | No | Enable debug logging (default: false) |
+
+### Platform-Specific Notes
+
+**iOS**: Uses `ASWebAuthenticationSession` for secure authentication.
+
+**Android**: Uses a WebView-based authentication flow.
+
+**Web**: Opens a popup window for OAuth flow.
+
+### Security Recommendations
+
+1. **Always use PKCE** (`pkceEnabled: true`) for public clients
+2. **Use authorization code flow** (`responseType: 'code'`) instead of implicit flow
+3. **Store tokens securely** using [@capgo/capacitor-persistent-account](https://github.com/Cap-go/capacitor-persistent-account)
+4. **Use HTTPS** for all endpoints and redirect URLs in production
+
 ## Troubleshooting
 
 
@@ -464,14 +595,14 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login<T extends "apple" | "google" | "facebook" | "twitter">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
+login<T extends "apple" | "google" | "facebook" | "twitter" | "oauth2">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
 
-| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt;</code> |
+| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }, { provider: T; }&gt;</code> |
 
 **Returns:** <code>Promise&lt;{ provider: T; result: ProviderResponseMap[T]; }&gt;</code>
 
@@ -481,14 +612,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter'; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2'; providerId?: string; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                                                       |
-| ------------- | -------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter'; }</code> |
+| Param         | Type                                                                                                        |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'; providerId?: string; }</code> |
 
 --------------------
 
@@ -577,12 +708,33 @@ Get the native Capacitor plugin version
 
 #### InitializeOptions
 
-| Prop           | Type                                                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                          |
-| **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |
-| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; useBroadcastChannel?: boolean; }</code>                                          |
+| Prop           | Type                                                                                                                                                                | Description                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **`oauth2`**   | <code><a href="#record">Record</a>&lt;string, <a href="#oauth2providerconfig">OAuth2ProviderConfig</a>&gt;</code>                                                   | OAuth2 provider configurations. Supports multiple providers by using a <a href="#record">Record</a> with provider IDs as keys. |
+| **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                          |                                                                                                                                |
+| **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |                                                                                                                                |
+| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |                                                                                                                                |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; useBroadcastChannel?: boolean; }</code>                                          |                                                                                                                                |
+
+
+#### OAuth2ProviderConfig
+
+Configuration for a single OAuth2 provider instance
+
+| Prop                            | Type                                                            | Description                                                                                                                                                            | Default             |
+| ------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| **`appId`**                     | <code>string</code>                                             | The OAuth 2.0 client identifier (App ID / Client ID)                                                                                                                   |                     |
+| **`authorizationBaseUrl`**      | <code>string</code>                                             | The base URL of the authorization endpoint                                                                                                                             |                     |
+| **`accessTokenEndpoint`**       | <code>string</code>                                             | The URL to exchange the authorization code for tokens Required for authorization code flow                                                                             |                     |
+| **`redirectUrl`**               | <code>string</code>                                             | Redirect URL that receives the OAuth callback                                                                                                                          |                     |
+| **`resourceUrl`**               | <code>string</code>                                             | Optional URL to fetch user profile/resource data after authentication The access token will be sent as Bearer token in the Authorization header                        |                     |
+| **`responseType`**              | <code>'code' \| 'token'</code>                                  | The OAuth response type - 'code': Authorization Code flow (recommended, requires accessTokenEndpoint) - 'token': Implicit flow (less secure, tokens returned directly) | <code>'code'</code> |
+| **`pkceEnabled`**               | <code>boolean</code>                                            | Enable PKCE (Proof Key for Code Exchange) Strongly recommended for public clients (mobile/web apps)                                                                    | <code>true</code>   |
+| **`scope`**                     | <code>string</code>                                             | Default scopes to request during authorization                                                                                                                         |                     |
+| **`additionalParameters`**      | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to include in the authorization request                                                                                                          |                     |
+| **`additionalResourceHeaders`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional headers to include when fetching the resource URL                                                                                                           |                     |
+| **`logoutUrl`**                 | <code>string</code>                                             | Custom logout URL for ending the session                                                                                                                               |                     |
+| **`logsEnabled`**               | <code>boolean</code>                                            | Enable debug logging                                                                                                                                                   | <code>false</code>  |
 
 
 #### FacebookLoginResponse
@@ -662,6 +814,20 @@ Get the native Capacitor plugin version
 | **`email`**           | <code>string \| null</code> |
 
 
+#### OAuth2LoginResponse
+
+| Prop               | Type                                                                     | Description                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| **`providerId`**   | <code>string</code>                                                      | The provider ID that was used for this login                                                                   |
+| **`accessToken`**  | <code><a href="#accesstoken">AccessToken</a> \| null</code>              | The access token received from the OAuth provider                                                              |
+| **`idToken`**      | <code>string \| null</code>                                              | The ID token (JWT) if provided by the OAuth server (e.g., OpenID Connect)                                      |
+| **`refreshToken`** | <code>string \| null</code>                                              | The refresh token if provided (requires appropriate scope like offline_access)                                 |
+| **`resourceData`** | <code><a href="#record">Record</a>&lt;string, unknown&gt; \| null</code> | Resource data fetched from resourceUrl if configured Contains the raw JSON response from the resource endpoint |
+| **`scope`**        | <code>string[]</code>                                                    | The scopes that were granted                                                                                   |
+| **`tokenType`**    | <code>string</code>                                                      | Token type (usually 'bearer')                                                                                  |
+| **`expiresIn`**    | <code>number \| null</code>                                              | Token expiration time in seconds                                                                               |
+
+
 #### FacebookLoginOptions
 
 | Prop               | Type                  | Description      | Default            |
@@ -706,11 +872,24 @@ Get the native Capacitor plugin version
 | **`forceLogin`**   | <code>boolean</code>  | Force the consent screen on every attempt, maps to `force_login=true`.                                                                  |
 
 
+#### OAuth2LoginOptions
+
+| Prop                       | Type                                                            | Description                                                                                               |
+| -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **`providerId`**           | <code>string</code>                                             | The provider ID as configured in initialize() This is required to identify which OAuth2 provider to use   |
+| **`scope`**                | <code>string</code>                                             | Override the scopes for this login request If not provided, uses the scopes from initialization           |
+| **`state`**                | <code>string</code>                                             | Custom state parameter for CSRF protection If not provided, a random value is generated                   |
+| **`codeVerifier`**         | <code>string</code>                                             | Override PKCE code verifier (for testing purposes) If not provided, a secure random verifier is generated |
+| **`redirectUrl`**          | <code>string</code>                                             | Override redirect URL for this login request                                                              |
+| **`additionalParameters`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to add to the authorization URL                                                     |
+
+
 #### isLoggedInOptions
 
-| Prop           | Type                                                        | Description |
-| -------------- | ----------------------------------------------------------- | ----------- |
-| **`provider`** | <code>'apple' \| 'google' \| 'facebook' \| 'twitter'</code> | Provider    |
+| Prop             | Type                                                                    | Description                                                           |
+| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                     | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### AuthorizationCode
@@ -723,9 +902,10 @@ Get the native Capacitor plugin version
 
 #### AuthorizationCodeOptions
 
-| Prop           | Type                                                        | Description |
-| -------------- | ----------------------------------------------------------- | ----------- |
-| **`provider`** | <code>'apple' \| 'google' \| 'facebook' \| 'twitter'</code> | Provider    |
+| Prop             | Type                                                                    | Description                                                           |
+| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                     | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### FacebookGetProfileResponse
@@ -752,9 +932,16 @@ Get the native Capacitor plugin version
 ### Type Aliases
 
 
+#### Record
+
+Construct a type with a set of properties K of type T
+
+<code>{ [P in K]: T; }</code>
+
+
 #### ProviderResponseMap
 
-<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; }</code>
+<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; oauth2: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
 
 
 #### GoogleLoginResponse
@@ -764,7 +951,7 @@ Get the native Capacitor plugin version
 
 #### LoginOptions
 
-<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }</code>
+<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; } | { provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }</code>
 
 
 #### Extract
@@ -792,13 +979,6 @@ Get the native Capacitor plugin version
 #### FacebookRequestTrackingOptions
 
 <code><a href="#record">Record</a>&lt;string, never&gt;</code>
-
-
-#### Record
-
-Construct a type with a set of properties K of type T
-
-<code>{ [P in K]: T; }</code>
 
 </docgen-api>
 

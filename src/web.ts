@@ -14,9 +14,11 @@ import type {
   ProviderSpecificCallOptionsMap,
   ProviderSpecificCallResponseMap,
   LoginResult,
+  OAuth2LoginOptions,
 } from './definitions';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
+import { OAuth2SocialLogin } from './oauth2-provider';
 import { TwitterSocialLogin } from './twitter-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
@@ -26,6 +28,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private appleProvider: AppleSocialLogin;
   private facebookProvider: FacebookSocialLogin;
   private twitterProvider: TwitterSocialLogin;
+  private oauth2Provider: OAuth2SocialLogin;
 
   constructor() {
     super();
@@ -34,6 +37,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     this.appleProvider = new AppleSocialLogin();
     this.facebookProvider = new FacebookSocialLogin();
     this.twitterProvider = new TwitterSocialLogin();
+    this.oauth2Provider = new OAuth2SocialLogin();
 
     // Set up listener for OAuth redirects if we have a pending OAuth flow
     if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
@@ -66,6 +70,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (provider) {
       case 'twitter':
         result = await this.twitterProvider.handleOAuthRedirect(url, state);
+        break;
+      case 'oauth2':
+        result = await this.oauth2Provider.handleOAuthRedirect(url, state);
         break;
       case 'google':
       default:
@@ -141,6 +148,10 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       );
     }
 
+    if (options.oauth2 && Object.keys(options.oauth2).length > 0) {
+      initPromises.push(this.oauth2Provider.initializeProviders(options.oauth2));
+    }
+
     await Promise.all(initPromises);
   }
 
@@ -149,9 +160,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     switch (options.provider) {
       case 'google':
-        return this.googleProvider.login(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+        return this.googleProvider.login(options.options as any) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
       case 'apple':
-        return this.appleProvider.login(options.options) as Promise<{ provider: T; result: ProviderResponseMap[T] }>;
+        return this.appleProvider.login(options.options as any) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
       case 'facebook':
         return this.facebookProvider.login(options.options as FacebookLoginOptions) as Promise<{
           provider: T;
@@ -162,12 +179,20 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           provider: T;
           result: ProviderResponseMap[T];
         }>;
+      case 'oauth2':
+        return this.oauth2Provider.login(options.options as OAuth2LoginOptions) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
       default:
         throw new Error(`Login for ${options.provider} is not implemented on web`);
     }
   }
 
-  async logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' }): Promise<void> {
+  async logout(options: {
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    providerId?: string;
+  }): Promise<void> {
     switch (options.provider) {
       case 'google':
         return this.googleProvider.logout();
@@ -177,6 +202,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.logout();
       case 'twitter':
         return this.twitterProvider.logout();
+      case 'oauth2':
+        if (!options.providerId) {
+          throw new Error('providerId is required for oauth2 logout');
+        }
+        return this.oauth2Provider.logout(options.providerId);
       default:
         throw new Error(`Logout for ${options.provider} is not implemented`);
     }
@@ -192,6 +222,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.isLoggedIn();
       case 'twitter':
         return this.twitterProvider.isLoggedIn();
+      case 'oauth2':
+        if (!options.providerId) {
+          throw new Error('providerId is required for oauth2 isLoggedIn');
+        }
+        return this.oauth2Provider.isLoggedIn(options.providerId);
       default:
         throw new Error(`isLoggedIn for ${options.provider} is not implemented`);
     }
@@ -207,6 +242,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.getAuthorizationCode();
       case 'twitter':
         return this.twitterProvider.getAuthorizationCode();
+      case 'oauth2':
+        if (!options.providerId) {
+          throw new Error('providerId is required for oauth2 getAuthorizationCode');
+        }
+        return this.oauth2Provider.getAuthorizationCode(options.providerId);
       default:
         throw new Error(`getAuthorizationCode for ${options.provider} is not implemented`);
     }
@@ -222,6 +262,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.refresh(options.options as FacebookLoginOptions);
       case 'twitter':
         return this.twitterProvider.refresh();
+      case 'oauth2': {
+        const oauth2Options = options.options as OAuth2LoginOptions;
+        if (!oauth2Options?.providerId) {
+          throw new Error('providerId is required for oauth2 refresh');
+        }
+        return this.oauth2Provider.refresh(oauth2Options.providerId);
+      }
       default:
         throw new Error(`Refresh for ${(options as any).provider} is not implemented`);
     }

@@ -162,6 +162,23 @@ public class SocialLoginPlugin extends Plugin {
             }
         }
 
+        JSObject oauth2 = call.getObject("oauth2");
+        if (oauth2 != null && oauth2.length() > 0) {
+            // oauth2 is now a map of providerId -> config: { "github": {...}, "azure": {...} }
+            OAuth2Provider oauth2Provider = new OAuth2Provider(this.getActivity(), this.getContext());
+            try {
+                java.util.List<String> errors = oauth2Provider.initializeProviders(oauth2);
+                if (!errors.isEmpty()) {
+                    call.reject(String.join(", ", errors));
+                    return;
+                }
+                this.socialProviderHashMap.put("oauth2", oauth2Provider);
+            } catch (JSONException e) {
+                call.reject("Failed to initialize OAuth2 provider: " + e.getMessage());
+                return;
+            }
+        }
+
         call.resolve();
     }
 
@@ -386,6 +403,15 @@ public class SocialLoginPlugin extends Plugin {
             boolean handled = ((TwitterProvider) twitterProvider).handleActivityResult(requestCode, resultCode, data);
             if (handled) {
                 Log.d(LOG_TAG, "Twitter activity result handled");
+                return;
+            }
+        }
+
+        SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
+        if (oauth2Provider instanceof OAuth2Provider) {
+            boolean handled = ((OAuth2Provider) oauth2Provider).handleActivityResult(requestCode, resultCode, data);
+            if (handled) {
+                Log.d(LOG_TAG, "OAuth2 activity result handled");
                 return;
             }
         }

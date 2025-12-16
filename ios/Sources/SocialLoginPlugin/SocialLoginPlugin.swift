@@ -50,6 +50,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     #endif
 
     private let twitter = TwitterProvider()
+    private let oauth2 = OAuth2Provider()
 
     // Helper to get Facebook provider (returns nil if unavailable)
     private var facebookProvider: FacebookProvider? {
@@ -214,6 +215,25 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             initialized = true
         }
 
+        if let oauth2Settings = call.getObject("oauth2"), !oauth2Settings.isEmpty {
+            // oauth2Settings is now a dictionary of provider configs: { "github": {...}, "azure": {...} }
+            var oauth2Configs: [String: [String: Any]] = [:]
+            for (providerId, value) in oauth2Settings {
+                if let config = value as? [String: Any] {
+                    oauth2Configs[providerId] = config
+                }
+            }
+
+            if !oauth2Configs.isEmpty {
+                let errors = oauth2.initializeProviders(configs: oauth2Configs)
+                if !errors.isEmpty {
+                    call.reject(errors.joined(separator: ", "))
+                    return
+                }
+                initialized = true
+            }
+        }
+
         if initialized {
             call.resolve()
         } else {
@@ -298,6 +318,30 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "oauth2": do {
+            guard let providerId = call.getString("providerId") else {
+                call.reject("providerId is required for oauth2 getAuthorizationCode")
+                return
+            }
+            self.oauth2.getAuthorizationCode(providerId: providerId) { res in
+                do {
+                    let token = try res.get()
+                    var response: [String: Any] = [
+                        "accessToken": token.token,
+                        "tokenType": token.tokenType
+                    ]
+                    if let expires = token.expires {
+                        response["expires"] = expires
+                    }
+                    if let refreshToken = token.refreshToken {
+                        response["refreshToken"] = refreshToken
+                    }
+                    call.resolve(response)
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -356,6 +400,20 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "oauth2": do {
+            guard let providerId = call.getString("providerId") else {
+                call.reject("providerId is required for oauth2 isLoggedIn")
+                return
+            }
+            self.oauth2.isLoggedIn(providerId: providerId) { res in
+                do {
+                    let status = try res.get()
+                    call.resolve([ "isLoggedIn": status ])
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -395,6 +453,14 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         case "twitter":
             twitter.login(payload: payload) { (result: Result<TwitterProfileResponse, Error>) in
+                self.handleLoginResult(result, call: call)
+            }
+        case "oauth2":
+            guard let providerId = payload["providerId"] as? String else {
+                call.reject("providerId is required for oauth2 login")
+                return
+            }
+            oauth2.login(providerId: providerId, payload: payload) { (result: Result<OAuth2LoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         default:
@@ -483,6 +549,14 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             twitter.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
+        case "oauth2":
+            guard let providerId = call.getString("providerId") else {
+                call.reject("providerId is required for oauth2 logout")
+                return
+            }
+            oauth2.logout(providerId: providerId) { result in
+                self.handleLogoutResult(result, call: call)
+            }
         default:
             call.reject("Invalid provider")
         }
@@ -523,7 +597,14 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             twitter.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
-
+        case "oauth2":
+            guard let options = call.getObject("options"), let providerId = options["providerId"] as? String else {
+                call.reject("providerId is required for oauth2 refresh")
+                return
+            }
+            oauth2.refresh(providerId: providerId) { result in
+                self.handleRefreshResult(result, call: call)
+            }
         default:
             call.reject("Invalid provider")
         }
@@ -554,6 +635,13 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "idToken": NSNull(),
                     "refreshToken": twitterResponse.accessToken.refreshToken ?? NSNull(),
                     "expiresIn": twitterResponse.accessToken.expiresIn ?? NSNull()
+                ])
+            } else if let oauth2Response = response as? OAuth2LoginResponse {
+                call.resolve([
+                    "accessToken": oauth2Response.accessToken.token,
+                    "idToken": oauth2Response.idToken ?? NSNull(),
+                    "refreshToken": oauth2Response.refreshToken ?? NSNull(),
+                    "expiresIn": oauth2Response.expiresIn ?? NSNull()
                 ])
             } else {
                 call.reject("Invalid refresh response")
@@ -683,6 +771,27 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve([
                     "provider": "twitter",
                     "result": twitterResult
+                ])
+            } else if let oauth2Response = response as? OAuth2LoginResponse {
+                let accessToken: [String: Any] = [
+                    "token": oauth2Response.accessToken.token,
+                    "tokenType": oauth2Response.accessToken.tokenType,
+                    "expires": oauth2Response.accessToken.expires ?? NSNull(),
+                    "refreshToken": oauth2Response.accessToken.refreshToken ?? NSNull()
+                ]
+                var oauth2Result: [String: Any] = [
+                    "providerId": oauth2Response.providerId,
+                    "accessToken": accessToken,
+                    "idToken": oauth2Response.idToken ?? NSNull(),
+                    "refreshToken": oauth2Response.refreshToken ?? NSNull(),
+                    "resourceData": oauth2Response.resourceData ?? NSNull(),
+                    "scope": oauth2Response.scope,
+                    "tokenType": oauth2Response.tokenType,
+                    "expiresIn": oauth2Response.expiresIn ?? NSNull()
+                ]
+                call.resolve([
+                    "provider": "oauth2",
+                    "result": oauth2Result
                 ])
             } else {
                 call.reject("Unsupported provider response")

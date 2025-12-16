@@ -1,4 +1,85 @@
+/**
+ * Configuration for a single OAuth2 provider instance
+ */
+export interface OAuth2ProviderConfig {
+  /**
+   * The OAuth 2.0 client identifier (App ID / Client ID)
+   * @example 'your-client-id'
+   */
+  appId: string;
+  /**
+   * The base URL of the authorization endpoint
+   * @example 'https://accounts.example.com/oauth2/authorize'
+   */
+  authorizationBaseUrl: string;
+  /**
+   * The URL to exchange the authorization code for tokens
+   * Required for authorization code flow
+   * @example 'https://accounts.example.com/oauth2/token'
+   */
+  accessTokenEndpoint?: string;
+  /**
+   * Redirect URL that receives the OAuth callback
+   * @example 'myapp://oauth/callback'
+   */
+  redirectUrl: string;
+  /**
+   * Optional URL to fetch user profile/resource data after authentication
+   * The access token will be sent as Bearer token in the Authorization header
+   * @example 'https://api.example.com/userinfo'
+   */
+  resourceUrl?: string;
+  /**
+   * The OAuth response type
+   * - 'code': Authorization Code flow (recommended, requires accessTokenEndpoint)
+   * - 'token': Implicit flow (less secure, tokens returned directly)
+   * @default 'code'
+   */
+  responseType?: 'code' | 'token';
+  /**
+   * Enable PKCE (Proof Key for Code Exchange)
+   * Strongly recommended for public clients (mobile/web apps)
+   * @default true
+   */
+  pkceEnabled?: boolean;
+  /**
+   * Default scopes to request during authorization
+   * @example 'openid profile email'
+   */
+  scope?: string;
+  /**
+   * Additional parameters to include in the authorization request
+   * @example { prompt: 'consent', login_hint: 'user@example.com' }
+   */
+  additionalParameters?: Record<string, string>;
+  /**
+   * Additional headers to include when fetching the resource URL
+   * @example { 'X-Custom-Header': 'value' }
+   */
+  additionalResourceHeaders?: Record<string, string>;
+  /**
+   * Custom logout URL for ending the session
+   * @example 'https://accounts.example.com/logout'
+   */
+  logoutUrl?: string;
+  /**
+   * Enable debug logging
+   * @default false
+   */
+  logsEnabled?: boolean;
+}
+
 export interface InitializeOptions {
+  /**
+   * OAuth2 provider configurations.
+   * Supports multiple providers by using a Record with provider IDs as keys.
+   * @example
+   * {
+   *   github: { appId: '...', authorizationBaseUrl: 'https://github.com/login/oauth/authorize', ... },
+   *   azure: { appId: '...', authorizationBaseUrl: 'https://login.microsoftonline.com/.../oauth2/v2.0/authorize', ... }
+   * }
+   */
+  oauth2?: Record<string, OAuth2ProviderConfig>;
   twitter?: {
     /**
      * The OAuth 2.0 client identifier issued by X (Twitter) Developer Portal
@@ -225,6 +306,74 @@ export interface TwitterLoginOptions {
   forceLogin?: boolean;
 }
 
+export interface OAuth2LoginOptions {
+  /**
+   * The provider ID as configured in initialize()
+   * This is required to identify which OAuth2 provider to use
+   * @example 'github', 'azure', 'keycloak'
+   */
+  providerId: string;
+  /**
+   * Override the scopes for this login request
+   * If not provided, uses the scopes from initialization
+   */
+  scope?: string;
+  /**
+   * Custom state parameter for CSRF protection
+   * If not provided, a random value is generated
+   */
+  state?: string;
+  /**
+   * Override PKCE code verifier (for testing purposes)
+   * If not provided, a secure random verifier is generated
+   */
+  codeVerifier?: string;
+  /**
+   * Override redirect URL for this login request
+   */
+  redirectUrl?: string;
+  /**
+   * Additional parameters to add to the authorization URL
+   */
+  additionalParameters?: Record<string, string>;
+}
+
+export interface OAuth2LoginResponse {
+  /**
+   * The provider ID that was used for this login
+   */
+  providerId: string;
+  /**
+   * The access token received from the OAuth provider
+   */
+  accessToken: AccessToken | null;
+  /**
+   * The ID token (JWT) if provided by the OAuth server (e.g., OpenID Connect)
+   */
+  idToken: string | null;
+  /**
+   * The refresh token if provided (requires appropriate scope like offline_access)
+   */
+  refreshToken: string | null;
+  /**
+   * Resource data fetched from resourceUrl if configured
+   * Contains the raw JSON response from the resource endpoint
+   */
+  resourceData: Record<string, unknown> | null;
+  /**
+   * The scopes that were granted
+   */
+  scope: string[];
+  /**
+   * Token type (usually 'bearer')
+   */
+  tokenType: string;
+  /**
+   * Token expiration time in seconds
+   */
+  expiresIn: number | null;
+}
+
 export interface GoogleLoginOptions {
   /**
    * Specifies the scopes required for accessing Google APIs
@@ -408,6 +557,10 @@ export type LoginOptions =
   | {
       provider: 'twitter';
       options: TwitterLoginOptions;
+    }
+  | {
+      provider: 'oauth2';
+      options: OAuth2LoginOptions;
     };
 
 export type LoginResult =
@@ -426,6 +579,10 @@ export type LoginResult =
   | {
       provider: 'twitter';
       result: TwitterLoginResponse;
+    }
+  | {
+      provider: 'oauth2';
+      result: OAuth2LoginResponse;
     };
 
 export interface AccessToken {
@@ -495,7 +652,12 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  /**
+   * Provider ID for OAuth2 providers (required when provider is 'oauth2')
+   * @description The ID used when configuring the OAuth2 provider in initialize()
+   */
+  providerId?: string;
 }
 
 export interface isLoggedInOptions {
@@ -503,7 +665,12 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  /**
+   * Provider ID for OAuth2 providers (required when provider is 'oauth2')
+   * @description The ID used when configuring the OAuth2 provider in initialize()
+   */
+  providerId?: string;
 }
 
 // Define the provider-specific call types
@@ -566,6 +733,7 @@ export type ProviderResponseMap = {
   google: GoogleLoginResponse;
   apple: AppleProviderResponse;
   twitter: TwitterLoginResponse;
+  oauth2: OAuth2LoginResponse;
 };
 
 export interface SocialLoginPlugin {
@@ -591,7 +759,10 @@ export interface SocialLoginPlugin {
    *
    * @throws Error if Google provider is in offline mode
    */
-  logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' }): Promise<void>;
+  logout(options: {
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    providerId?: string;
+  }): Promise<void>;
   /**
    * IsLoggedIn
    * @description Check if the user is currently logged in with the specified provider

@@ -13,5 +13,9 @@
             android:name="ee.forgr.capacitor.social.login.TwitterLoginActivity"
             android:exported="false"
             android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+        <activity
+            android:name="ee.forgr.capacitor.social.login.OAuth2LoginActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
     </application>
 </manifest>
