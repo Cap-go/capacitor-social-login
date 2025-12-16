@@ -417,6 +417,15 @@ await SocialLogin.login({
 
 **Note**: Other apps like Listonic work with Family Link accounts because they use similar configurations. The default settings may be too restrictive for supervised accounts.
 
+## Where to store access tokens?
+
+You can use the [@capgo/capacitor-persistent-account](https://github.com/Cap-go/capacitor-persistent-account) plugin for this.
+
+This plugin stores data in secure locations for native devices.
+
+For Android, it will store data in Android's Account Manager, which provides system-level account management.
+For iOS, it will store data in the Keychain, which is Apple's secure credential storage.
+
 ## API
 
 <docgen-index>
