@@ -21,11 +21,7 @@ class FacebookProvider {
     private let dateFormatter = ISO8601DateFormatter()
 
     init() {
-        if #available(iOS 11.2, *) {
-            dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        } else {
-            dateFormatter.formatOptions = [.withInternetDateTime]
-        }
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     }
 
     private func dateToJS(_ date: Date) -> String {
@@ -172,27 +168,23 @@ class FacebookProvider {
 
     func requestTracking(completion: @escaping (Result<String, Error>) -> Void) {
         #if canImport(AppTrackingTransparency)
-        if #available(iOS 14, *) {
-            DispatchQueue.main.async {
-                ATTrackingManager.requestTrackingAuthorization { status in
-                    let statusString: String
-                    switch status {
-                    case .authorized:
-                        statusString = "authorized"
-                    case .denied:
-                        statusString = "denied"
-                    case .notDetermined:
-                        statusString = "notDetermined"
-                    case .restricted:
-                        statusString = "restricted"
-                    @unknown default:
-                        statusString = "notDetermined"
-                    }
-                    completion(.success(statusString))
+        DispatchQueue.main.async {
+            ATTrackingManager.requestTrackingAuthorization { status in
+                let statusString: String
+                switch status {
+                case .authorized:
+                    statusString = "authorized"
+                case .denied:
+                    statusString = "denied"
+                case .notDetermined:
+                    statusString = "notDetermined"
+                case .restricted:
+                    statusString = "restricted"
+                @unknown default:
+                    statusString = "notDetermined"
                 }
+                completion(.success(statusString))
             }
-        } else {
-            completion(.success("notDetermined"))
         }
         #else
         completion(.success("notDetermined"))

@@ -191,10 +191,7 @@ class OAuth2Provider: NSObject {
             self.handleCallback(providerId: providerId, config: config, callbackURL: callbackURL, redirectUri: redirect, completion: completion)
         }
 
-        if #available(iOS 13.0, *) {
-            session.presentationContextProvider = self
-        }
-
+        session.presentationContextProvider = self
         session.prefersEphemeralWebBrowserSession = true
         currentSession = session
         session.start()
@@ -558,7 +555,6 @@ class OAuth2Provider: NSObject {
 }
 
 extension OAuth2Provider: ASWebAuthenticationPresentationContextProviding {
-    @available(iOS 13.0, *)
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         return UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
     }

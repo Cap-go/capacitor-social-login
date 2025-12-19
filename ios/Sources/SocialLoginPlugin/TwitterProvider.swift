@@ -139,10 +139,7 @@ class TwitterProvider: NSObject {
             }
         }
 
-        if #available(iOS 13.0, *) {
-            session.presentationContextProvider = self
-        }
-
+        session.presentationContextProvider = self
         session.prefersEphemeralWebBrowserSession = true
         currentSession = session
         session.start()
@@ -364,7 +361,6 @@ class TwitterProvider: NSObject {
 }
 
 extension TwitterProvider: ASWebAuthenticationPresentationContextProviding {
-    @available(iOS 13.0, *)
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         return UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
     }
