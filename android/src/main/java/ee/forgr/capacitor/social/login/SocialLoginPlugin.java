@@ -1,7 +1,6 @@
 package ee.forgr.capacitor.social.login;
 
 import android.content.Intent;
-import android.os.Build;
 import android.util.Log;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -29,11 +28,6 @@ public class SocialLoginPlugin extends Plugin {
     public void initialize(PluginCall call) {
         // Set plugin instance for config access
         DependencyAvailabilityChecker.setPluginInstance(this);
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            call.reject("Your android device is too old");
-            return;
-        }
 
         JSObject apple = call.getObject("apple");
         if (apple != null) {
