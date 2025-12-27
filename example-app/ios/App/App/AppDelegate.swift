@@ -1,10 +1,6 @@
 import UIKit
 import Capacitor
 
-#if canImport(FBSDKCoreKit)
-import FBSDKCoreKit
-#endif
-
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -12,12 +8,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        #if canImport(FBSDKCoreKit)
-        FBSDKCoreKit.ApplicationDelegate.shared.application(
-            application,
-            didFinishLaunchingWithOptions: launchOptions
-        )
-        #endif
         return true
     }
 
@@ -46,20 +36,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
-        #if canImport(FBSDKCoreKit)
-        if (FBSDKCoreKit.ApplicationDelegate.shared.application(
-            app,
-            open: url,
-            sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String,
-            annotation: options[UIApplication.OpenURLOptionsKey.annotation]
-        )) {
-            return true
-        } else {
-            return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-        }
-        #else
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-        #endif
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {

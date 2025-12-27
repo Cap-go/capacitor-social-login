@@ -2,10 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Social Login example app</string>
+        <string>a</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,34 +47,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-    <key>CFBundleURLTypes</key>
-    <array>
-     <dict>
-       <key>CFBundleURLSchemes</key>
-       <array>
-         <string>com.googleusercontent.apps.44885413573-57pq0pothq40hh2pulaot47r8e06df64</string>
-         <string>com.googleusercontent.apps.206085278104-qh1i4e2vp949mjihpk2gju73qp4dhksk</string>
-       </array>
-     </dict>
-     <dict>
-       <key>CFBundleURLSchemes</key>
-       <array>
-         <string>fb1640177526775785</string>
-       </array>
-     </dict>
-    </array>
-    <key>FacebookAppID</key>
-    <string>1640177526775785</string>
-    <key>FacebookClientToken</key>
-    <string>621ef94157c7a8e58a0343918e9b6615</string>
-    <key>FacebookDisplayName</key>
-    <string>Captime-demo</string>
-    <key>LSApplicationQueriesSchemes</key>
-    <array>
-        <string>fbapi</string>
-    	<string>fb-messenger-share-api</string>
-    </array>
-    <key>CAPACITOR_STREAM_VIDEO_APIKEY</key>
-    <string>vq4zdsazqxd7    </string>
 </dict>
 </plist>
