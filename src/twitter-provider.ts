@@ -118,6 +118,16 @@ export class TwitterSocialLogin extends BaseSocialLogin {
         return;
       }
 
+      // Use BroadcastChannel for cross-origin communication (works when postMessage doesn't)
+      const channelName = `twitter_oauth_${state}`;
+      let broadcastChannel: BroadcastChannel | null = null;
+
+      try {
+        broadcastChannel = new BroadcastChannel(channelName);
+      } catch {
+        // BroadcastChannel not supported, fall back to postMessage only
+      }
+
       const cleanup = (
         messageHandler: (event: MessageEvent) => void,
         timeoutHandle: number,
@@ -126,48 +136,75 @@ export class TwitterSocialLogin extends BaseSocialLogin {
         window.removeEventListener('message', messageHandler);
         clearTimeout(timeoutHandle);
         clearInterval(intervalHandle);
+        if (broadcastChannel) {
+          broadcastChannel.close();
+        }
       };
 
-      const messageHandler = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) {
-          return;
-        }
-        if (event.data?.type === 'oauth-response') {
-          if (event.data?.provider && event.data.provider !== 'twitter') {
-            return;
+      const handleOAuthMessage = (data: Record<string, unknown>) => {
+        if (data?.type === 'oauth-response') {
+          if (data?.provider && data.provider !== 'twitter') {
+            return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { provider: _ignoredProvider, ...payload } = event.data as TwitterLoginResponse & {
+          const { provider: _ignoredProvider, ...payload } = data as unknown as TwitterLoginResponse & {
             provider?: string;
           };
           resolve({
             provider: 'twitter' as T,
             result: payload as ProviderResponseMap[T],
           } as { provider: T; result: ProviderResponseMap[T] });
-        } else if (event.data?.type === 'oauth-error') {
-          if (event.data?.provider && event.data.provider !== 'twitter') {
-            return;
+          return true;
+        } else if (data?.type === 'oauth-error') {
+          if (data?.provider && data.provider !== 'twitter') {
+            return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          reject(new Error(event.data.error || 'Twitter login was cancelled.'));
+          reject(new Error((data.error as string) || 'Twitter login was cancelled.'));
+          return true;
         }
+        return false;
+      };
+
+      // Listen for BroadcastChannel messages
+      if (broadcastChannel) {
+        broadcastChannel.onmessage = (event: MessageEvent) => {
+          handleOAuthMessage(event.data);
+        };
+      }
+
+      const messageHandler = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+        handleOAuthMessage(event.data);
       };
 
       window.addEventListener('message', messageHandler);
 
       const timeoutHandle = window.setTimeout(() => {
-        window.removeEventListener('message', messageHandler);
-        popup.close();
+        cleanup(messageHandler, timeoutHandle, popupClosedInterval);
+        try {
+          popup.close();
+        } catch {
+          // Ignore cross-origin errors when closing
+        }
         reject(new Error('Twitter login timed out.'));
       }, 300000);
 
       const popupClosedInterval = window.setInterval(() => {
-        if (popup.closed) {
-          window.removeEventListener('message', messageHandler);
+        try {
+          // Check if popup is closed - this may throw cross-origin errors for some providers
+          if (popup.closed) {
+            cleanup(messageHandler, timeoutHandle, popupClosedInterval);
+            reject(new Error('Twitter login window was closed.'));
+          }
+        } catch {
+          // Cross-origin error when checking popup.closed - this happens when the popup
+          // navigates to a third-party OAuth provider with strict security settings.
+          // We can't detect if the window was closed, so we rely on timeout and message handlers.
           clearInterval(popupClosedInterval);
-          clearTimeout(timeoutHandle);
-          reject(new Error('Twitter login window was closed.'));
         }
       }, 1000);
     });
