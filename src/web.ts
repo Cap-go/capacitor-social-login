@@ -84,25 +84,55 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       return;
     }
 
+    // Build the message to send
+    let message: Record<string, unknown>;
     if ('error' in result) {
       const resolvedProvider = provider ?? null;
-      window.opener?.postMessage(
-        {
-          type: 'oauth-error',
-          provider: resolvedProvider,
-          error: result.error,
-        },
-        window.location.origin,
-      );
+      message = {
+        type: 'oauth-error',
+        provider: resolvedProvider,
+        error: result.error,
+      };
     } else {
-      window.opener?.postMessage(
-        {
-          type: 'oauth-response',
-          provider: result.provider,
-          ...result.result,
-        },
-        window.location.origin,
-      );
+      message = {
+        type: 'oauth-response',
+        provider: result.provider,
+        ...result.result,
+      };
+    }
+
+    // Try postMessage first (works when window.opener is accessible)
+    try {
+      if (window.opener) {
+        window.opener.postMessage(message, window.location.origin);
+      }
+    } catch {
+      // Cross-origin error - window.opener may not be accessible
+      console.log('postMessage to opener failed, using BroadcastChannel');
+    }
+
+    // Also use BroadcastChannel as a fallback (works across same-origin windows
+    // even when window.opener is not accessible due to cross-origin navigation)
+    try {
+      // Determine the channel name based on provider and state
+      let channelName: string | null = null;
+      if (provider === 'oauth2' && state) {
+        channelName = `oauth2_${state}`;
+      } else if (provider === 'twitter' && state) {
+        channelName = `twitter_oauth_${state}`;
+      } else if (provider === 'google') {
+        // Google uses nonce which we can't easily recover here, but try anyway
+        // The parent window will have created a channel with a nonce-based name
+      }
+
+      if (channelName) {
+        const channel = new BroadcastChannel(channelName);
+        channel.postMessage(message);
+        channel.close();
+      }
+    } catch {
+      // BroadcastChannel not supported or other error
+      console.log('BroadcastChannel not available');
     }
 
     window.close();

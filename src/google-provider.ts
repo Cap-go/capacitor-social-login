@@ -364,6 +364,16 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     let popupClosedInterval: number;
     let timeoutHandle: number;
 
+    // Use BroadcastChannel for cross-origin communication (works when postMessage doesn't)
+    const channelName = `google_oauth_${nonce || Date.now()}`;
+    let broadcastChannel: BroadcastChannel | null = null;
+
+    try {
+      broadcastChannel = new BroadcastChannel(channelName);
+    } catch {
+      // BroadcastChannel not supported, fall back to postMessage only
+    }
+
     // This may never return...
     return new Promise((resolve, reject) => {
       if (!popup) {
@@ -371,74 +381,108 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         return;
       }
 
+      const cleanup = () => {
+        window.removeEventListener('message', handleMessage);
+        clearInterval(popupClosedInterval);
+        clearTimeout(timeoutHandle);
+        if (broadcastChannel) {
+          broadcastChannel.close();
+        }
+      };
+
+      const processOAuthResponse = (data: Record<string, unknown>) => {
+        if (this.loginType === 'online') {
+          const { accessToken, idToken } = data as { accessToken?: { token: string }; idToken?: string };
+          if (accessToken && idToken) {
+            const profile = this.parseJwt(idToken);
+            this.persistStateGoogle(accessToken.token, idToken);
+            resolve({
+              provider: 'google' as T,
+              result: {
+                accessToken: {
+                  token: accessToken.token,
+                },
+                idToken,
+                profile: {
+                  email: profile.email || null,
+                  familyName: profile.family_name || null,
+                  givenName: profile.given_name || null,
+                  id: profile.sub || null,
+                  name: profile.name || null,
+                  imageUrl: profile.picture || null,
+                },
+                responseType: 'online',
+              },
+            });
+          }
+        } else {
+          const { serverAuthCode } = data as { serverAuthCode: string };
+          resolve({
+            provider: 'google' as T,
+            result: {
+              responseType: 'offline',
+              serverAuthCode,
+            },
+          });
+        }
+      };
+
       const handleMessage = (event: MessageEvent) => {
         if (event.origin !== window.location.origin || event.data?.source?.startsWith('angular')) return;
 
         if (event.data?.type === 'oauth-response') {
-          window.removeEventListener('message', handleMessage);
-          clearInterval(popupClosedInterval);
-          clearTimeout(timeoutHandle);
-
-          if (this.loginType === 'online') {
-            const { accessToken, idToken } = event.data;
-            if (accessToken && idToken) {
-              const profile = this.parseJwt(idToken);
-              this.persistStateGoogle(accessToken.token, idToken);
-              resolve({
-                provider: 'google' as T,
-                result: {
-                  accessToken: {
-                    token: accessToken.token,
-                  },
-                  idToken,
-                  profile: {
-                    email: profile.email || null,
-                    familyName: profile.family_name || null,
-                    givenName: profile.given_name || null,
-                    id: profile.sub || null,
-                    name: profile.name || null,
-                    imageUrl: profile.picture || null,
-                  },
-                  responseType: 'online',
-                },
-              });
-            }
-          } else {
-            const { serverAuthCode } = event.data as {
-              serverAuthCode: string;
-            };
-            resolve({
-              provider: 'google' as T,
-              result: {
-                responseType: 'offline',
-                serverAuthCode,
-              },
-            });
-          }
+          cleanup();
+          processOAuthResponse(event.data);
         } else if (event.data?.type === 'oauth-error') {
-          window.removeEventListener('message', handleMessage);
-          clearInterval(popupClosedInterval);
-          clearTimeout(timeoutHandle);
+          cleanup();
           const errorMessage = event.data.error || 'User cancelled the OAuth flow';
           reject(new Error(errorMessage));
         }
         // Don't reject for non-OAuth messages, just ignore them
       };
 
+      // Listen for BroadcastChannel messages
+      if (broadcastChannel) {
+        broadcastChannel.onmessage = (event: MessageEvent) => {
+          const data = event.data;
+          if (data?.source?.toString().startsWith('angular')) return;
+
+          if (data?.type === 'oauth-response') {
+            cleanup();
+            processOAuthResponse(data);
+          } else if (data?.type === 'oauth-error') {
+            cleanup();
+            const errorMessage = (data.error as string) || 'User cancelled the OAuth flow';
+            reject(new Error(errorMessage));
+          }
+        };
+      }
+
       window.addEventListener('message', handleMessage);
 
       // Timeout after 5 minutes
       timeoutHandle = setTimeout(() => {
-        clearTimeout(timeoutHandle);
-        window.removeEventListener('message', handleMessage);
-        popup.close();
+        cleanup();
+        try {
+          popup.close();
+        } catch {
+          // Ignore cross-origin errors when closing
+        }
         reject(new Error('OAuth timeout'));
       }, 300000);
 
       popupClosedInterval = setInterval(() => {
-        if (popup.closed) {
+        try {
+          // Check if popup is closed - this may throw cross-origin errors for some providers
+          if (popup.closed) {
+            cleanup();
+            reject(new Error('Popup closed'));
+          }
+        } catch {
+          // Cross-origin error when checking popup.closed - this happens when the popup
+          // navigates to a third-party OAuth provider with strict security settings.
+          // We can't detect if the window was closed, so we rely on timeout and message handlers.
           clearInterval(popupClosedInterval);
-          reject(new Error('Popup closed'));
         }
       }, 1000);
     });

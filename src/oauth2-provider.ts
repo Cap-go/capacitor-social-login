@@ -170,6 +170,19 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
         return;
       }
 
+      // Use BroadcastChannel for cross-origin communication (works when postMessage doesn't)
+      const channelName = `oauth2_${state}`;
+      let broadcastChannel: BroadcastChannel | null = null;
+
+      try {
+        broadcastChannel = new BroadcastChannel(channelName);
+      } catch {
+        // BroadcastChannel not supported, fall back to postMessage only
+        if (config.logsEnabled) {
+          console.log(`[OAuth2:${providerId}] BroadcastChannel not supported, using postMessage only`);
+        }
+      }
+
       const cleanup = (
         messageHandler: (event: MessageEvent) => void,
         timeoutHandle: number,
@@ -178,19 +191,19 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
         window.removeEventListener('message', messageHandler);
         clearTimeout(timeoutHandle);
         clearInterval(intervalHandle);
+        if (broadcastChannel) {
+          broadcastChannel.close();
+        }
       };
 
-      const messageHandler = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) {
-          return;
-        }
-        if (event.data?.type === 'oauth-response') {
-          if (event.data?.provider && event.data.provider !== 'oauth2') {
-            return;
+      const handleOAuthMessage = (data: Record<string, unknown>) => {
+        if (data?.type === 'oauth-response') {
+          if (data?.provider && data.provider !== 'oauth2') {
+            return false;
           }
           // Check providerId matches if present
-          if (event.data?.providerId && event.data.providerId !== providerId) {
-            return;
+          if (data?.providerId && data.providerId !== providerId) {
+            return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -198,7 +211,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
             provider: _ignoredProvider,
             type: _ignoredType,
             ...payload
-          } = event.data as OAuth2LoginResponse & {
+          } = data as unknown as OAuth2LoginResponse & {
             provider?: string;
             type?: string;
           };
@@ -206,29 +219,63 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
             provider: 'oauth2' as T,
             result: payload as ProviderResponseMap[T],
           } as { provider: T; result: ProviderResponseMap[T] });
-        } else if (event.data?.type === 'oauth-error') {
-          if (event.data?.provider && event.data.provider !== 'oauth2') {
-            return;
+          return true;
+        } else if (data?.type === 'oauth-error') {
+          if (data?.provider && data.provider !== 'oauth2') {
+            return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          reject(new Error(event.data.error || 'OAuth2 login was cancelled.'));
+          reject(new Error((data.error as string) || 'OAuth2 login was cancelled.'));
+          return true;
         }
+        return false;
+      };
+
+      // Listen for BroadcastChannel messages
+      if (broadcastChannel) {
+        broadcastChannel.onmessage = (event: MessageEvent) => {
+          handleOAuthMessage(event.data);
+        };
+      }
+
+      const messageHandler = (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+        handleOAuthMessage(event.data);
       };
 
       window.addEventListener('message', messageHandler);
 
       const timeoutHandle = window.setTimeout(() => {
-        window.removeEventListener('message', messageHandler);
-        popup.close();
+        cleanup(messageHandler, timeoutHandle, popupClosedInterval);
+        try {
+          popup.close();
+        } catch {
+          // Ignore cross-origin errors when closing
+        }
         reject(new Error('OAuth2 login timed out.'));
       }, 300000);
 
       const popupClosedInterval = window.setInterval(() => {
-        if (popup.closed) {
-          window.removeEventListener('message', messageHandler);
+        try {
+          // Check if popup is closed - this may throw cross-origin errors for some providers
+          if (popup.closed) {
+            cleanup(messageHandler, timeoutHandle, popupClosedInterval);
+            reject(new Error('OAuth2 login window was closed.'));
+          }
+        } catch {
+          // Cross-origin error when checking popup.closed - this happens when the popup
+          // navigates to a third-party OAuth provider with strict security settings.
+          // We can't detect if the window was closed, so we just rely on the timeout
+          // and message handlers. Clear the interval to avoid repeated errors.
           clearInterval(popupClosedInterval);
-          clearTimeout(timeoutHandle);
-          reject(new Error('OAuth2 login window was closed.'));
+          if (config.logsEnabled) {
+            console.log(
+              `[OAuth2:${providerId}] Cannot check popup.closed due to cross-origin restrictions. ` +
+                'Relying on message handlers and timeout.',
+            );
+          }
         }
       }, 1000);
     });
