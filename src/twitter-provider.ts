@@ -148,8 +148,13 @@ export class TwitterSocialLogin extends BaseSocialLogin {
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { provider: _ignoredProvider, ...payload } = data as unknown as TwitterLoginResponse & {
+          const {
+            provider: _ignoredProvider,
+            type: _ignoredType,
+            ...payload
+          } = data as unknown as TwitterLoginResponse & {
             provider?: string;
+            type?: string;
           };
           resolve({
             provider: 'twitter' as T,

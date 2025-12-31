@@ -54,12 +54,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     const stateRaw = localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY);
     let provider: string | null = null;
     let state: string | undefined;
+    let nonce: string | undefined;
 
     if (stateRaw) {
       try {
         const parsed = JSON.parse(stateRaw);
         provider = parsed.provider ?? null;
         state = parsed.state;
+        nonce = parsed.nonce;
       } catch {
         provider = stateRaw === 'true' ? 'google' : null;
       }
@@ -114,15 +116,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     // Also use BroadcastChannel as a fallback (works across same-origin windows
     // even when window.opener is not accessible due to cross-origin navigation)
     try {
-      // Determine the channel name based on provider and state
+      // Determine the channel name based on provider and state/nonce
       let channelName: string | null = null;
       if (provider === 'oauth2' && state) {
         channelName = `oauth2_${state}`;
       } else if (provider === 'twitter' && state) {
         channelName = `twitter_oauth_${state}`;
-      } else if (provider === 'google') {
-        // Google uses nonce which we can't easily recover here, but try anyway
-        // The parent window will have created a channel with a nonce-based name
+      } else if (provider === 'google' && nonce) {
+        channelName = `google_oauth_${nonce}`;
       }
 
       if (channelName) {

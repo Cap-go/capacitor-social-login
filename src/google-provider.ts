@@ -357,7 +357,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     const top = window.screenY + (window.outerHeight - height) / 2;
     localStorage.setItem(
       BaseSocialLogin.OAUTH_STATE_KEY,
-      JSON.stringify({ provider: 'google', loginType: this.loginType }),
+      JSON.stringify({ provider: 'google', loginType: this.loginType, nonce }),
     );
     const popup = window.open(url, 'Google Sign In', `width=${width},height=${height},left=${left},top=${top},popup=1`);
 
@@ -414,9 +414,15 @@ export class GoogleSocialLogin extends BaseSocialLogin {
                 responseType: 'online',
               },
             });
+          } else {
+            reject(new Error('Invalid OAuth response: missing accessToken or idToken'));
           }
         } else {
           const { serverAuthCode } = data as { serverAuthCode: string };
+          if (!serverAuthCode) {
+            reject(new Error('Invalid OAuth response: missing serverAuthCode'));
+            return;
+          }
           resolve({
             provider: 'google' as T,
             result: {
