@@ -167,6 +167,8 @@ export async function loginWithFullBusinessAccess() {
 export async function getInstagramMedia(accessToken: string, instagramAccountId: string) {
   try {
     // Use Facebook Graph API to get Instagram media
+    // Note: Update API version (v17.0) to the latest available version
+    // See https://developers.facebook.com/docs/graph-api/guides/versioning
     const response = await fetch(
       `https://graph.facebook.com/v17.0/${instagramAccountId}/media?` +
         `fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count` +
@@ -197,6 +199,8 @@ export async function getInstagramMedia(accessToken: string, instagramAccountId:
 export async function getPageInsights(pageAccessToken: string, pageId: string) {
   try {
     // Get Page insights for the last 30 days
+    // Note: Update API version (v17.0) to the latest available version
+    // See https://developers.facebook.com/docs/graph-api/guides/versioning
     const response = await fetch(
       `https://graph.facebook.com/v17.0/${pageId}/insights?` +
         `metric=page_impressions,page_engaged_users,page_post_engagements` +

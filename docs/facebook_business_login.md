@@ -192,6 +192,8 @@ const result = await SocialLogin.login({
 const accessToken = result.result.accessToken?.token;
 
 // Make Graph API requests
+// Note: Update API version (v17.0) to the latest available version
+// See https://developers.facebook.com/docs/graph-api/guides/versioning
 // Example: Get Instagram media
 const response = await fetch(
   `https://graph.facebook.com/v17.0/{instagram-account-id}/media?fields=id,caption,media_url&access_token=${accessToken}`
