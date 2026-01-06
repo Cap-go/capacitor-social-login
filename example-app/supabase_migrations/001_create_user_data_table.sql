@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS public.user_data (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   key TEXT NOT NULL,
   value TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, NOW()) NOT NULL,
   UNIQUE(user_id, key)
 );
 
@@ -47,7 +47,7 @@ CREATE POLICY "Users can delete their own data"
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = timezone('utc'::text, now());
+  NEW.updated_at = timezone('utc'::text, NOW());
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
