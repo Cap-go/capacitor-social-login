@@ -15,7 +15,8 @@
     "ios/Tests",
     "Package.swift",
     "CapgoCapacitorSocialLogin.podspec",
-    "scripts/configure-dependencies.js"
+    "scripts/configure-dependencies.js",
+    "android/consumer-proguard-rules.pro"
   ],
   "author": "Martin Donadieu <martin@capgo.app>",
   "license": "MPL-2.0",
