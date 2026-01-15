@@ -853,7 +853,6 @@ public class GoogleProvider implements SocialProvider {
             return;
         }
 
-        ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             // First check if tokens are still valid
             ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
@@ -872,6 +871,7 @@ public class GoogleProvider implements SocialProvider {
             boolean forceRefreshToken = false;
             ListenableFuture<AuthorizationResult> authorizationFuture = getAuthorizationResult(forceRefreshToken);
 
+            ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(
                 new Runnable() {
                     @Override
@@ -901,7 +901,8 @@ public class GoogleProvider implements SocialProvider {
                                 // Successfully refreshed tokens without user interaction
                                 if (result.getAccessToken() != null) {
                                     String newAccessToken = result.getAccessToken();
-                                    // Use existing ID token by default, but update if Google provides a new one
+                                    // Keep the existing ID token. AuthorizationResult only provides access tokens,
+                                    // not ID tokens. The ID token is obtained during initial login from GoogleIdTokenCredential.
                                     String idTokenToStore = GoogleProvider.this.idToken;
 
                                     try {
@@ -919,6 +920,9 @@ public class GoogleProvider implements SocialProvider {
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "Error during token refresh", e);
                             call.reject("Error during token refresh: " + e.getMessage());
+                        } finally {
+                            // Shutdown executor after task completes
+                            executor.shutdown();
                         }
                     }
                 }
@@ -926,9 +930,6 @@ public class GoogleProvider implements SocialProvider {
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error validating tokens before refresh", e);
             call.reject("Error validating tokens: " + e.getMessage());
-        } finally {
-            // Schedule executor shutdown after the async task completes
-            executor.shutdown();
         }
     }
 }
