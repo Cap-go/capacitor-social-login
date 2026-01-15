@@ -835,7 +835,97 @@ public class GoogleProvider implements SocialProvider {
 
     @Override
     public void refresh(PluginCall call) {
-        // Implement refresh logic here
-        call.reject("Not implemented");
+        if (this.mode == GoogleProviderLoginType.OFFLINE) {
+            call.reject("refresh is not implemented when using offline mode");
+            return;
+        }
+
+        // Check if user is logged in
+        if (GoogleProvider.this.idToken == null || GoogleProvider.this.accessToken == null) {
+            call.reject("User is not logged in");
+            return;
+        }
+
+        // Check if scopes are available (needed for authorization)
+        if (this.scopes == null || this.scopes.length == 0) {
+            call.reject("Cannot refresh: no scopes available. User needs to login first.");
+            return;
+        }
+
+        try {
+            // First check if tokens are still valid
+            ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
+            boolean isValidAccessToken = accessTokenValidFuture.get(7, TimeUnit.SECONDS);
+            boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
+
+            if (isValidAccessToken && isValidIdToken) {
+                // Tokens are still valid, no need to refresh
+                Log.i(LOG_TAG, "Tokens are still valid, no refresh needed");
+                call.resolve();
+                return;
+            }
+
+            // Tokens are invalid or expired, try to refresh silently
+            Log.i(LOG_TAG, "Tokens expired, attempting silent refresh");
+            ListenableFuture<AuthorizationResult> authorizationFuture = getAuthorizationResult(false);
+
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            AuthorizationResult result = authorizationFuture.get();
+
+                            if (result.hasResolution()) {
+                                // User interaction is required, which means silent refresh failed
+                                Log.e(LOG_TAG, "Silent refresh failed: user interaction required");
+                                // Logout to clear invalid tokens
+                                rawLogout(
+                                    new CredentialManagerCallback<>() {
+                                        @Override
+                                        public void onResult(Void unused) {
+                                            call.reject("Token refresh requires user interaction. Please login again.");
+                                        }
+
+                                        @Override
+                                        public void onError(@NonNull Exception e) {
+                                            Log.e(LOG_TAG, "Failed to logout after refresh failure", e);
+                                            call.reject("Token refresh requires user interaction. Please login again.");
+                                        }
+                                    }
+                                );
+                            } else {
+                                // Successfully refreshed tokens without user interaction
+                                if (result.getAccessToken() != null) {
+                                    String newAccessToken = result.getAccessToken();
+                                    // Keep the same idToken, only access token is refreshed
+                                    // Note: In some cases, Google might return a new ID token, but typically
+                                    // for silent refresh, the ID token remains the same
+                                    try {
+                                        persistState(GoogleProvider.this.idToken, newAccessToken);
+                                        Log.i(LOG_TAG, "Successfully refreshed access token");
+                                        call.resolve();
+                                    } catch (JSONException e) {
+                                        Log.e(LOG_TAG, "Failed to persist refreshed tokens", e);
+                                        call.reject("Failed to persist refreshed tokens: " + e.getMessage());
+                                    }
+                                } else {
+                                    call.reject("Failed to refresh: no access token received");
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "Error during token refresh", e);
+                            call.reject("Error during token refresh: " + e.getMessage());
+                        } finally {
+                            executor.shutdown();
+                        }
+                    }
+                }
+            );
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error validating tokens before refresh", e);
+            call.reject("Error validating tokens: " + e.getMessage());
+        }
     }
 }
