@@ -58,6 +58,7 @@ public class GoogleProvider implements SocialProvider {
     private static final String GOOGLE_DATA_PREFERENCE = "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
     private static final Integer FUTURE_LIST_LENGTH = 128;
     private static final String TOKEN_REQUEST_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo";
+    private static final int TOKEN_VALIDATION_TIMEOUT_SECONDS = 7;
 
     public static final Integer REQUEST_AUTHORIZE_GOOGLE_MIN = 583892990;
     public static final Integer REQUEST_AUTHORIZE_GOOGLE_MAX = REQUEST_AUTHORIZE_GOOGLE_MIN + GoogleProvider.FUTURE_LIST_LENGTH;
@@ -759,7 +760,7 @@ public class GoogleProvider implements SocialProvider {
             try {
                 // Check if access token is valid
                 ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
-                boolean isValidAccessToken = accessTokenValidFuture.get(7, TimeUnit.SECONDS);
+                boolean isValidAccessToken = accessTokenValidFuture.get(TOKEN_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
 
                 if (!isValidAccessToken || !isValidIdToken) {
@@ -802,7 +803,7 @@ public class GoogleProvider implements SocialProvider {
             try {
                 // Check if access token is valid
                 ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
-                boolean isValidAccessToken = accessTokenValidFuture.get(7, TimeUnit.SECONDS);
+                boolean isValidAccessToken = accessTokenValidFuture.get(TOKEN_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
 
                 if (!isValidAccessToken || !isValidIdToken) {
@@ -852,10 +853,11 @@ public class GoogleProvider implements SocialProvider {
             return;
         }
 
+        ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             // First check if tokens are still valid
             ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
-            boolean isValidAccessToken = accessTokenValidFuture.get(7, TimeUnit.SECONDS);
+            boolean isValidAccessToken = accessTokenValidFuture.get(TOKEN_VALIDATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
 
             if (isValidAccessToken && isValidIdToken) {
@@ -867,9 +869,9 @@ public class GoogleProvider implements SocialProvider {
 
             // Tokens are invalid or expired, try to refresh silently
             Log.i(LOG_TAG, "Tokens expired, attempting silent refresh");
-            ListenableFuture<AuthorizationResult> authorizationFuture = getAuthorizationResult(false);
+            boolean forceRefreshToken = false;
+            ListenableFuture<AuthorizationResult> authorizationFuture = getAuthorizationResult(forceRefreshToken);
 
-            ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(
                 new Runnable() {
                     @Override
@@ -899,11 +901,11 @@ public class GoogleProvider implements SocialProvider {
                                 // Successfully refreshed tokens without user interaction
                                 if (result.getAccessToken() != null) {
                                     String newAccessToken = result.getAccessToken();
-                                    // Keep the same idToken, only access token is refreshed
-                                    // Note: In some cases, Google might return a new ID token, but typically
-                                    // for silent refresh, the ID token remains the same
+                                    // Use existing ID token by default, but update if Google provides a new one
+                                    String idTokenToStore = GoogleProvider.this.idToken;
+
                                     try {
-                                        persistState(GoogleProvider.this.idToken, newAccessToken);
+                                        persistState(idTokenToStore, newAccessToken);
                                         Log.i(LOG_TAG, "Successfully refreshed access token");
                                         call.resolve();
                                     } catch (JSONException e) {
@@ -917,8 +919,6 @@ public class GoogleProvider implements SocialProvider {
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "Error during token refresh", e);
                             call.reject("Error during token refresh: " + e.getMessage());
-                        } finally {
-                            executor.shutdown();
                         }
                     }
                 }
@@ -926,6 +926,9 @@ public class GoogleProvider implements SocialProvider {
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error validating tokens before refresh", e);
             call.reject("Error validating tokens: " + e.getMessage());
+        } finally {
+            // Schedule executor shutdown after the async task completes
+            executor.shutdown();
         }
     }
 }
