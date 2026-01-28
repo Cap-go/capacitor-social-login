@@ -1,5 +1,6 @@
 import Foundation
 import Capacitor
+import AuthenticationServices
 
 #if canImport(FBSDKLoginKit)
 import FBSDKLoginKit
@@ -27,7 +28,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openSecureWindow", returnType: CAPPluginReturnPromise)
     ]
 
     // Providers - conditionally initialized based on available dependencies
@@ -51,6 +53,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private let twitter = TwitterProvider()
     private let oauth2 = OAuth2Provider()
+    private var openSecureWindowCall: CAPPluginCall?
 
     // Helper to get Facebook provider (returns nil if unavailable)
     private var facebookProvider: FacebookProvider? {
@@ -610,6 +613,49 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func openSecureWindow(_ call: CAPPluginCall) {
+        guard let urlString = call.getString("authEndpoint") else {
+            call.reject("authEndpoint is required")
+            return
+        }
+
+        guard let url = URL(string: urlString) else {
+            call.reject("Invalid URL")
+            return
+        }
+
+        // Store the call for later resolution
+        self.openSecureWindowCall = call
+
+        // Open the URL in a secure browser window
+        DispatchQueue.main.async {
+            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: url.scheme) {
+                callbackURL, error in
+
+                // Clean up the stored call
+                self.openSecureWindowCall = nil
+
+                if let error = error {
+                    // Handle error (e.g., user cancelled)
+                    call.reject(error.localizedDescription)
+                    return
+                }
+
+                guard let callbackURL = callbackURL else {
+                    call.reject("No callback URL received")
+                    return
+                }
+
+                // Resolve the call with the callback URL
+                call.resolve(["redirectedUri": callbackURL.absoluteString])
+            }
+
+            // Present the session
+            session.presentationContextProvider = self
+            session.start()
+        }
+    }
+
     private func handleLogoutResult<T>(_ result: Result<T, Error>, call: CAPPluginCall) {
         switch result {
         case .success:
@@ -799,6 +845,12 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         case .failure(let error):
             call.reject(error.localizedDescription)
         }
+    }
+}
+
+extension SocialLoginPlugin: ASWebAuthenticationPresentationContextProviding {
+    public func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        return self.bridge?.viewController?.view.window ?? ASPresentationAnchor()
     }
 }
 
