@@ -625,8 +625,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         guard let redirectUri = call.getString("redirectUri") else {
-            call.reject("Redirect URI is required");
-            return;
+            call.reject("Redirect URI is required")
+            return
         }
 
         // Store the call for later resolution
