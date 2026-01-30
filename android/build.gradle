@@ -66,7 +66,7 @@ dependencies {
     // Common dependencies (always included)
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':capacitor-android')
-    implementation 'androidx.appcompat:appcompat:$androidxAppCompatVersion'
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.auth0.android:jwtdecode:2.0.2'
     implementation 'androidx.credentials:credentials:1.5.0'

@@ -624,6 +624,11 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
+        guard let redirectUri = call.getString("redirectUri") else {
+            call.reject("Redirect URI is required");
+            return;
+        }
+
         // Store the call for later resolution
         self.openSecureWindowCall = call
 
@@ -646,7 +651,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
 
-                let redirectUri = call.getString("redirectUri") ?? ""
                 if !callbackURL.absoluteString.hasPrefix(redirectUri) {
                     call.reject("Redirect URI does not match, expected " + redirectUri + " but got " + callbackURL.absoluteString)
                     return
