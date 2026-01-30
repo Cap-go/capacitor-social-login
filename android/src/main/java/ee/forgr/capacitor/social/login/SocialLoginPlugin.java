@@ -27,6 +27,7 @@ public class SocialLoginPlugin extends Plugin {
     public HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
     private PluginCall openSecureWindowSavedCall;
+    private String openSecureWindowRedirectUri;
 
     @PluginMethod
     public void initialize(PluginCall call) {
@@ -438,7 +439,14 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
+        String redirectUri = call.getString("redirectUri");
+        if (redirectUri == null || redirectUri.isEmpty()) {
+            call.reject("Redirect URI is required");
+            return;
+        }
+
         openSecureWindowSavedCall = call;
+        openSecureWindowRedirectUri = redirectUri;
 
         // Launch OAuth in custom tab
         launchCustomTab(authEndpoint);
@@ -484,8 +492,12 @@ public class SocialLoginPlugin extends Plugin {
         if (uri == null) {
             return;
         }
-        // HM TODO: need to find a way to configure this, maybe using plugin config?
-        if (uri.getHost() == null || !uri.getHost().equals("oauth_callback")) {
+
+        if (openSecureWindowRedirectUri == null) {
+            return;
+        }
+
+        if (uri.getHost() == null || !uri.toString().startsWith(openSecureWindowRedirectUri)) {
             return;
         }
 

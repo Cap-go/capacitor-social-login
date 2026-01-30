@@ -646,6 +646,12 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
 
+                let redirectUri = call.getString("redirectUri") ?? ""
+                if !callbackURL.absoluteString.hasPrefix(redirectUri) {
+                    call.reject("Redirect URI does not match, expected " + redirectUri + " but got " + callbackURL.absoluteString)
+                    return
+                }
+
                 // Resolve the call with the callback URL
                 call.resolve(["redirectedUri": callbackURL.absoluteString])
             }

@@ -996,10 +996,11 @@ Configuration for a single OAuth2 provider instance
 
 #### OpenSecureWindowOptions
 
-| Prop                       | Type                | Description                                                           |
-| -------------------------- | ------------------- | --------------------------------------------------------------------- |
-| **`authEndpoint`**         | <code>string</code> | The endpoint to open                                                  |
-| **`broadcastChannelName`** | <code>string</code> | The name of the broadcast channel to listen to, relevant only for web |
+| Prop                       | Type                | Description                                                                                                                                                     |
+| -------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`authEndpoint`**         | <code>string</code> | The endpoint to open                                                                                                                                            |
+| **`redirectUri`**          | <code>string</code> | The redirect URI to use for the openSecureWindow call. This will be checked to make sure it matches the redirect URI after the window finishes the redirection. |
+| **`broadcastChannelName`** | <code>string</code> | The name of the broadcast channel to listen to, relevant only for web                                                                                           |
 
 
 ### Type Aliases

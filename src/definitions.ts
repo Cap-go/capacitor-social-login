@@ -713,6 +713,11 @@ export interface OpenSecureWindowOptions {
    */
   authEndpoint: string;
   /**
+   * The redirect URI to use for the openSecureWindow call.
+   * This will be checked to make sure it matches the redirect URI after the window finishes the redirection.
+   */
+  redirectUri: string;
+  /**
    * The name of the broadcast channel to listen to, relevant only for web
    */
   broadcastChannelName?: string;

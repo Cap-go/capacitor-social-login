@@ -337,8 +337,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     return new Promise((resolve, reject) => {
       const bc = new BroadcastChannel(options.broadcastChannelName || 'oauth-channel');
       bc.addEventListener('message', (event) => {
-        bc.close();
-        resolve({ redirectedUri: event.data });
+        if (event.data.startsWith(options.redirectUri)) {
+          bc.close();
+          resolve({ redirectedUri: event.data });
+        } else {
+          bc.close();
+          reject(new Error('Redirect URI does not match, expected ' + options.redirectUri + ' but got ' + event.data));
+        }
       });
       setTimeout(() => {
         bc.close();
