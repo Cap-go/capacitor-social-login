@@ -22,6 +22,15 @@ This plugin implements social auth for:
 - Generic OAuth2 (supports multiple providers: GitHub, Azure AD, Auth0, Okta, and any OAuth2-compliant server)
 
 This plugin is the all-in-one solution for social authentication on Web, iOS, and Android.
+It is our official alternative to the Appflow Social Login plugin.
+
+## Ionic Auth Connect compatibility
+
+This plugin is designed to be compatible with Ionic Auth Connect provider names using the built-in OAuth2 engine.
+Use the Auth Connect preset wrapper (`SocialLoginAuthConnect`) to log in with `auth0`, `azure`, `cognito`, `okta`, and `onelogin`.
+
+- Compatibility guide: https://github.com/Cap-go/capacitor-social-login/blob/main/docs/auth_connect_compatibility.md
+- Migration guide: https://github.com/Cap-go/capacitor-social-login/blob/main/MIGRATION_AUTH_CONNECT.md
 
 ## Documentation
 
@@ -396,6 +405,43 @@ await SocialLogin.initialize({
   },
 });
 ```
+
+## Auth Connect Presets (Auth0, Azure AD, Cognito, Okta, OneLogin)
+
+If you want the same provider names as Ionic Auth Connect, use the preset wrapper. It maps those providers to the existing OAuth2 engine.
+
+```typescript
+import { SocialLoginAuthConnect } from '@capgo/capacitor-social-login';
+
+await SocialLoginAuthConnect.initialize({
+  authConnect: {
+    auth0: {
+      domain: 'https://your-tenant.auth0.com',
+      clientId: 'your-auth0-client-id',
+      redirectUrl: 'myapp://oauth/auth0',
+      audience: 'https://your-api.example.com',
+    },
+    azure: {
+      tenantId: 'common',
+      clientId: 'your-azure-client-id',
+      redirectUrl: 'myapp://oauth/azure',
+    },
+    okta: {
+      issuer: 'https://dev-12345.okta.com/oauth2/default',
+      clientId: 'your-okta-client-id',
+      redirectUrl: 'myapp://oauth/okta',
+    },
+  },
+});
+
+const auth0Result = await SocialLoginAuthConnect.login({
+  provider: 'auth0',
+});
+```
+
+Notes:
+- Presets can be overridden: any `oauth2` entry with the same provider key (for example, `oauth2: { auth0: ... }`) overrides the preset for that provider.
+- If your provider uses non-standard endpoints, override `authorizationBaseUrl`, `accessTokenEndpoint`, `resourceUrl`, or `logoutUrl` in the preset.
 
 ### Login with a Specific Provider
 

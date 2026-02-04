@@ -19,6 +19,7 @@ import DashboardPage from './DashboardPage';
 import SupabasePage from './SupabasePage';
 import SupabaseCreateAccountPage from './SupabaseCreateAccountPage';
 import SupabaseDashboardPage from './SupabaseDashboardPage';
+import AuthConnectPage from './AuthConnectPage';
 import './App.css';
 
 type Provider = 'apple' | 'google' | 'facebook';
@@ -583,6 +584,15 @@ function HomePage() {
                   <path d="M21.362 9.354H12V.396a.396.396 0 0 0-.716-.233L2.203 9.681a.396.396 0 0 0 .39.639h9.006v8.959a.396.396 0 0 0 .716.233l9.081-9.517a.396.396 0 0 0-.234-.68z"/>
                 </svg>
               </button>
+              <button
+                type="button"
+                className="firebase-button"
+                onClick={() => navigate('/auth-connect')}
+                aria-label="Open Auth Connect presets page"
+                style={{ background: '#6366F1' }}
+              >
+                AC
+              </button>
             </div>
           </div>
           <p>Select a provider and try the initialize/login flow. Apple, Google, and Facebook are all available.</p>
@@ -965,6 +975,7 @@ function App() {
       <Route path="/supabase" element={<SupabasePage />} />
       <Route path="/supabase/create-account" element={<SupabaseCreateAccountPage />} />
       <Route path="/supabase/dashboard" element={<SupabaseDashboardPage />} />
+      <Route path="/auth-connect" element={<AuthConnectPage />} />
     </Routes>
   );
 }
