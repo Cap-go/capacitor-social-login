@@ -262,8 +262,13 @@ const buildAuthConnectProviders = (presets?: AuthConnectPresets): Record<string,
 const isAuthConnectProvider = (provider: string): provider is AuthConnectProviderId =>
   AUTH_CONNECT_PROVIDERS.includes(provider as AuthConnectProviderId);
 
+const isAuthConnectLoginOptions = (
+  options: AuthConnectLoginOptions,
+): options is Extract<AuthConnectLoginOptions, { provider: AuthConnectProviderId }> =>
+  isAuthConnectProvider(options.provider);
+
 const mapLoginOptions = (options: AuthConnectLoginOptions): LoginOptions => {
-  if (isAuthConnectProvider(options.provider)) {
+  if (isAuthConnectLoginOptions(options)) {
     return {
       provider: 'oauth2',
       options: {
