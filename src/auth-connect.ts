@@ -287,19 +287,7 @@ const mapProviderOptions = (options: AuthConnectProviderOptions): AuthorizationC
   return options;
 };
 
-const mapRefreshOptions = (options: AuthConnectLoginOptions): LoginOptions => {
-  if (isAuthConnectProvider(options.provider)) {
-    return {
-      provider: 'oauth2',
-      options: {
-        providerId: options.provider,
-        ...(options.options ?? {}),
-      },
-    };
-  }
-
-  return options;
-};
+const mapRefreshOptions = (options: AuthConnectLoginOptions): LoginOptions => mapLoginOptions(options);
 
 const mergeOAuth2Configs = (
   presets: Record<string, OAuth2ProviderConfig>,
@@ -370,12 +358,12 @@ const createAuthConnectClient = (client: SocialLoginPlugin): AuthConnectClient =
 
 const SocialLoginAuthConnect = createAuthConnectClient(SocialLoginBase);
 
-export {
+export type {
   AuthConnectInitializeOptions,
   AuthConnectLoginOptions,
   AuthConnectProviderId,
   AuthConnectProviderOptions,
   AuthConnectPresets,
-  createAuthConnectClient,
-  SocialLoginAuthConnect,
 };
+
+export { createAuthConnectClient, SocialLoginAuthConnect };

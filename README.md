@@ -440,7 +440,7 @@ const auth0Result = await SocialLoginAuthConnect.login({
 ```
 
 Notes:
-- Presets can be overridden: any `oauth2` config with the same providerId wins.
+- Presets can be overridden: any `oauth2` entry with the same provider key (for example, `oauth2: { auth0: ... }`) overrides the preset for that provider.
 - If your provider uses non-standard endpoints, override `authorizationBaseUrl`, `accessTokenEndpoint`, `resourceUrl`, or `logoutUrl` in the preset.
 
 ### Login with a Specific Provider
