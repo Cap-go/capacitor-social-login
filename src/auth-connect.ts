@@ -85,13 +85,7 @@ type AuthConnectProviderResponseMap = ProviderResponseMap & {
   onelogin: ProviderResponseMap['oauth2'];
 };
 
-const AUTH_CONNECT_PROVIDERS: ReadonlyArray<AuthConnectProviderId> = [
-  'auth0',
-  'azure',
-  'cognito',
-  'okta',
-  'onelogin',
-];
+const AUTH_CONNECT_PROVIDERS: readonly AuthConnectProviderId[] = ['auth0', 'azure', 'cognito', 'okta', 'onelogin'];
 
 const DEFAULT_SCOPES: Record<AuthConnectProviderId, string> = {
   auth0: 'openid profile email offline_access',
@@ -216,10 +210,7 @@ const buildConfigFromPreset = (
   defaults: Partial<OAuth2ProviderConfig>,
 ): OAuth2ProviderConfig => {
   const additionalParameters = mergeRecords(defaults.additionalParameters, preset.additionalParameters);
-  const additionalResourceHeaders = mergeRecords(
-    defaults.additionalResourceHeaders,
-    preset.additionalResourceHeaders,
-  );
+  const additionalResourceHeaders = mergeRecords(defaults.additionalResourceHeaders, preset.additionalResourceHeaders);
 
   const config: OAuth2ProviderConfig = {
     appId: preset.clientId,
@@ -323,7 +314,23 @@ const mergeOAuth2Configs = (
   };
 };
 
-const createAuthConnectClient = (client: SocialLoginPlugin) => ({
+type AuthConnectClient = {
+  initialize: (options: AuthConnectInitializeOptions) => Promise<void>;
+  login: <T extends AuthConnectLoginOptions['provider']>(
+    options: Extract<AuthConnectLoginOptions, { provider: T }>,
+  ) => Promise<{ provider: T; result: AuthConnectProviderResponseMap[T] }>;
+  logout: (options: AuthConnectProviderOptions) => Promise<void>;
+  isLoggedIn: (options: AuthConnectProviderOptions) => Promise<{ isLoggedIn: boolean }>;
+  getAuthorizationCode: (options: AuthConnectProviderOptions) => Promise<AuthorizationCode>;
+  refresh: (options: AuthConnectLoginOptions) => Promise<void>;
+  providerSpecificCall: <T extends ProviderSpecificCall>(options: {
+    call: T;
+    options: ProviderSpecificCallOptionsMap[T];
+  }) => Promise<ProviderSpecificCallResponseMap[T]>;
+  getPluginVersion: () => Promise<{ version: string }>;
+};
+
+const createAuthConnectClient = (client: SocialLoginPlugin): AuthConnectClient => ({
   initialize: async (options: AuthConnectInitializeOptions): Promise<void> => {
     const { authConnect, oauth2, ...rest } = options;
     const presetProviders = buildAuthConnectProviders(authConnect);
@@ -348,14 +355,12 @@ const createAuthConnectClient = (client: SocialLoginPlugin) => ({
 
     return client.login(options as LoginOptions) as Promise<{ provider: T; result: AuthConnectProviderResponseMap[T] }>;
   },
-  logout: async (options: AuthConnectProviderOptions): Promise<void> =>
-    client.logout(mapProviderOptions(options)),
+  logout: async (options: AuthConnectProviderOptions): Promise<void> => client.logout(mapProviderOptions(options)),
   isLoggedIn: async (options: AuthConnectProviderOptions): Promise<{ isLoggedIn: boolean }> =>
     client.isLoggedIn(mapProviderOptions(options)),
   getAuthorizationCode: async (options: AuthConnectProviderOptions): Promise<AuthorizationCode> =>
     client.getAuthorizationCode(mapProviderOptions(options)),
-  refresh: async (options: AuthConnectLoginOptions): Promise<void> =>
-    client.refresh(mapRefreshOptions(options)),
+  refresh: async (options: AuthConnectLoginOptions): Promise<void> => client.refresh(mapRefreshOptions(options)),
   providerSpecificCall: async <T extends ProviderSpecificCall>(options: {
     call: T;
     options: ProviderSpecificCallOptionsMap[T];
