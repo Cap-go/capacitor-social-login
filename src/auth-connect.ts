@@ -262,6 +262,9 @@ const buildAuthConnectProviders = (presets?: AuthConnectPresets): Record<string,
 const isAuthConnectProvider = (provider: string): provider is AuthConnectProviderId =>
   AUTH_CONNECT_PROVIDERS.includes(provider as AuthConnectProviderId);
 
+const isAuthorizationCodeOptions = (options: AuthConnectProviderOptions): options is AuthorizationCodeOptions =>
+  !isAuthConnectProvider(options.provider);
+
 const isAuthConnectLoginOptions = (
   options: AuthConnectLoginOptions,
 ): options is Extract<AuthConnectLoginOptions, { provider: AuthConnectProviderId }> =>
@@ -289,7 +292,11 @@ const mapProviderOptions = (options: AuthConnectProviderOptions): AuthorizationC
     };
   }
 
-  return options;
+  if (isAuthorizationCodeOptions(options)) {
+    return options;
+  }
+
+  return options as AuthorizationCodeOptions;
 };
 
 const mapRefreshOptions = (options: AuthConnectLoginOptions): LoginOptions => mapLoginOptions(options);
