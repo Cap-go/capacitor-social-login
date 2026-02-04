@@ -1,10 +1,5 @@
-import { registerPlugin } from '@capacitor/core';
-
-import type { SocialLoginPlugin } from './definitions';
-
-const SocialLogin = registerPlugin<SocialLoginPlugin>('SocialLogin', {
-  web: () => import('./web').then((m) => new m.SocialLoginWeb()),
-});
+import { SocialLoginBase } from './social-login';
 
 export * from './definitions';
-export { SocialLogin };
+export * from './auth-connect';
+export { SocialLoginBase as SocialLogin };
