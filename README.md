@@ -22,6 +22,7 @@ This plugin implements social auth for:
 - Generic OAuth2 (supports multiple providers: GitHub, Azure AD, Auth0, Okta, and any OAuth2-compliant server)
 
 This plugin is the all-in-one solution for social authentication on Web, iOS, and Android.
+It is our official alternative to the Appflow Social Login plugin.
 
 ## Ionic Auth Connect compatibility
 
