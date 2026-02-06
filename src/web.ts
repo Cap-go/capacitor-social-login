@@ -15,6 +15,8 @@ import type {
   ProviderSpecificCallResponseMap,
   LoginResult,
   OAuth2LoginOptions,
+  OpenSecureWindowOptions,
+  OpenSecureWindowResponse,
 } from './definitions';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
@@ -314,5 +316,39 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   async getPluginVersion(): Promise<{ version: string }> {
     return { version: 'web' };
+  }
+
+  async openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse> {
+    const w = 600;
+    const h = 550;
+    const settings = [
+      ['width', w],
+      ['height', h],
+      ['left', screen.width / 2 - w / 2],
+      ['top', screen.height / 2 - h / 2],
+    ]
+      .map((x) => x.join('='))
+      .join(',');
+
+    const popup = window.open(options.authEndpoint, 'Authorization', settings)!;
+    if (typeof popup.focus === 'function') {
+      popup.focus();
+    }
+    return new Promise((resolve, reject) => {
+      const bc = new BroadcastChannel(options.broadcastChannelName || 'oauth-channel');
+      bc.addEventListener('message', (event) => {
+        if (event.data.startsWith(options.redirectUri)) {
+          bc.close();
+          resolve({ redirectedUri: event.data });
+        } else {
+          bc.close();
+          reject(new Error('Redirect URI does not match, expected ' + options.redirectUri + ' but got ' + event.data));
+        }
+      });
+      setTimeout(() => {
+        bc.close();
+        reject(new Error('The sign-in flow timed out'));
+      }, 5 * 60000);
+    });
   }
 }
