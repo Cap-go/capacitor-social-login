@@ -58,7 +58,8 @@
     "build:scripts": "tsc -p scripts/tsconfig.json",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "check:wiring": "node scripts/check-capacitor-plugin-wiring.mjs"
   },
   "devDependencies": {
     "@capacitor/android": "^8.0.0",
