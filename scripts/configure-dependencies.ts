@@ -37,6 +37,14 @@ const defaultProviders: Record<string, string | boolean> = {
   twitter: 'implementation',
 };
 
+/**
+ * 0 - Error
+ * 1 - Warning
+ * 2 - Info
+ * 3 - Success
+ */
+let logLevel = 3;
+
 type ProviderConfig = Record<string, string | boolean>;
 
 // ============================================================================
@@ -67,26 +75,39 @@ function log(message: string, emoji = '', color = ''): void {
   console.log(`${colorCode}${emojiPart}${message}${resetCode}`);
 }
 
-function logSuccess(message: string): void {
-  log(message, '✔', colors.green);
-}
-
 function logError(message: string): void {
-  log(message, '✖', colors.red);
-}
-
-function logInfo(message: string): void {
-  log(message, 'ℹ', colors.blue);
+  if (logLevel >= 0) {
+    log(message, '✖', colors.red);
+  }
 }
 
 function logWarning(message: string): void {
-  log(message, '⚠', colors.yellow);
+  if (logLevel >= 1) {
+    log(message, '⚠', colors.yellow);
+  }
 }
+
+function logInfo(message: string): void {
+  if (logLevel >= 2) {
+    log(message, 'ℹ', colors.blue);
+  }
+}
+
+function logSuccess(message: string): void {
+  if (logLevel >= 3) {
+    log(message, '✔', colors.green);
+  }
+}
+
+
 
 /**
  * Log provider configuration status
  */
 function logProviderConfig(providerConfig: ProviderConfig): void {
+  if (logLevel < 3) {
+    return;
+  }
   log('\nProvider configuration:', '', colors.bright);
   const providers = ['google', 'facebook', 'apple', 'twitter'];
   for (const provider of providers) {
@@ -120,11 +141,12 @@ function logProviderConfig(providerConfig: ProviderConfig): void {
 function getProviderConfig(): ProviderConfig {
   try {
     if (!CONFIG_JSON) {
-      logInfo('No CAPACITOR_CONFIG found, using defaults');
+      logWarning('No CAPACITOR_CONFIG found, using defaults');
       return defaultProviders;
     }
 
     const config = JSON.parse(CONFIG_JSON);
+    logLevel = config.plugins?.SocialLogin?.logLevel ?? 3;
     const providerConfig = config.plugins?.SocialLogin?.providers || defaultProviders;
 
     // Normalize config: convert true to 'implementation', false to 'compileOnly'
@@ -321,18 +343,18 @@ function main(): void {
   // Route to platform-specific configuration
   switch (PLATFORM) {
     case 'android':
-      log('Configuring dynamic provider dependencies for SocialLogin', '🔧', colors.cyan);
       // eslint-disable-next-line no-case-declarations
       const androidConfig = getProviderConfig();
+      logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(androidConfig);
       configureAndroid(androidConfig);
       logSuccess('Configuration complete\n');
       break;
 
     case 'ios':
-      log('Configuring dynamic provider dependencies for SocialLogin', '🔧', colors.cyan);
       // eslint-disable-next-line no-case-declarations
       const iosConfig = getProviderConfig();
+      logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(iosConfig);
       configureIOS(iosConfig);
       logSuccess('Configuration complete\n');
@@ -344,9 +366,10 @@ function main(): void {
 
     default:
       // If platform is not specified, configure all platforms (backward compatibility)
-      log('Configuring dynamic provider dependencies for SocialLogin', '🔧', colors.blue);
+      
       // eslint-disable-next-line no-case-declarations
       const defaultConfig = getProviderConfig();
+      logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(defaultConfig);
       logWarning(`Unknown platform: ${PLATFORM || 'undefined'}, configuring all platforms`);
       configureAndroid(defaultConfig);
