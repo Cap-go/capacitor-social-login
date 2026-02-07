@@ -78,7 +78,8 @@ const config: CapacitorConfig = {
         facebook: true,   // Use false to reduce app size
         apple: true,      // Apple uses system APIs, no external deps
         twitter: false   // false = disabled (not bundled)
-      }
+      },
+      logLevel: 1 // Warnings and errors only
     }
   }
 };
@@ -1066,7 +1067,9 @@ Configuration for a single OAuth2 provider instance
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### ProviderResponseMap
