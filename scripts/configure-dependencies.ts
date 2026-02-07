@@ -99,8 +99,6 @@ function logSuccess(message: string): void {
   }
 }
 
-
-
 /**
  * Log provider configuration status
  */
@@ -366,7 +364,7 @@ function main(): void {
 
     default:
       // If platform is not specified, configure all platforms (backward compatibility)
-      
+
       // eslint-disable-next-line no-case-declarations
       const defaultConfig = getProviderConfig();
       logInfo('Configuring dynamic provider dependencies for SocialLogin');
