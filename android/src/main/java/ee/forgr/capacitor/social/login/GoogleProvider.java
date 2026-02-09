@@ -923,9 +923,11 @@ public class GoogleProvider implements SocialProvider {
                                 // Successfully refreshed tokens without user interaction
                                 if (result.getAccessToken() != null) {
                                     String newAccessToken = result.getAccessToken();
-                                    // Keep the existing ID token. AuthorizationResult only provides access tokens,
-                                    // not ID tokens. The ID token is obtained during initial login from GoogleIdTokenCredential.
-                                    String idTokenToStore = GoogleProvider.this.idToken;
+                                    // Do not persist the existing ID token here: it may be expired, which is what
+                                    // triggered the refresh. AuthorizationResult only provides a new access token.
+                                    // Keep the stored ID token unchanged or cleared, and rely on a fresh login flow
+                                    // when a new ID token is actually required.
+                                    String idTokenToStore = null;
 
                                     try {
                                         persistState(idTokenToStore, newAccessToken);
