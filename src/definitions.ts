@@ -112,6 +112,9 @@ export interface InitializeOptions {
   facebook?: {
     /**
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
+     * @description For business integrations, use your Business App ID from Facebook Developer Console.
+     * Business apps can access additional permissions like Instagram API, Pages API, and business management features.
+     * @see docs/facebook_business_login.md for business app setup guide
      */
     appId: string;
     /**
@@ -260,7 +263,30 @@ export interface InitializeOptions {
 export interface FacebookLoginOptions {
   /**
    * Permissions
-   * @description select permissions to login with
+   * @description Select permissions to login with. Supports both consumer and business permissions.
+   * 
+   * **Consumer Permissions:**
+   * - `email` - User's email address
+   * - `public_profile` - User's public profile info
+   * - `user_friends` - List of friends who also use your app
+   * 
+   * **Business Permissions** (require business app configuration and may need App Review):
+   * - `instagram_basic` - Instagram Basic Display API access
+   * - `instagram_manage_insights` - Instagram Insights data
+   * - `instagram_manage_comments` - Manage Instagram comments
+   * - `instagram_content_publish` - Publish to Instagram
+   * - `pages_show_list` - List of Pages managed by user
+   * - `pages_read_engagement` - Read Page engagement metrics
+   * - `pages_manage_posts` - Manage Page posts
+   * - `pages_messaging` - Page messaging features
+   * - `business_management` - Manage business assets
+   * - `catalog_management` - Manage product catalogs
+   * - `ads_management` - Manage advertising accounts
+   * 
+   * @example ['email', 'public_profile'] // Consumer permissions
+   * @example ['email', 'instagram_basic', 'pages_show_list'] // Business permissions
+   * @see https://developers.facebook.com/docs/permissions/reference
+   * @see docs/facebook_business_login.md for complete business integration guide
    */
   permissions: string[];
   /**

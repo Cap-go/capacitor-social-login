@@ -167,6 +167,86 @@ const res = await SocialLogin.login({
 
 Docs: [How to setup facebook login](https://capgo.app/docs/plugins/social-login/facebook/)
 
+📘 **[Complete Facebook Business Login Guide](./docs/facebook_business_login.md)** - Learn how to access Instagram, Pages, and business features
+
+### Facebook Business Login
+
+This plugin fully supports Facebook Business Login for accessing business-related features and permissions. Business accounts can request additional permissions beyond standard consumer login, including Instagram and Pages management.
+
+**Supported Business Permissions:**
+- `instagram_basic` - Access to Instagram Basic Display API
+- `instagram_manage_insights` - Access to Instagram Insights
+- `pages_show_list` - List of Pages the person manages
+- `pages_read_engagement` - Read engagement data from Pages
+- `pages_manage_posts` - Manage posts on Pages
+- `business_management` - Manage business assets
+- And many more - see [Facebook Permissions Reference](https://developers.facebook.com/docs/permissions/reference)
+
+**Configuration Requirements:**
+1. Your Facebook app must be configured as a Business app in the Facebook Developer Console
+2. Business permissions may require Facebook's App Review before production use
+3. Your app must comply with Facebook's Business Use Case policies
+
+**Example - Instagram Basic Access:**
+```typescript
+await SocialLogin.initialize({
+  facebook: {
+    appId: 'your-business-app-id',
+    clientToken: 'your-client-token',
+  },
+});
+
+const res = await SocialLogin.login({
+  provider: 'facebook',
+  options: {
+    permissions: [
+      'email', 
+      'public_profile',
+      'instagram_basic',           // Instagram account info
+      'pages_show_list',           // List of managed Pages
+      'pages_read_engagement'      // Page engagement data
+    ],
+  },
+});
+
+// Access Instagram data through Facebook Graph API
+const profile = await SocialLogin.providerSpecificCall({
+  call: 'facebook#getProfile',
+  options: {
+    fields: ['id', 'name', 'email', 'instagram_business_account'],
+  },
+});
+```
+
+**Example - Pages Management:**
+```typescript
+const res = await SocialLogin.login({
+  provider: 'facebook',
+  options: {
+    permissions: [
+      'email',
+      'pages_show_list',
+      'pages_manage_posts',
+      'pages_read_engagement',
+    ],
+  },
+});
+
+// Fetch user's managed pages with Instagram accounts
+const profile = await SocialLogin.providerSpecificCall({
+  call: 'facebook#getProfile',
+  options: {
+    fields: ['id', 'name', 'accounts{id,name,instagram_business_account}'],
+  },
+});
+```
+
+**Important Notes:**
+- Testing: You can test business permissions with test users and development apps without App Review
+- Production: Most business permissions require Facebook App Review before going live
+- Rate Limits: Business APIs have different rate limits - review Facebook's documentation
+- Setup: Follow [Facebook Business Integration Guide](https://developers.facebook.com/docs/development/create-an-app/app-dashboard/business-integrations)
+
 ### Android configuration
 
 More information can be found here: https://developers.facebook.com/docs/android/getting-started
