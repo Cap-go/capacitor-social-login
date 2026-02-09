@@ -112,6 +112,9 @@ export interface InitializeOptions {
   facebook?: {
     /**
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
+     * @description For business integrations, use your Business App ID from Facebook Developer Console.
+     * Business apps can access additional permissions like Instagram API, Pages API, and business management features.
+     * @see docs/facebook_business_login.md for business app setup guide
      */
     appId: string;
     /**
@@ -260,7 +263,30 @@ export interface InitializeOptions {
 export interface FacebookLoginOptions {
   /**
    * Permissions
-   * @description select permissions to login with
+   * @description Select permissions to login with. Supports both consumer and business permissions.
+   *
+   * **Consumer Permissions:**
+   * - `email` - User's email address
+   * - `public_profile` - User's public profile info
+   * - `user_friends` - List of friends who also use your app
+   *
+   * **Business Permissions** (require business app configuration and may need App Review):
+   * - `instagram_basic` - Instagram Basic Display API access
+   * - `instagram_manage_insights` - Instagram Insights data
+   * - `instagram_manage_comments` - Manage Instagram comments
+   * - `instagram_content_publish` - Publish to Instagram
+   * - `pages_show_list` - List of Pages managed by user
+   * - `pages_read_engagement` - Read Page engagement metrics
+   * - `pages_manage_posts` - Manage Page posts
+   * - `pages_messaging` - Page messaging features
+   * - `business_management` - Manage business assets
+   * - `catalog_management` - Manage product catalogs
+   * - `ads_management` - Manage advertising accounts
+   *
+   * @example ['email', 'public_profile'] // Consumer permissions
+   * @example ['email', 'instagram_basic', 'pages_show_list'] // Business permissions
+   * @see https://developers.facebook.com/docs/permissions/reference
+   * @see docs/facebook_business_login.md for complete business integration guide
    */
   permissions: string[];
   /**
@@ -707,6 +733,29 @@ export interface FacebookGetProfileResponse {
   };
 }
 
+export interface OpenSecureWindowOptions {
+  /**
+   * The endpoint to open
+   */
+  authEndpoint: string;
+  /**
+   * The redirect URI to use for the openSecureWindow call.
+   * This will be checked to make sure it matches the redirect URI after the window finishes the redirection.
+   */
+  redirectUri: string;
+  /**
+   * The name of the broadcast channel to listen to, relevant only for web
+   */
+  broadcastChannelName?: string;
+}
+
+export interface OpenSecureWindowResponse {
+  /**
+   * The result of the openSecureWindow call
+   */
+  redirectedUri: string;
+}
+
 export type FacebookRequestTrackingOptions = Record<string, never>;
 
 export interface FacebookRequestTrackingResponse {
@@ -810,4 +859,50 @@ export interface SocialLoginPlugin {
    * @throws An error if the something went wrong
    */
   getPluginVersion(): Promise<{ version: string }>;
+
+  /**
+   * Opens a secured window for OAuth2 authentication.
+   * For web, you should have the code in the redirected page to use a broadcast channel to send the redirected url to the app
+   * Something like:
+   * ```html
+   * <html>
+   * <head></head>
+   * <body>
+   * <script>
+   *   const searchParams = new URLSearchParams(location.search)
+   *   if (searchParams.has("code")) {
+   *     new BroadcastChannel("my-channel-name").postMessage(location.href);
+   *     window.close();
+   *   }
+   * </script>
+   * </body>
+   * </html>
+   * ```
+   * For mobile, you should have a redirect uri that opens the app, something like: `myapp://oauth_callback/`
+   * And make sure to register it in the app's info.plist:
+   * ```xml
+   * <key>CFBundleURLTypes</key>
+   * <array>
+   *    <dict>
+   *       <key>CFBundleURLSchemes</key>
+   *       <array>
+   *          <string>myapp</string>
+   *       </array>
+   *    </dict>
+   * </array>
+   * ```
+   * And in the AndroidManifest.xml file:
+   * ```xml
+   * <activity>
+   *    <intent-filter>
+   *       <action android:name="android.intent.action.VIEW" />
+   *       <category android:name="android.intent.category.DEFAULT" />
+   *       <category android:name="android.intent.category.BROWSABLE" />
+   *       <data android:host="oauth_callback" android:scheme="myapp" />
+   *    </intent-filter>
+   * </activity>
+   * ```
+   * @param options - the options for the openSecureWindow call
+   */
+  openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse>;
 }
