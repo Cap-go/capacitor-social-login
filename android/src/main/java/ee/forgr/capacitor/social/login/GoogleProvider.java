@@ -847,10 +847,10 @@ public class GoogleProvider implements SocialProvider {
             return;
         }
 
-        // Check if scopes are available (needed for authorization)
+        // If scopes are missing (e.g., after app restart), proceed and let the
+        // underlying API apply its default scopes instead of hard-failing here.
         if (this.scopes == null || this.scopes.length == 0) {
-            call.reject("Cannot refresh: no scopes available. User needs to login first.");
-            return;
+            Log.w(LOG_TAG, "Scopes are not set in memory; attempting refresh with default scopes.");
         }
 
         try {
