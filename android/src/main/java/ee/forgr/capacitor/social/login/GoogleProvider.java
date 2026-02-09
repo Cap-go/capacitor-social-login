@@ -866,11 +866,33 @@ public class GoogleProvider implements SocialProvider {
                 return;
             }
 
-            // Tokens are invalid or expired, try to refresh silently
-            Log.i(LOG_TAG, "Tokens expired, attempting silent refresh");
+            // If the ID token is invalid, we cannot recover via silent refresh because
+            // AuthorizationResult only provides a new access token, not a new ID token.
+            // In this case, force the user to log in again.
+            if (!isValidIdToken) {
+                Log.i(LOG_TAG, "ID token is invalid or expired; forcing re-login");
+                rawLogout(
+                    new CredentialManagerCallback<>() {
+                        @Override
+                        public void onResult(Void unused) {
+                            call.reject("ID token is expired or invalid. Please login again.");
+                        }
+
+                        @Override
+                        public void onError(@NonNull Exception e) {
+                            Log.e(LOG_TAG, "Failed to logout after invalid ID token detected", e);
+                            call.reject("ID token is expired or invalid. Please login again.");
+                        }
+                    }
+                );
+                return;
+            }
+
+            // Access token is invalid or expired, but ID token is still valid.
+            // Try to refresh the access token silently.
+            Log.i(LOG_TAG, "Access token expired, attempting silent refresh");
             boolean forceRefreshToken = false;
             ListenableFuture<AuthorizationResult> authorizationFuture = getAuthorizationResult(forceRefreshToken);
-
             ExecutorService executor = Executors.newSingleThreadExecutor();
             executor.execute(
                 new Runnable() {
