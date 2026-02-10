@@ -840,6 +840,12 @@ export interface SocialLoginPlugin {
   /**
    * Refresh the access token
    * @description refresh the access token
+   *
+   * **Google Offline Mode Limitation:**
+   * This method is NOT supported when Google is initialized with `mode: 'offline'`.
+   * It will reject with error: "refresh is not implemented when using offline mode"
+   *
+   * @throws Error if Google provider is in offline mode
    */
   refresh(options: LoginOptions): Promise<void>;
 
