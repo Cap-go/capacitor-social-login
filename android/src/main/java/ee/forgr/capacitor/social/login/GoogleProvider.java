@@ -58,6 +58,11 @@ public class GoogleProvider implements SocialProvider {
     private static final String GOOGLE_DATA_PREFERENCE = "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
     private static final Integer FUTURE_LIST_LENGTH = 128;
     private static final String TOKEN_REQUEST_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo";
+    private static final String[] DEFAULT_SCOPES = new String[] {
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "openid"
+    };
 
     public static final Integer REQUEST_AUTHORIZE_GOOGLE_MIN = 583892990;
     public static final Integer REQUEST_AUTHORIZE_GOOGLE_MAX = REQUEST_AUTHORIZE_GOOGLE_MIN + GoogleProvider.FUTURE_LIST_LENGTH;
@@ -104,6 +109,19 @@ public class GoogleProvider implements SocialProvider {
             JSONObject object = new JSONObject(data);
             GoogleProvider.this.idToken = object.optString("idToken", null);
             GoogleProvider.this.accessToken = object.optString("accessToken", null);
+            JSONArray storedScopes = object.optJSONArray("scopes");
+            if (storedScopes != null && storedScopes.length() > 0) {
+                List<String> scopesList = new ArrayList<>(storedScopes.length());
+                for (int i = 0; i < storedScopes.length(); i++) {
+                    String scope = storedScopes.optString(i, null);
+                    if (scope != null && !scope.isEmpty()) {
+                        scopesList.add(scope);
+                    }
+                }
+                if (!scopesList.isEmpty()) {
+                    GoogleProvider.this.scopes = scopesList.toArray(new String[0]);
+                }
+            }
 
             Log.i(SocialLoginPlugin.LOG_TAG, String.format("Google restoreState: %s", object));
         } catch (JSONException e) {
@@ -384,9 +402,22 @@ public class GoogleProvider implements SocialProvider {
     }
 
     private void persistState(String idToken, String accessToken) throws JSONException {
+        persistState(idToken, accessToken, GoogleProvider.this.scopes);
+    }
+
+    private void persistState(String idToken, String accessToken, String[] scopes) throws JSONException {
         JSONObject object = new JSONObject();
         object.put("idToken", idToken);
         object.put("accessToken", accessToken);
+        if (scopes != null && scopes.length > 0) {
+            JSONArray scopesArray = new JSONArray();
+            for (String scope : scopes) {
+                if (scope != null && !scope.isEmpty()) {
+                    scopesArray.put(scope);
+                }
+            }
+            object.put("scopes", scopesArray);
+        }
 
         GoogleProvider.this.idToken = idToken;
         GoogleProvider.this.accessToken = accessToken;
@@ -415,6 +446,10 @@ public class GoogleProvider implements SocialProvider {
         //      return accessToken;
 
         ListenableFuture<AuthorizationResult> future = CallbackToFutureAdapter.getFuture((completer) -> {
+            // Scopes can be null when restoring state after an app restart; default to the base OIDC/userinfo scopes.
+            if (GoogleProvider.this.scopes == null || GoogleProvider.this.scopes.length == 0) {
+                GoogleProvider.this.scopes = DEFAULT_SCOPES;
+            }
             List<Scope> scopes = new ArrayList<>(this.scopes.length);
             for (String scope : this.scopes) {
                 scopes.add(new Scope(scope));
@@ -835,7 +870,119 @@ public class GoogleProvider implements SocialProvider {
 
     @Override
     public void refresh(PluginCall call) {
-        // Implement refresh logic here
-        call.reject("Not implemented");
+        if (this.mode == GoogleProviderLoginType.OFFLINE) {
+            call.reject("refresh is not implemented when using offline mode");
+            return;
+        }
+        if (this.clientId == null || this.clientId.isEmpty()) {
+            call.reject("Google Sign-In failed: Client ID is not set");
+            return;
+        }
+        if (this.credentialManager == null) {
+            this.credentialManager = CredentialManager.create(activity);
+        }
+
+        // If both tokens are still valid, do nothing (mirrors iOS refreshTokensIfNeeded behavior).
+        try {
+            if (GoogleProvider.this.idToken != null && GoogleProvider.this.accessToken != null) {
+                boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
+                boolean isValidAccessToken = accessTokenIsValid(GoogleProvider.this.accessToken).get(7, TimeUnit.SECONDS);
+                if (isValidIdToken && isValidAccessToken) {
+                    call.resolve();
+                    return;
+                }
+            }
+        } catch (Exception e) {
+            // Non-fatal: fall through to attempt refresh.
+            Log.w(LOG_TAG, "Error checking token validity during refresh", e);
+        }
+
+        // Ensure we have scopes for the authorization flow (may be null after restoreState).
+        if (GoogleProvider.this.scopes == null || GoogleProvider.this.scopes.length == 0) {
+            GoogleProvider.this.scopes = DEFAULT_SCOPES;
+        }
+
+        // 1) Retrieve a fresh ID token via Credential Manager (may be silent or may require user interaction).
+        // 2) Retrieve a fresh access token via the Authorization API.
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+            .addCredentialOption(
+                new GetGoogleIdOption.Builder()
+                    .setServerClientId(this.clientId)
+                    .setFilterByAuthorizedAccounts(true)
+                    .setAutoSelectEnabled(true)
+                    .build()
+            )
+            .build();
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        credentialManager.getCredentialAsync(
+            context,
+            request,
+            null,
+            executor,
+            new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                @Override
+                public void onResult(GetCredentialResponse result) {
+                    try {
+                        Credential credential = result.getCredential();
+                        if (!(credential instanceof CustomCredential)) {
+                            call.reject("Failed to refresh tokens: unexpected credential type");
+                            return;
+                        }
+
+                        if (!GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(credential.getType())) {
+                            call.reject("Failed to refresh tokens: unexpected credential subtype");
+                            return;
+                        }
+
+                        GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(
+                            ((CustomCredential) credential).getData()
+                        );
+                        String newIdToken = googleIdTokenCredential.getIdToken();
+
+                        ListenableFuture<AuthorizationResult> future = getAuthorizationResult(false);
+
+                        ExecutorService authExecutor = Executors.newSingleThreadExecutor();
+                        authExecutor.execute(
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        AuthorizationResult authResult = future.get(60, TimeUnit.SECONDS);
+                                        String newAccessToken = authResult.getAccessToken();
+                                        if (newAccessToken == null || newAccessToken.isEmpty()) {
+                                            call.reject("Failed to refresh tokens: access token is null");
+                                            return;
+                                        }
+
+                                        persistState(newIdToken, newAccessToken, GoogleProvider.this.scopes);
+                                        call.resolve();
+                                    } catch (Exception e) {
+                                        call.reject("Failed to refresh tokens: " + e.getMessage());
+                                    } finally {
+                                        authExecutor.shutdown();
+                                    }
+                                }
+                            }
+                        );
+                    } catch (Exception e) {
+                        call.reject("Failed to refresh tokens: " + e.getMessage());
+                    } finally {
+                        executor.shutdown();
+                    }
+                }
+
+                @Override
+                public void onError(@NonNull GetCredentialException e) {
+                    if (e instanceof NoCredentialException) {
+                        call.reject("User not logged in");
+                        executor.shutdown();
+                        return;
+                    }
+                    call.reject("Failed to refresh tokens: " + e.getMessage());
+                    executor.shutdown();
+                }
+            }
+        );
     }
 }
