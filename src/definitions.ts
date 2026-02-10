@@ -6,18 +6,41 @@ export interface OAuth2ProviderConfig {
    * The OAuth 2.0 client identifier (App ID / Client ID)
    * @example 'your-client-id'
    */
-  appId: string;
+  appId?: string;
+  /**
+   * Alias for `appId` to match common OAuth/OIDC naming (`clientId`).
+   * If both are provided, `appId` takes precedence.
+   * @example 'your-client-id'
+   */
+  clientId?: string;
+  /**
+   * OpenID Connect issuer URL (enables discovery via `/.well-known/openid-configuration`).
+   * When set, you may omit explicit endpoints like `authorizationBaseUrl` and `accessTokenEndpoint`.
+   *
+   * @example 'https://accounts.example.com'
+   */
+  issuerUrl?: string;
   /**
    * The base URL of the authorization endpoint
    * @example 'https://accounts.example.com/oauth2/authorize'
    */
-  authorizationBaseUrl: string;
+  authorizationBaseUrl?: string;
+  /**
+   * Alias for `authorizationBaseUrl` (to match common OAuth/OIDC naming).
+   * @example 'https://accounts.example.com/oauth2/authorize'
+   */
+  authorizationEndpoint?: string;
   /**
    * The URL to exchange the authorization code for tokens
    * Required for authorization code flow
    * @example 'https://accounts.example.com/oauth2/token'
    */
   accessTokenEndpoint?: string;
+  /**
+   * Alias for `accessTokenEndpoint` (to match common OAuth/OIDC naming).
+   * @example 'https://accounts.example.com/oauth2/token'
+   */
+  tokenEndpoint?: string;
   /**
    * Redirect URL that receives the OAuth callback
    * @example 'myapp://oauth/callback'
@@ -45,13 +68,29 @@ export interface OAuth2ProviderConfig {
   /**
    * Default scopes to request during authorization
    * @example 'openid profile email'
+   * @example ['openid','profile','email']
    */
-  scope?: string;
+  scope?: string | string[];
   /**
    * Additional parameters to include in the authorization request
    * @example { prompt: 'consent', login_hint: 'user@example.com' }
    */
   additionalParameters?: Record<string, string>;
+  /**
+   * Convenience option for OIDC `login_hint`.
+   * Equivalent to passing `additionalParameters.login_hint`.
+   */
+  loginHint?: string;
+  /**
+   * Convenience option for OAuth/OIDC `prompt`.
+   * Equivalent to passing `additionalParameters.prompt`.
+   */
+  prompt?: string;
+  /**
+   * Additional parameters to include in token requests (code exchange / refresh).
+   * Useful for providers that require non-standard parameters.
+   */
+  additionalTokenParameters?: Record<string, string>;
   /**
    * Additional headers to include when fetching the resource URL
    * @example { 'X-Custom-Header': 'value' }
@@ -62,6 +101,29 @@ export interface OAuth2ProviderConfig {
    * @example 'https://accounts.example.com/logout'
    */
   logoutUrl?: string;
+  /**
+   * Alias for `logoutUrl` to match OIDC naming (`endSessionEndpoint`).
+   * @example 'https://accounts.example.com/logout'
+   */
+  endSessionEndpoint?: string;
+  /**
+   * OIDC post logout redirect URL (sent as `post_logout_redirect_uri` when building the end-session URL).
+   * @example 'myapp://logout/callback'
+   */
+  postLogoutRedirectUrl?: string;
+  /**
+   * Additional parameters to include in logout / end-session URL.
+   */
+  additionalLogoutParameters?: Record<string, string>;
+  /**
+   * iOS-only: Whether to prefer an ephemeral browser session for ASWebAuthenticationSession.
+   * Defaults to true to match existing behavior in this plugin.
+   */
+  iosPrefersEphemeralWebBrowserSession?: boolean;
+  /**
+   * Alias for `iosPrefersEphemeralWebBrowserSession` (to match Capawesome OAuth naming).
+   */
+  iosPrefersEphemeralSession?: boolean;
   /**
    * Enable debug logging
    * @default false
@@ -362,6 +424,24 @@ export interface OAuth2LoginOptions {
    * Additional parameters to add to the authorization URL
    */
   additionalParameters?: Record<string, string>;
+  /**
+   * Convenience option for OIDC `login_hint`.
+   * Equivalent to passing `additionalParameters.login_hint`.
+   */
+  loginHint?: string;
+  /**
+   * Convenience option for OAuth/OIDC `prompt`.
+   * Equivalent to passing `additionalParameters.prompt`.
+   */
+  prompt?: string;
+  /**
+   * Web-only: Use a full-page redirect instead of a popup window.
+   * When using `redirect`, the promise returned by `login()` will not resolve because the page navigates away.
+   * Call `handleRedirectCallback()` after the redirect to complete the flow.
+   *
+   * @default 'popup'
+   */
+  flow?: 'popup' | 'redirect';
 }
 
 export interface OAuth2LoginResponse {
@@ -848,6 +928,53 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   refresh(options: LoginOptions): Promise<void>;
+
+  /**
+   * OAuth-style refresh token helper (feature parity with Capawesome OAuth).
+   * Currently implemented for the built-in `oauth2` provider.
+   *
+   * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
+   */
+  refreshToken(options: {
+    provider: 'oauth2';
+    providerId: string;
+    refreshToken?: string;
+    additionalParameters?: Record<string, string>;
+  }): Promise<OAuth2LoginResponse>;
+
+  /**
+   * Web-only: handle the OAuth redirect callback and return the parsed result.
+   * Use this when you use a redirect-based flow instead of popups.
+   */
+  handleRedirectCallback(): Promise<LoginResult | null>;
+
+  /**
+   * Decode a JWT (typically an OIDC ID token) into its claims.
+   */
+  decodeIdToken(options: { idToken: string }): Promise<{ claims: Record<string, any> }>;
+
+  /**
+   * Get the access token expiration date for an OAuth2 provider.
+   */
+  getAccessTokenExpirationDate(options: {
+    provider: 'oauth2';
+    providerId: string;
+  }): Promise<{ expirationDate: string | null }>;
+
+  /**
+   * Check if an access token is available for an OAuth2 provider.
+   */
+  isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }>;
+
+  /**
+   * Check if an access token is expired for an OAuth2 provider.
+   */
+  isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string }): Promise<{ isExpired: boolean }>;
+
+  /**
+   * Check if a refresh token is available for an OAuth2 provider.
+   */
+  isRefreshTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }>;
 
   /**
    * Execute provider-specific calls

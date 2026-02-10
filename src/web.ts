@@ -15,6 +15,7 @@ import type {
   ProviderSpecificCallResponseMap,
   LoginResult,
   OAuth2LoginOptions,
+  OAuth2LoginResponse,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
 } from './definitions';
@@ -25,6 +26,7 @@ import { TwitterSocialLogin } from './twitter-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
+  private static readonly POPUP_WINDOW_NAMES = new Set(['OAuth2Login', 'XLogin', 'Google Sign In', 'Authorization']);
 
   private googleProvider: GoogleSocialLogin;
   private appleProvider: AppleSocialLogin;
@@ -41,17 +43,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     this.twitterProvider = new TwitterSocialLogin();
     this.oauth2Provider = new OAuth2SocialLogin();
 
-    // Set up listener for OAuth redirects if we have a pending OAuth flow
-    if (localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY)) {
-      console.log('OAUTH_STATE_KEY found');
-      this.handleOAuthRedirect().catch((error) => {
+    // Auto-finish OAuth redirects only when running inside a popup window.
+    // For redirect-based flows (full page navigation), the app should call `handleRedirectCallback()` explicitly.
+    const hasPending = !!localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY);
+    const isPopup = !!window.opener || SocialLoginWeb.POPUP_WINDOW_NAMES.has(window.name);
+    if (hasPending && isPopup) {
+      this.finishOAuthRedirectInPopup().catch((error) => {
         console.error('Failed to finish OAuth redirect', error);
-        window.close();
+        try {
+          window.close();
+        } catch {
+          // ignore
+        }
       });
     }
   }
 
-  private async handleOAuthRedirect(): Promise<void> {
+  private async parseRedirectResult(): Promise<{
+    provider: string | null;
+    state?: string;
+    nonce?: string;
+    result: LoginResult | { error: string } | null;
+  }> {
     const url = new URL(window.location.href);
     const stateRaw = localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY);
     let provider: string | null = null;
@@ -84,14 +97,18 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         break;
     }
 
-    if (!result) {
-      return;
-    }
+    return { provider, state, nonce, result };
+  }
+
+  private async finishOAuthRedirectInPopup(): Promise<void> {
+    const parsed = await this.parseRedirectResult();
+    const result = parsed.result;
+    if (!result) return;
 
     // Build the message to send
     let message: Record<string, unknown>;
     if ('error' in result) {
-      const resolvedProvider = provider ?? null;
+      const resolvedProvider = parsed.provider ?? null;
       message = {
         type: 'oauth-error',
         provider: resolvedProvider,
@@ -120,12 +137,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     try {
       // Determine the channel name based on provider and state/nonce
       let channelName: string | null = null;
-      if (provider === 'oauth2' && state) {
-        channelName = `oauth2_${state}`;
-      } else if (provider === 'twitter' && state) {
-        channelName = `twitter_oauth_${state}`;
-      } else if (provider === 'google' && nonce) {
-        channelName = `google_oauth_${nonce}`;
+      if (parsed.provider === 'oauth2' && parsed.state) {
+        channelName = `oauth2_${parsed.state}`;
+      } else if (parsed.provider === 'twitter' && parsed.state) {
+        channelName = `twitter_oauth_${parsed.state}`;
+      } else if (parsed.provider === 'google' && parsed.nonce) {
+        channelName = `google_oauth_${parsed.nonce}`;
       }
 
       if (channelName) {
@@ -312,6 +329,67 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     options: ProviderSpecificCallOptionsMap[T];
   }): Promise<ProviderSpecificCallResponseMap[T]> {
     throw new Error(`Provider specific call for ${options.call} is not implemented`);
+  }
+
+  async refreshToken(options: {
+    provider: 'oauth2';
+    providerId: string;
+    refreshToken?: string;
+    additionalParameters?: Record<string, string>;
+  }): Promise<OAuth2LoginResponse> {
+    if (options.provider !== 'oauth2') {
+      throw new Error('refreshToken is only implemented for oauth2 on web');
+    }
+    return this.oauth2Provider.refreshToken(options.providerId, options.refreshToken, options.additionalParameters);
+  }
+
+  async handleRedirectCallback(): Promise<LoginResult | null> {
+    const parsed = await this.parseRedirectResult();
+    const result = parsed.result;
+    if (!result) return null;
+    if ('error' in result) {
+      throw new Error(result.error);
+    }
+    return result;
+  }
+
+  async decodeIdToken(options: { idToken: string }): Promise<{ claims: Record<string, any> }> {
+    const claims = this.oauth2Provider.decodeIdToken(options.idToken);
+    return { claims };
+  }
+
+  async getAccessTokenExpirationDate(options: {
+    provider: 'oauth2';
+    providerId: string;
+  }): Promise<{ expirationDate: string | null }> {
+    if (options.provider !== 'oauth2') {
+      throw new Error('getAccessTokenExpirationDate is only implemented for oauth2 on web');
+    }
+    return this.oauth2Provider.getAccessTokenExpirationDate(options.providerId);
+  }
+
+  async isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }> {
+    if (options.provider !== 'oauth2') {
+      throw new Error('isAccessTokenAvailable is only implemented for oauth2 on web');
+    }
+    return this.oauth2Provider.isAccessTokenAvailable(options.providerId);
+  }
+
+  async isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string }): Promise<{ isExpired: boolean }> {
+    if (options.provider !== 'oauth2') {
+      throw new Error('isAccessTokenExpired is only implemented for oauth2 on web');
+    }
+    return this.oauth2Provider.isAccessTokenExpired(options.providerId);
+  }
+
+  async isRefreshTokenAvailable(options: {
+    provider: 'oauth2';
+    providerId: string;
+  }): Promise<{ isAvailable: boolean }> {
+    if (options.provider !== 'oauth2') {
+      throw new Error('isRefreshTokenAvailable is only implemented for oauth2 on web');
+    }
+    return this.oauth2Provider.isRefreshTokenAvailable(options.providerId);
   }
 
   async getPluginVersion(): Promise<{ version: string }> {

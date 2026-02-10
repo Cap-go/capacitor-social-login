@@ -33,10 +33,24 @@ interface OAuth2StoredTokens {
   tokenType: string;
 }
 
-interface OAuth2ConfigInternal extends OAuth2ProviderConfig {
+interface OAuth2ConfigInternal {
+  appId: string;
+  issuerUrl?: string;
+  authorizationBaseUrl?: string;
+  accessTokenEndpoint?: string;
+  redirectUrl: string;
+  resourceUrl?: string;
   responseType: 'code' | 'token';
   pkceEnabled: boolean;
   scope: string;
+  additionalParameters?: Record<string, string>;
+  loginHint?: string;
+  prompt?: string;
+  additionalTokenParameters?: Record<string, string>;
+  additionalResourceHeaders?: Record<string, string>;
+  logoutUrl?: string;
+  postLogoutRedirectUrl?: string;
+  additionalLogoutParameters?: Record<string, string>;
   logsEnabled: boolean;
 }
 
@@ -49,34 +63,106 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
   private readonly TOKENS_KEY_PREFIX = 'capgo_social_login_oauth2_tokens_';
   private readonly STATE_PREFIX = 'capgo_social_login_oauth2_state_';
 
+  private normalizeConfig(providerId: string, config: OAuth2ProviderConfig): OAuth2ConfigInternal {
+    const appId = config.appId ?? config.clientId;
+    const authorizationBaseUrl = config.authorizationBaseUrl ?? config.authorizationEndpoint;
+    const accessTokenEndpoint = config.accessTokenEndpoint ?? config.tokenEndpoint;
+    const logoutUrl = config.logoutUrl ?? config.endSessionEndpoint;
+
+    if (!appId) {
+      throw new Error(`OAuth2 provider '${providerId}' requires appId (or clientId).`);
+    }
+    if (!config.redirectUrl) {
+      throw new Error(`OAuth2 provider '${providerId}' requires redirectUrl.`);
+    }
+    if (!authorizationBaseUrl && !config.issuerUrl) {
+      throw new Error(
+        `OAuth2 provider '${providerId}' requires authorizationBaseUrl (or authorizationEndpoint) or issuerUrl.`,
+      );
+    }
+
+    return {
+      appId,
+      issuerUrl: config.issuerUrl,
+      authorizationBaseUrl,
+      accessTokenEndpoint,
+      redirectUrl: config.redirectUrl,
+      resourceUrl: config.resourceUrl,
+      responseType: (config.responseType ?? 'code') as 'code' | 'token',
+      pkceEnabled: config.pkceEnabled ?? true,
+      scope: typeof config.scope === 'string' ? config.scope : ((config.scope as any)?.join?.(' ') ?? ''),
+      additionalParameters: config.additionalParameters,
+      loginHint: config.loginHint,
+      prompt: config.prompt,
+      additionalTokenParameters: config.additionalTokenParameters,
+      additionalResourceHeaders: config.additionalResourceHeaders,
+      logoutUrl,
+      postLogoutRedirectUrl: config.postLogoutRedirectUrl,
+      additionalLogoutParameters: config.additionalLogoutParameters,
+      logsEnabled: config.logsEnabled ?? false,
+    };
+  }
+
+  private async ensureDiscovered(providerId: string): Promise<void> {
+    const config = this.providers.get(providerId);
+    if (!config?.issuerUrl) return;
+
+    // Resolve endpoints lazily.
+    if (config.authorizationBaseUrl && config.accessTokenEndpoint) return;
+
+    const issuer = config.issuerUrl.replace(/\/+$/, '');
+    const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
+    const resp = await fetch(discoveryUrl);
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(`OAuth2 discovery failed (${resp.status}): ${text || discoveryUrl}`);
+    }
+    const payload = (await resp.json()) as Record<string, unknown>;
+
+    const authorizationEndpoint = payload['authorization_endpoint'];
+    const tokenEndpoint = payload['token_endpoint'];
+    const endSessionEndpoint = payload['end_session_endpoint'];
+
+    if (!config.authorizationBaseUrl && typeof authorizationEndpoint === 'string') {
+      config.authorizationBaseUrl = authorizationEndpoint;
+    }
+    if (!config.accessTokenEndpoint && typeof tokenEndpoint === 'string') {
+      config.accessTokenEndpoint = tokenEndpoint;
+    }
+    if (!config.logoutUrl && typeof endSessionEndpoint === 'string') {
+      config.logoutUrl = endSessionEndpoint;
+    }
+
+    if (config.logsEnabled) {
+      console.log(`[OAuth2:${providerId}] Discovery resolved`, {
+        authorizationBaseUrl: config.authorizationBaseUrl,
+        accessTokenEndpoint: config.accessTokenEndpoint,
+        logoutUrl: config.logoutUrl,
+      });
+    }
+  }
+
   /**
    * Initialize multiple OAuth2 providers
    */
   async initializeProviders(configs: Record<string, OAuth2ProviderConfig>): Promise<void> {
     for (const [providerId, config] of Object.entries(configs)) {
-      if (!config.appId || !config.authorizationBaseUrl || !config.redirectUrl) {
-        throw new Error(`OAuth2 provider '${providerId}' requires appId, authorizationBaseUrl, and redirectUrl`);
-      }
-
-      const internalConfig: OAuth2ConfigInternal = {
-        ...config,
-        responseType: config.responseType ?? 'code',
-        pkceEnabled: config.pkceEnabled ?? true,
-        scope: config.scope ?? '',
-        logsEnabled: config.logsEnabled ?? false,
-      };
-
+      const internalConfig = this.normalizeConfig(providerId, config);
       this.providers.set(providerId, internalConfig);
 
       if (internalConfig.logsEnabled) {
         console.log(`[OAuth2:${providerId}] Initialized with config:`, {
-          appId: config.appId,
-          authorizationBaseUrl: config.authorizationBaseUrl,
-          redirectUrl: config.redirectUrl,
+          appId: internalConfig.appId,
+          issuerUrl: internalConfig.issuerUrl,
+          authorizationBaseUrl: internalConfig.authorizationBaseUrl,
+          redirectUrl: internalConfig.redirectUrl,
           responseType: internalConfig.responseType,
           pkceEnabled: internalConfig.pkceEnabled,
         });
       }
+
+      // Pre-resolve discovery on web if issuerUrl is provided.
+      await this.ensureDiscovered(providerId);
     }
   }
 
@@ -97,6 +183,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     const { providerId } = options;
     const config = this.getProvider(providerId);
+    await this.ensureDiscovered(providerId);
 
     const redirectUri = options.redirectUrl ?? config.redirectUrl;
     const scope = options.scope ?? config.scope;
@@ -115,6 +202,20 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       params.set('scope', scope);
     }
 
+    // Convenience OIDC options
+    const mergedAdditionalParams: Record<string, string> = {
+      ...(config.additionalParameters ?? {}),
+      ...(options.additionalParameters ?? {}),
+    };
+    const loginHint = options.loginHint ?? config.loginHint;
+    const prompt = options.prompt ?? config.prompt;
+    if (loginHint && !('login_hint' in mergedAdditionalParams)) {
+      mergedAdditionalParams.login_hint = loginHint;
+    }
+    if (prompt && !('prompt' in mergedAdditionalParams)) {
+      mergedAdditionalParams.prompt = prompt;
+    }
+
     // Add PKCE for code flow
     if (config.responseType === 'code' && config.pkceEnabled) {
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
@@ -122,16 +223,9 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       params.set('code_challenge_method', 'S256');
     }
 
-    // Add additional parameters from config
-    if (config.additionalParameters) {
-      for (const [key, value] of Object.entries(config.additionalParameters)) {
-        params.set(key, value);
-      }
-    }
-
-    // Add additional parameters from login options
-    if (options.additionalParameters) {
-      for (const [key, value] of Object.entries(options.additionalParameters)) {
+    // Add merged additional parameters
+    for (const [key, value] of Object.entries(mergedAdditionalParams)) {
+      if (value !== undefined) {
         params.set(key, value);
       }
     }
@@ -146,10 +240,20 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
     localStorage.setItem(BaseSocialLogin.OAUTH_STATE_KEY, JSON.stringify({ provider: 'oauth2', providerId, state }));
 
+    if (!config.authorizationBaseUrl) {
+      throw new Error(`OAuth2 provider '${providerId}' is missing authorizationBaseUrl (discovery may have failed).`);
+    }
     const authUrl = `${config.authorizationBaseUrl}?${params.toString()}`;
 
     if (config.logsEnabled) {
       console.log(`[OAuth2:${providerId}] Opening authorization URL:`, authUrl);
+    }
+
+    if (options.flow === 'redirect') {
+      // Trigger a full-page redirect. The promise will not resolve because the page navigates away.
+      window.location.assign(authUrl);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      return new Promise(() => {}) as any;
     }
 
     // Open popup window
@@ -282,12 +386,31 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
   }
 
   async logout(providerId: string): Promise<void> {
+    await this.ensureDiscovered(providerId);
     const config = this.providers.get(providerId);
+    const stored = this.getStoredTokens(providerId);
     localStorage.removeItem(this.getTokensKey(providerId));
 
-    // If logout URL is configured, redirect to it
+    // If logout URL is configured, build an end-session URL (OIDC) when possible.
     if (config?.logoutUrl) {
-      window.open(config.logoutUrl, '_blank');
+      try {
+        const url = new URL(config.logoutUrl);
+        if (stored?.idToken) {
+          url.searchParams.set('id_token_hint', stored.idToken);
+        }
+        const postLogout = config.postLogoutRedirectUrl;
+        if (postLogout) {
+          url.searchParams.set('post_logout_redirect_uri', postLogout);
+        }
+        if (config.additionalLogoutParameters) {
+          for (const [k, v] of Object.entries(config.additionalLogoutParameters)) {
+            url.searchParams.set(k, v);
+          }
+        }
+        window.open(url.toString(), '_blank');
+      } catch {
+        window.open(config.logoutUrl, '_blank');
+      }
     }
   }
 
@@ -315,19 +438,64 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
   }
 
   async refresh(providerId: string): Promise<void> {
-    const tokens = this.getStoredTokens(providerId);
-    if (!tokens?.refreshToken) {
+    await this.refreshToken(providerId);
+  }
+
+  async refreshToken(
+    providerId: string,
+    refreshToken?: string,
+    additionalParameters?: Record<string, string>,
+  ): Promise<OAuth2LoginResponse> {
+    await this.ensureDiscovered(providerId);
+    const config = this.getProvider(providerId);
+
+    const stored = this.getStoredTokens(providerId);
+    const effectiveRefreshToken = refreshToken ?? stored?.refreshToken;
+    if (!effectiveRefreshToken) {
       throw new Error(
         `No OAuth2 refresh token is available for provider '${providerId}'. Include offline_access scope to receive one.`,
       );
     }
-
-    const config = this.getProvider(providerId);
     if (!config.accessTokenEndpoint) {
       throw new Error(`No accessTokenEndpoint configured for provider '${providerId}'.`);
     }
 
-    await this.refreshWithRefreshToken(providerId, tokens.refreshToken);
+    const tokenResponse = await this.refreshWithRefreshToken(providerId, effectiveRefreshToken, additionalParameters);
+
+    const expiresAt = tokenResponse.expires_in ? Date.now() + tokenResponse.expires_in * 1000 : Date.now() + 3600000;
+    const scopeArray = tokenResponse.scope?.split(' ').filter(Boolean) ?? stored?.scope ?? [];
+
+    // Fetch resource data if configured
+    let resourceData: Record<string, unknown> | null = null;
+    if (config.resourceUrl) {
+      resourceData = await this.fetchResource(providerId, tokenResponse.access_token);
+    }
+
+    const nextRefreshToken = tokenResponse.refresh_token ?? effectiveRefreshToken;
+    this.persistTokens(providerId, {
+      accessToken: tokenResponse.access_token,
+      refreshToken: nextRefreshToken,
+      idToken: tokenResponse.id_token,
+      expiresAt,
+      scope: scopeArray,
+      tokenType: tokenResponse.token_type,
+    });
+
+    return {
+      providerId,
+      accessToken: {
+        token: tokenResponse.access_token,
+        tokenType: tokenResponse.token_type,
+        expires: new Date(expiresAt).toISOString(),
+        refreshToken: nextRefreshToken,
+      },
+      idToken: tokenResponse.id_token ?? null,
+      refreshToken: nextRefreshToken ?? null,
+      resourceData,
+      scope: scopeArray,
+      tokenType: tokenResponse.token_type,
+      expiresIn: tokenResponse.expires_in ?? null,
+    };
   }
 
   async handleOAuthRedirect(url: URL, expectedState?: string): Promise<LoginResult | { error: string } | null> {
@@ -352,6 +520,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     }
 
     const { providerId } = pending;
+    await this.ensureDiscovered(providerId);
     const config = this.providers.get(providerId);
     if (!config) {
       localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
@@ -457,6 +626,12 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       params.set('code_verifier', pending.codeVerifier);
     }
 
+    if (config.additionalTokenParameters) {
+      for (const [k, v] of Object.entries(config.additionalTokenParameters)) {
+        params.set(k, v);
+      }
+    }
+
     if (config.logsEnabled) {
       console.log(`[OAuth2:${providerId}] Exchanging code at:`, config.accessTokenEndpoint);
     }
@@ -477,7 +652,11 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     return (await response.json()) as OAuth2TokenResponse;
   }
 
-  private async refreshWithRefreshToken(providerId: string, refreshToken: string): Promise<void> {
+  private async refreshWithRefreshToken(
+    providerId: string,
+    refreshToken: string,
+    additionalParameters?: Record<string, string>,
+  ): Promise<OAuth2TokenResponse> {
     const config = this.getProvider(providerId);
     if (!config.accessTokenEndpoint) {
       throw new Error(`No accessTokenEndpoint configured for provider '${providerId}'.`);
@@ -488,6 +667,17 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       refresh_token: refreshToken,
       client_id: config.appId,
     });
+
+    if (config.additionalTokenParameters) {
+      for (const [k, v] of Object.entries(config.additionalTokenParameters)) {
+        params.set(k, v);
+      }
+    }
+    if (additionalParameters) {
+      for (const [k, v] of Object.entries(additionalParameters)) {
+        params.set(k, v);
+      }
+    }
 
     const response = await fetch(config.accessTokenEndpoint, {
       method: 'POST',
@@ -502,18 +692,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       throw new Error(`OAuth2 refresh failed (${response.status}): ${text}`);
     }
 
-    const tokens = (await response.json()) as OAuth2TokenResponse;
-    const expiresAt = tokens.expires_in ? Date.now() + tokens.expires_in * 1000 : Date.now() + 3600000;
-    const scopeArray = tokens.scope?.split(' ').filter(Boolean) ?? [];
-
-    this.persistTokens(providerId, {
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token ?? refreshToken,
-      idToken: tokens.id_token,
-      expiresAt,
-      scope: scopeArray,
-      tokenType: tokens.token_type,
-    });
+    return (await response.json()) as OAuth2TokenResponse;
   }
 
   private async fetchResource(providerId: string, accessToken: string): Promise<Record<string, unknown>> {
@@ -601,5 +780,39 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     let binary = '';
     buffer.forEach((b) => (binary += String.fromCharCode(b)));
     return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  decodeIdToken(idToken: string): Record<string, any> {
+    const parts = idToken.split('.');
+    if (parts.length < 2) {
+      throw new Error('Invalid JWT: missing parts');
+    }
+    const payload = parts[1];
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    const json = atob(padded);
+    return JSON.parse(json) as Record<string, any>;
+  }
+
+  getAccessTokenExpirationDate(providerId: string): { expirationDate: string | null } {
+    const tokens = this.getStoredTokens(providerId);
+    if (!tokens?.expiresAt) return { expirationDate: null };
+    return { expirationDate: new Date(tokens.expiresAt).toISOString() };
+  }
+
+  isAccessTokenAvailable(providerId: string): { isAvailable: boolean } {
+    const tokens = this.getStoredTokens(providerId);
+    return { isAvailable: !!tokens?.accessToken };
+  }
+
+  isAccessTokenExpired(providerId: string): { isExpired: boolean } {
+    const tokens = this.getStoredTokens(providerId);
+    if (!tokens?.expiresAt) return { isExpired: true };
+    return { isExpired: tokens.expiresAt <= Date.now() };
+  }
+
+  isRefreshTokenAvailable(providerId: string): { isAvailable: boolean } {
+    const tokens = this.getStoredTokens(providerId);
+    return { isAvailable: !!tokens?.refreshToken };
   }
 }

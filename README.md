@@ -704,6 +704,13 @@ For iOS, it will store data in the Keychain, which is Apple's secure credential 
 * [`isLoggedIn(...)`](#isloggedin)
 * [`getAuthorizationCode(...)`](#getauthorizationcode)
 * [`refresh(...)`](#refresh)
+* [`refreshToken(...)`](#refreshtoken)
+* [`handleRedirectCallback()`](#handleredirectcallback)
+* [`decodeIdToken(...)`](#decodeidtoken)
+* [`getAccessTokenExpirationDate(...)`](#getaccesstokenexpirationdate)
+* [`isAccessTokenAvailable(...)`](#isaccesstokenavailable)
+* [`isAccessTokenExpired(...)`](#isaccesstokenexpired)
+* [`isRefreshTokenAvailable(...)`](#isrefreshtokenavailable)
 * [`providerSpecificCall(...)`](#providerspecificcall)
 * [`getPluginVersion()`](#getpluginversion)
 * [`openSecureWindow(...)`](#opensecurewindow)
@@ -807,6 +814,125 @@ Refresh the access token
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
 | **`options`** | <code><a href="#loginoptions">LoginOptions</a></code> |
+
+--------------------
+
+
+### refreshToken(...)
+
+```typescript
+refreshToken(options: { provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: Record<string, string>; }) => Promise<OAuth2LoginResponse>
+```
+
+OAuth-style refresh token helper (feature parity with Capawesome OAuth).
+Currently implemented for the built-in `oauth2` provider.
+
+If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
+
+| Param         | Type                                                                                                                                                       |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code> |
+
+**Returns:** <code>Promise&lt;<a href="#oauth2loginresponse">OAuth2LoginResponse</a>&gt;</code>
+
+--------------------
+
+
+### handleRedirectCallback()
+
+```typescript
+handleRedirectCallback() => Promise<LoginResult | null>
+```
+
+Web-only: handle the OAuth redirect callback and return the parsed result.
+Use this when you use a redirect-based flow instead of popups.
+
+**Returns:** <code>Promise&lt;<a href="#loginresult">LoginResult</a> | null&gt;</code>
+
+--------------------
+
+
+### decodeIdToken(...)
+
+```typescript
+decodeIdToken(options: { idToken: string; }) => Promise<{ claims: Record<string, any>; }>
+```
+
+Decode a JWT (typically an OIDC ID token) into its claims.
+
+| Param         | Type                              |
+| ------------- | --------------------------------- |
+| **`options`** | <code>{ idToken: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ claims: <a href="#record">Record</a>&lt;string, any&gt;; }&gt;</code>
+
+--------------------
+
+
+### getAccessTokenExpirationDate(...)
+
+```typescript
+getAccessTokenExpirationDate(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ expirationDate: string | null; }>
+```
+
+Get the access token expiration date for an OAuth2 provider.
+
+| Param         | Type                                                     |
+| ------------- | -------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ expirationDate: string | null; }&gt;</code>
+
+--------------------
+
+
+### isAccessTokenAvailable(...)
+
+```typescript
+isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ isAvailable: boolean; }>
+```
+
+Check if an access token is available for an OAuth2 provider.
+
+| Param         | Type                                                     |
+| ------------- | -------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ isAvailable: boolean; }&gt;</code>
+
+--------------------
+
+
+### isAccessTokenExpired(...)
+
+```typescript
+isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ isExpired: boolean; }>
+```
+
+Check if an access token is expired for an OAuth2 provider.
+
+| Param         | Type                                                     |
+| ------------- | -------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ isExpired: boolean; }&gt;</code>
+
+--------------------
+
+
+### isRefreshTokenAvailable(...)
+
+```typescript
+isRefreshTokenAvailable(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ isAvailable: boolean; }>
+```
+
+Check if a refresh token is available for an OAuth2 provider.
+
+| Param         | Type                                                     |
+| ------------- | -------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+
+**Returns:** <code>Promise&lt;{ isAvailable: boolean; }&gt;</code>
 
 --------------------
 
@@ -916,20 +1042,32 @@ And in the AndroidManifest.xml file:
 
 Configuration for a single OAuth2 provider instance
 
-| Prop                            | Type                                                            | Description                                                                                                                                                            | Default             |
-| ------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| **`appId`**                     | <code>string</code>                                             | The OAuth 2.0 client identifier (App ID / Client ID)                                                                                                                   |                     |
-| **`authorizationBaseUrl`**      | <code>string</code>                                             | The base URL of the authorization endpoint                                                                                                                             |                     |
-| **`accessTokenEndpoint`**       | <code>string</code>                                             | The URL to exchange the authorization code for tokens Required for authorization code flow                                                                             |                     |
-| **`redirectUrl`**               | <code>string</code>                                             | Redirect URL that receives the OAuth callback                                                                                                                          |                     |
-| **`resourceUrl`**               | <code>string</code>                                             | Optional URL to fetch user profile/resource data after authentication The access token will be sent as Bearer token in the Authorization header                        |                     |
-| **`responseType`**              | <code>'code' \| 'token'</code>                                  | The OAuth response type - 'code': Authorization Code flow (recommended, requires accessTokenEndpoint) - 'token': Implicit flow (less secure, tokens returned directly) | <code>'code'</code> |
-| **`pkceEnabled`**               | <code>boolean</code>                                            | Enable PKCE (Proof Key for Code Exchange) Strongly recommended for public clients (mobile/web apps)                                                                    | <code>true</code>   |
-| **`scope`**                     | <code>string</code>                                             | Default scopes to request during authorization                                                                                                                         |                     |
-| **`additionalParameters`**      | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to include in the authorization request                                                                                                          |                     |
-| **`additionalResourceHeaders`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional headers to include when fetching the resource URL                                                                                                           |                     |
-| **`logoutUrl`**                 | <code>string</code>                                             | Custom logout URL for ending the session                                                                                                                               |                     |
-| **`logsEnabled`**               | <code>boolean</code>                                            | Enable debug logging                                                                                                                                                   | <code>false</code>  |
+| Prop                                       | Type                                                            | Description                                                                                                                                                                             | Default             |
+| ------------------------------------------ | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| **`appId`**                                | <code>string</code>                                             | The OAuth 2.0 client identifier (App ID / Client ID)                                                                                                                                    |                     |
+| **`clientId`**                             | <code>string</code>                                             | Alias for `appId` to match common OAuth/OIDC naming (`clientId`). If both are provided, `appId` takes precedence.                                                                       |                     |
+| **`issuerUrl`**                            | <code>string</code>                                             | OpenID Connect issuer URL (enables discovery via `/.well-known/openid-configuration`). When set, you may omit explicit endpoints like `authorizationBaseUrl` and `accessTokenEndpoint`. |                     |
+| **`authorizationBaseUrl`**                 | <code>string</code>                                             | The base URL of the authorization endpoint                                                                                                                                              |                     |
+| **`authorizationEndpoint`**                | <code>string</code>                                             | Alias for `authorizationBaseUrl` (to match common OAuth/OIDC naming).                                                                                                                   |                     |
+| **`accessTokenEndpoint`**                  | <code>string</code>                                             | The URL to exchange the authorization code for tokens Required for authorization code flow                                                                                              |                     |
+| **`tokenEndpoint`**                        | <code>string</code>                                             | Alias for `accessTokenEndpoint` (to match common OAuth/OIDC naming).                                                                                                                    |                     |
+| **`redirectUrl`**                          | <code>string</code>                                             | Redirect URL that receives the OAuth callback                                                                                                                                           |                     |
+| **`resourceUrl`**                          | <code>string</code>                                             | Optional URL to fetch user profile/resource data after authentication The access token will be sent as Bearer token in the Authorization header                                         |                     |
+| **`responseType`**                         | <code>'code' \| 'token'</code>                                  | The OAuth response type - 'code': Authorization Code flow (recommended, requires accessTokenEndpoint) - 'token': Implicit flow (less secure, tokens returned directly)                  | <code>'code'</code> |
+| **`pkceEnabled`**                          | <code>boolean</code>                                            | Enable PKCE (Proof Key for Code Exchange) Strongly recommended for public clients (mobile/web apps)                                                                                     | <code>true</code>   |
+| **`scope`**                                | <code>string \| string[]</code>                                 | Default scopes to request during authorization                                                                                                                                          |                     |
+| **`additionalParameters`**                 | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to include in the authorization request                                                                                                                           |                     |
+| **`loginHint`**                            | <code>string</code>                                             | Convenience option for OIDC `login_hint`. Equivalent to passing `additionalParameters.login_hint`.                                                                                      |                     |
+| **`prompt`**                               | <code>string</code>                                             | Convenience option for OAuth/OIDC `prompt`. Equivalent to passing `additionalParameters.prompt`.                                                                                        |                     |
+| **`additionalTokenParameters`**            | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to include in token requests (code exchange / refresh). Useful for providers that require non-standard parameters.                                                |                     |
+| **`additionalResourceHeaders`**            | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional headers to include when fetching the resource URL                                                                                                                            |                     |
+| **`logoutUrl`**                            | <code>string</code>                                             | Custom logout URL for ending the session                                                                                                                                                |                     |
+| **`endSessionEndpoint`**                   | <code>string</code>                                             | Alias for `logoutUrl` to match OIDC naming (`endSessionEndpoint`).                                                                                                                      |                     |
+| **`postLogoutRedirectUrl`**                | <code>string</code>                                             | OIDC post logout redirect URL (sent as `post_logout_redirect_uri` when building the end-session URL).                                                                                   |                     |
+| **`additionalLogoutParameters`**           | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to include in logout / end-session URL.                                                                                                                           |                     |
+| **`iosPrefersEphemeralWebBrowserSession`** | <code>boolean</code>                                            | iOS-only: Whether to prefer an ephemeral browser session for ASWebAuthenticationSession. Defaults to true to match existing behavior in this plugin.                                    |                     |
+| **`iosPrefersEphemeralSession`**           | <code>boolean</code>                                            | Alias for `iosPrefersEphemeralWebBrowserSession` (to match Capawesome OAuth naming).                                                                                                    |                     |
+| **`logsEnabled`**                          | <code>boolean</code>                                            | Enable debug logging                                                                                                                                                                    | <code>false</code>  |
 
 
 #### FacebookLoginResponse
@@ -1069,14 +1207,17 @@ Configuration for a single OAuth2 provider instance
 
 #### OAuth2LoginOptions
 
-| Prop                       | Type                                                            | Description                                                                                               |
-| -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **`providerId`**           | <code>string</code>                                             | The provider ID as configured in initialize() This is required to identify which OAuth2 provider to use   |
-| **`scope`**                | <code>string</code>                                             | Override the scopes for this login request If not provided, uses the scopes from initialization           |
-| **`state`**                | <code>string</code>                                             | Custom state parameter for CSRF protection If not provided, a random value is generated                   |
-| **`codeVerifier`**         | <code>string</code>                                             | Override PKCE code verifier (for testing purposes) If not provided, a secure random verifier is generated |
-| **`redirectUrl`**          | <code>string</code>                                             | Override redirect URL for this login request                                                              |
-| **`additionalParameters`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to add to the authorization URL                                                     |
+| Prop                       | Type                                                            | Description                                                                                                                                                                                                                                       | Default              |
+| -------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| **`providerId`**           | <code>string</code>                                             | The provider ID as configured in initialize() This is required to identify which OAuth2 provider to use                                                                                                                                           |                      |
+| **`scope`**                | <code>string</code>                                             | Override the scopes for this login request If not provided, uses the scopes from initialization                                                                                                                                                   |                      |
+| **`state`**                | <code>string</code>                                             | Custom state parameter for CSRF protection If not provided, a random value is generated                                                                                                                                                           |                      |
+| **`codeVerifier`**         | <code>string</code>                                             | Override PKCE code verifier (for testing purposes) If not provided, a secure random verifier is generated                                                                                                                                         |                      |
+| **`redirectUrl`**          | <code>string</code>                                             | Override redirect URL for this login request                                                                                                                                                                                                      |                      |
+| **`additionalParameters`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to add to the authorization URL                                                                                                                                                                                             |                      |
+| **`loginHint`**            | <code>string</code>                                             | Convenience option for OIDC `login_hint`. Equivalent to passing `additionalParameters.login_hint`.                                                                                                                                                |                      |
+| **`prompt`**               | <code>string</code>                                             | Convenience option for OAuth/OIDC `prompt`. Equivalent to passing `additionalParameters.prompt`.                                                                                                                                                  |                      |
+| **`flow`**                 | <code>'popup' \| 'redirect'</code>                              | Web-only: Use a full-page redirect instead of a popup window. When using `redirect`, the promise returned by `login()` will not resolve because the page navigates away. Call `handleRedirectCallback()` after the redirect to complete the flow. | <code>'popup'</code> |
 
 
 #### isLoggedInOptions
@@ -1170,6 +1311,11 @@ Construct a type with a set of properties K of type T
 <a href="#extract">Extract</a> from T those types that are assignable to U
 
 <code>T extends U ? T : never</code>
+
+
+#### LoginResult
+
+<code>{ provider: 'facebook'; result: <a href="#facebookloginresponse">FacebookLoginResponse</a>; } | { provider: 'google'; result: <a href="#googleloginresponse">GoogleLoginResponse</a>; } | { provider: 'apple'; result: <a href="#appleproviderresponse">AppleProviderResponse</a>; } | { provider: 'twitter'; result: <a href="#twitterloginresponse">TwitterLoginResponse</a>; } | { provider: 'oauth2'; result: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
 
 
 #### ProviderSpecificCallResponseMap
