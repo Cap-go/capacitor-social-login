@@ -1147,9 +1147,7 @@ Configuration for a single OAuth2 provider instance
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
 
 
 #### ProviderResponseMap
