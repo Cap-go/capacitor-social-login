@@ -3,7 +3,10 @@
  */
 export interface OAuth2ProviderConfig {
   /**
-   * The OAuth 2.0 client identifier (App ID / Client ID)
+   * The OAuth 2.0 client identifier (App ID / Client ID).
+   *
+   * Note: this configuration object is only used by the plugin's built-in `oauth2` provider
+   * (i.e. `SocialLogin.initialize({ oauth2: { ... } })`). It does not affect Google/Apple/Facebook/Twitter.
    * @example 'your-client-id'
    */
   appId?: string;
@@ -16,6 +19,10 @@ export interface OAuth2ProviderConfig {
   /**
    * OpenID Connect issuer URL (enables discovery via `/.well-known/openid-configuration`).
    * When set, you may omit explicit endpoints like `authorizationBaseUrl` and `accessTokenEndpoint`.
+   *
+   * Notes:
+   * - Explicit endpoints (authorization/token/logout) take precedence over discovered values.
+   * - Discovery is supported for `oauth2` on Web, iOS, and Android.
    *
    * @example 'https://accounts.example.com'
    */
@@ -435,9 +442,11 @@ export interface OAuth2LoginOptions {
    */
   prompt?: string;
   /**
-   * Web-only: Use a full-page redirect instead of a popup window.
+   * Web-only (`oauth2` provider only): Use a full-page redirect instead of a popup window.
+   *
    * When using `redirect`, the promise returned by `login()` will not resolve because the page navigates away.
-   * Call `handleRedirectCallback()` after the redirect to complete the flow.
+   * After the redirect lands back in your app, call `SocialLogin.handleRedirectCallback()` on that page to
+   * parse the result.
    *
    * @default 'popup'
    */
@@ -930,8 +939,14 @@ export interface SocialLoginPlugin {
   refresh(options: LoginOptions): Promise<void>;
 
   /**
-   * OAuth-style refresh token helper (feature parity with Capawesome OAuth).
-   * Currently implemented for the built-in `oauth2` provider.
+   * OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
+   *
+   * Scope:
+   * - Only applies to the built-in `oauth2` provider (not Google/Apple/Facebook/Twitter).
+   * - Requires a token endpoint (either `accessTokenEndpoint`/`tokenEndpoint` or `issuerUrl` discovery).
+   *
+   * Security note:
+   * - This does not validate JWT signatures. It only exchanges/refreshes tokens.
    *
    * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
    */
@@ -944,17 +959,26 @@ export interface SocialLoginPlugin {
 
   /**
    * Web-only: handle the OAuth redirect callback and return the parsed result.
-   * Use this when you use a redirect-based flow instead of popups.
+   *
+   * Notes:
+   * - This is only meaningful on Web. iOS/Android implementations will reject.
+   * - Intended for redirect-based flows (e.g. `oauth2` with `flow: 'redirect'`) where the page navigates away.
    */
   handleRedirectCallback(): Promise<LoginResult | null>;
 
   /**
    * Decode a JWT (typically an OIDC ID token) into its claims.
+   *
+   * Security note:
+   * - This does not validate the signature or issuer/audience. It only base64url-decodes the payload.
    */
   decodeIdToken(options: { idToken: string }): Promise<{ claims: Record<string, any> }>;
 
   /**
    * Get the access token expiration date for an OAuth2 provider.
+   *
+   * Scope:
+   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
    */
   getAccessTokenExpirationDate(options: {
     provider: 'oauth2';
@@ -963,16 +987,25 @@ export interface SocialLoginPlugin {
 
   /**
    * Check if an access token is available for an OAuth2 provider.
+   *
+   * Scope:
+   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
    */
   isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }>;
 
   /**
    * Check if an access token is expired for an OAuth2 provider.
+   *
+   * Scope:
+   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
    */
   isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string }): Promise<{ isExpired: boolean }>;
 
   /**
    * Check if a refresh token is available for an OAuth2 provider.
+   *
+   * Scope:
+   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
    */
   isRefreshTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }>;
 
