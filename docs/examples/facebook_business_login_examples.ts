@@ -1,6 +1,6 @@
 /**
  * Example: Facebook Business Login Implementation
- * 
+ *
  * This file demonstrates how to implement Facebook Business Login
  * to access Instagram, Pages, and other business features.
  */
@@ -92,11 +92,7 @@ export async function loginWithPages() {
     const profile = await SocialLogin.providerSpecificCall({
       call: 'facebook#getProfile',
       options: {
-        fields: [
-          'id',
-          'name',
-          'accounts{id,name,access_token,instagram_business_account{id,username}}',
-        ],
+        fields: ['id', 'name', 'accounts{id,name,access_token,instagram_business_account{id,username}}'],
       },
     });
 
@@ -172,7 +168,7 @@ export async function getInstagramMedia(accessToken: string, instagramAccountId:
     const response = await fetch(
       `https://graph.facebook.com/v17.0/${instagramAccountId}/media?` +
         `fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count` +
-        `&access_token=${accessToken}`
+        `&access_token=${accessToken}`,
     );
 
     const data = await response.json();
@@ -205,7 +201,7 @@ export async function getPageInsights(pageAccessToken: string, pageId: string) {
       `https://graph.facebook.com/v17.0/${pageId}/insights?` +
         `metric=page_impressions,page_engaged_users,page_post_engagements` +
         `&period=day` +
-        `&access_token=${pageAccessToken}`
+        `&access_token=${pageAccessToken}`,
     );
 
     const data = await response.json();
@@ -264,12 +260,7 @@ export async function loginWithGracefulHandling() {
     const result = await SocialLogin.login({
       provider: 'facebook',
       options: {
-        permissions: [
-          'email',
-          'public_profile',
-          'instagram_basic',
-          'pages_show_list',
-        ],
+        permissions: ['email', 'public_profile', 'instagram_basic', 'pages_show_list'],
       },
     });
 

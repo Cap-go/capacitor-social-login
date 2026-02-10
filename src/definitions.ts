@@ -264,12 +264,12 @@ export interface FacebookLoginOptions {
   /**
    * Permissions
    * @description Select permissions to login with. Supports both consumer and business permissions.
-   * 
+   *
    * **Consumer Permissions:**
    * - `email` - User's email address
    * - `public_profile` - User's public profile info
    * - `user_friends` - List of friends who also use your app
-   * 
+   *
    * **Business Permissions** (require business app configuration and may need App Review):
    * - `instagram_basic` - Instagram Basic Display API access
    * - `instagram_manage_insights` - Instagram Insights data
@@ -282,7 +282,7 @@ export interface FacebookLoginOptions {
    * - `business_management` - Manage business assets
    * - `catalog_management` - Manage product catalogs
    * - `ads_management` - Manage advertising accounts
-   * 
+   *
    * @example ['email', 'public_profile'] // Consumer permissions
    * @example ['email', 'instagram_basic', 'pages_show_list'] // Business permissions
    * @see https://developers.facebook.com/docs/permissions/reference
