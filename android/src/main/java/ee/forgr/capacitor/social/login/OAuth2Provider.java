@@ -55,6 +55,7 @@ public class OAuth2Provider implements SocialProvider {
     private static class OAuth2ProviderConfig {
 
         final String appId;
+        final String issuerUrl;
         final String authorizationBaseUrl;
         final String accessTokenEndpoint;
         final String redirectUrl;
@@ -63,12 +64,18 @@ public class OAuth2Provider implements SocialProvider {
         final boolean pkceEnabled;
         final String scope;
         final Map<String, String> additionalParameters;
+        final String loginHint;
+        final String prompt;
+        final Map<String, String> additionalTokenParameters;
         final Map<String, String> additionalResourceHeaders;
         final String logoutUrl;
+        final String postLogoutRedirectUrl;
+        final Map<String, String> additionalLogoutParameters;
         final boolean logsEnabled;
 
         OAuth2ProviderConfig(
             String appId,
+            String issuerUrl,
             String authorizationBaseUrl,
             String accessTokenEndpoint,
             String redirectUrl,
@@ -77,11 +84,17 @@ public class OAuth2Provider implements SocialProvider {
             boolean pkceEnabled,
             String scope,
             Map<String, String> additionalParameters,
+            String loginHint,
+            String prompt,
+            Map<String, String> additionalTokenParameters,
             Map<String, String> additionalResourceHeaders,
             String logoutUrl,
+            String postLogoutRedirectUrl,
+            Map<String, String> additionalLogoutParameters,
             boolean logsEnabled
         ) {
             this.appId = appId;
+            this.issuerUrl = issuerUrl;
             this.authorizationBaseUrl = authorizationBaseUrl;
             this.accessTokenEndpoint = accessTokenEndpoint;
             this.redirectUrl = redirectUrl;
@@ -90,8 +103,13 @@ public class OAuth2Provider implements SocialProvider {
             this.pkceEnabled = pkceEnabled;
             this.scope = scope;
             this.additionalParameters = additionalParameters;
+            this.loginHint = loginHint;
+            this.prompt = prompt;
+            this.additionalTokenParameters = additionalTokenParameters;
             this.additionalResourceHeaders = additionalResourceHeaders;
             this.logoutUrl = logoutUrl;
+            this.postLogoutRedirectUrl = postLogoutRedirectUrl;
+            this.additionalLogoutParameters = additionalLogoutParameters;
             this.logsEnabled = logsEnabled;
         }
     }
@@ -119,6 +137,100 @@ public class OAuth2Provider implements SocialProvider {
         this.httpClient = new OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build();
     }
 
+    private interface DiscoveryCallback {
+        void onSuccess(OAuth2ProviderConfig config);
+
+        void onError(String message);
+    }
+
+    private static String trimTrailingSlashes(String s) {
+        if (s == null) return null;
+        int end = s.length();
+        while (end > 0 && s.charAt(end - 1) == '/') end--;
+        return s.substring(0, end);
+    }
+
+    private void ensureDiscovered(String providerId, OAuth2ProviderConfig config, DiscoveryCallback cb) {
+        if (config == null) {
+            cb.onError("OAuth2 provider '" + providerId + "' not found");
+            return;
+        }
+        if (config.issuerUrl == null || config.issuerUrl.isEmpty()) {
+            cb.onSuccess(config);
+            return;
+        }
+        // Already resolved enough for auth.
+        if (config.authorizationBaseUrl != null && !"code".equals(config.responseType)) {
+            cb.onSuccess(config);
+            return;
+        }
+        if (config.authorizationBaseUrl != null && config.accessTokenEndpoint != null) {
+            cb.onSuccess(config);
+            return;
+        }
+
+        String issuer = trimTrailingSlashes(config.issuerUrl);
+        String discoveryUrl = issuer + "/.well-known/openid-configuration";
+        Request req = new Request.Builder().url(discoveryUrl).get().build();
+        if (config.logsEnabled) {
+            Log.d(LOG_TAG, "Discovering OIDC configuration at: " + discoveryUrl);
+        }
+        httpClient
+            .newCall(req)
+            .enqueue(
+                new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        cb.onError("OIDC discovery failed: " + e.getMessage());
+                    }
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if (!response.isSuccessful()) {
+                            cb.onError("OIDC discovery failed: HTTP " + response.code());
+                            return;
+                        }
+                        String body = response.body() != null ? response.body().string() : "";
+                        try {
+                            JSONObject json = new JSONObject(body);
+                            String auth = json.optString("authorization_endpoint", null);
+                            String token = json.optString("token_endpoint", null);
+                            String endSession = json.optString("end_session_endpoint", null);
+
+                            OAuth2ProviderConfig resolved = new OAuth2ProviderConfig(
+                                config.appId,
+                                config.issuerUrl,
+                                (config.authorizationBaseUrl != null && !config.authorizationBaseUrl.isEmpty())
+                                    ? config.authorizationBaseUrl
+                                    : auth,
+                                (config.accessTokenEndpoint != null && !config.accessTokenEndpoint.isEmpty())
+                                    ? config.accessTokenEndpoint
+                                    : token,
+                                config.redirectUrl,
+                                config.resourceUrl,
+                                config.responseType,
+                                config.pkceEnabled,
+                                config.scope,
+                                config.additionalParameters,
+                                config.loginHint,
+                                config.prompt,
+                                config.additionalTokenParameters,
+                                config.additionalResourceHeaders,
+                                (config.logoutUrl != null && !config.logoutUrl.isEmpty()) ? config.logoutUrl : endSession,
+                                config.postLogoutRedirectUrl,
+                                config.additionalLogoutParameters,
+                                config.logsEnabled
+                            );
+                            providers.put(providerId, resolved);
+                            cb.onSuccess(resolved);
+                        } catch (JSONException e) {
+                            cb.onError("Failed to parse OIDC discovery response");
+                        }
+                    }
+                }
+            );
+    }
+
     /**
      * Initialize multiple OAuth2 providers from a map of configs.
      * @param configs Map of providerId -> config JSONObject
@@ -133,19 +245,26 @@ public class OAuth2Provider implements SocialProvider {
             JSONObject config = configs.getJSONObject(providerId);
 
             String appId = config.optString("appId", null);
+            if (appId == null || appId.isEmpty()) {
+                appId = config.optString("clientId", null);
+            }
+            String issuerUrl = config.optString("issuerUrl", null);
             String authorizationBaseUrl = config.optString("authorizationBaseUrl", null);
+            if (authorizationBaseUrl == null || authorizationBaseUrl.isEmpty()) {
+                authorizationBaseUrl = config.optString("authorizationEndpoint", null);
+            }
             String redirectUrl = config.optString("redirectUrl", null);
 
             if (appId == null || appId.isEmpty()) {
-                errors.add("oauth2." + providerId + ".appId is required");
-                continue;
-            }
-            if (authorizationBaseUrl == null || authorizationBaseUrl.isEmpty()) {
-                errors.add("oauth2." + providerId + ".authorizationBaseUrl is required");
+                errors.add("oauth2." + providerId + ".appId (or clientId) is required");
                 continue;
             }
             if (redirectUrl == null || redirectUrl.isEmpty()) {
                 errors.add("oauth2." + providerId + ".redirectUrl is required");
+                continue;
+            }
+            if ((authorizationBaseUrl == null || authorizationBaseUrl.isEmpty()) && (issuerUrl == null || issuerUrl.isEmpty())) {
+                errors.add("oauth2." + providerId + ".authorizationBaseUrl (or authorizationEndpoint) or issuerUrl is required");
                 continue;
             }
 
@@ -154,23 +273,39 @@ public class OAuth2Provider implements SocialProvider {
                 additionalParameters = jsonObjectToMap(config.getJSONObject("additionalParameters"));
             }
 
+            Map<String, String> additionalTokenParameters = null;
+            if (config.has("additionalTokenParameters")) {
+                additionalTokenParameters = jsonObjectToMap(config.getJSONObject("additionalTokenParameters"));
+            }
+
             Map<String, String> additionalResourceHeaders = null;
             if (config.has("additionalResourceHeaders")) {
                 additionalResourceHeaders = jsonObjectToMap(config.getJSONObject("additionalResourceHeaders"));
             }
 
+            Map<String, String> additionalLogoutParameters = null;
+            if (config.has("additionalLogoutParameters")) {
+                additionalLogoutParameters = jsonObjectToMap(config.getJSONObject("additionalLogoutParameters"));
+            }
+
             OAuth2ProviderConfig providerConfig = new OAuth2ProviderConfig(
                 appId,
-                authorizationBaseUrl,
-                config.optString("accessTokenEndpoint", null),
+                issuerUrl,
+                (authorizationBaseUrl != null && !authorizationBaseUrl.isEmpty()) ? authorizationBaseUrl : null,
+                config.has("accessTokenEndpoint") ? config.optString("accessTokenEndpoint", null) : config.optString("tokenEndpoint", null),
                 redirectUrl,
                 config.optString("resourceUrl", null),
                 config.optString("responseType", "code"),
                 config.optBoolean("pkceEnabled", true),
-                config.optString("scope", ""),
+                normalizeScopeValue(config.has("scope") ? config.opt("scope") : config.opt("scopes")),
                 additionalParameters,
+                config.optString("loginHint", null),
+                config.optString("prompt", null),
+                additionalTokenParameters,
                 additionalResourceHeaders,
-                config.optString("logoutUrl", null),
+                config.has("logoutUrl") ? config.optString("logoutUrl", null) : config.optString("endSessionEndpoint", null),
+                config.optString("postLogoutRedirectUrl", null),
+                additionalLogoutParameters,
                 config.optBoolean("logsEnabled", false)
             );
 
@@ -226,8 +361,11 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         String loginScope = providerConfig.scope;
-        if (config.has("scope")) {
-            loginScope = config.optString("scope", providerConfig.scope);
+        if (config.has("scope") || config.has("scopes")) {
+            String normalized = normalizeScopeValue(config.has("scope") ? config.opt("scope") : config.opt("scopes"));
+            if (normalized != null && !normalized.isEmpty()) {
+                loginScope = normalized;
+            }
         }
 
         String redirect = providerConfig.redirectUrl;
@@ -237,7 +375,10 @@ public class OAuth2Provider implements SocialProvider {
 
         String state = config.has("state") ? config.optString("state", UUID.randomUUID().toString()) : UUID.randomUUID().toString();
 
-        String codeVerifier = generateCodeVerifier();
+        String codeVerifier = config.has("codeVerifier") ? config.optString("codeVerifier", null) : null;
+        if (codeVerifier == null || codeVerifier.isEmpty()) {
+            codeVerifier = generateCodeVerifier();
+        }
         String codeChallenge;
         try {
             codeChallenge = generateCodeChallenge(codeVerifier);
@@ -246,55 +387,89 @@ public class OAuth2Provider implements SocialProvider {
             return;
         }
 
-        pendingState = new OAuth2PendingState(providerId, state, codeVerifier, redirect, loginScope);
-        pendingCall = call;
+        final String finalState = state;
+        final String finalCodeVerifier = codeVerifier;
+        final String finalRedirect = redirect;
+        final String finalLoginScope = loginScope;
+        final String finalCodeChallenge = codeChallenge;
 
-        Uri.Builder builder = Uri.parse(providerConfig.authorizationBaseUrl)
-            .buildUpon()
-            .appendQueryParameter("response_type", providerConfig.responseType)
-            .appendQueryParameter("client_id", providerConfig.appId)
-            .appendQueryParameter("redirect_uri", redirect)
-            .appendQueryParameter("state", state);
+        // Resolve endpoints via discovery if needed, then start the login activity.
+        ensureDiscovered(
+            providerId,
+            providerConfig,
+            new DiscoveryCallback() {
+                @Override
+                public void onSuccess(OAuth2ProviderConfig resolved) {
+                    if (resolved.authorizationBaseUrl == null || resolved.authorizationBaseUrl.isEmpty()) {
+                        call.reject("Missing authorization endpoint (discovery may have failed)");
+                        return;
+                    }
 
-        if (!loginScope.isEmpty()) {
-            builder.appendQueryParameter("scope", loginScope);
-        }
+                    pendingState = new OAuth2PendingState(providerId, finalState, finalCodeVerifier, finalRedirect, finalLoginScope);
+                    pendingCall = call;
 
-        // Add PKCE for code flow
-        if ("code".equals(providerConfig.responseType) && providerConfig.pkceEnabled) {
-            builder.appendQueryParameter("code_challenge", codeChallenge);
-            builder.appendQueryParameter("code_challenge_method", "S256");
-        }
+                    Uri.Builder builder = Uri.parse(resolved.authorizationBaseUrl)
+                        .buildUpon()
+                        .appendQueryParameter("response_type", resolved.responseType)
+                        .appendQueryParameter("client_id", resolved.appId)
+                        .appendQueryParameter("redirect_uri", finalRedirect)
+                        .appendQueryParameter("state", finalState);
 
-        // Add additional parameters from config
-        if (providerConfig.additionalParameters != null) {
-            for (Map.Entry<String, String> entry : providerConfig.additionalParameters.entrySet()) {
-                builder.appendQueryParameter(entry.getKey(), entry.getValue());
-            }
-        }
+                    if (!finalLoginScope.isEmpty()) {
+                        builder.appendQueryParameter("scope", finalLoginScope);
+                    }
 
-        // Add additional parameters from login options
-        if (config.has("additionalParameters")) {
-            try {
-                JSONObject loginParams = config.getJSONObject("additionalParameters");
-                Iterator<String> keys = loginParams.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    builder.appendQueryParameter(key, loginParams.getString(key));
+                    // Add PKCE for code flow
+                    if ("code".equals(resolved.responseType) && resolved.pkceEnabled) {
+                        builder.appendQueryParameter("code_challenge", finalCodeChallenge);
+                        builder.appendQueryParameter("code_challenge_method", "S256");
+                    }
+
+                    // Additional params: config + per-login
+                    if (resolved.additionalParameters != null) {
+                        for (Map.Entry<String, String> entry : resolved.additionalParameters.entrySet()) {
+                            builder.appendQueryParameter(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    if (config.has("additionalParameters")) {
+                        try {
+                            JSONObject loginParams = config.getJSONObject("additionalParameters");
+                            Iterator<String> keys = loginParams.keys();
+                            while (keys.hasNext()) {
+                                String key = keys.next();
+                                builder.appendQueryParameter(key, loginParams.getString(key));
+                            }
+                        } catch (JSONException e) {
+                            Log.w(LOG_TAG, "Failed to parse additionalParameters", e);
+                        }
+                    }
+
+                    // Convenience OIDC params
+                    String loginHint = config.optString("loginHint", resolved.loginHint);
+                    if (loginHint != null && !loginHint.isEmpty()) {
+                        builder.appendQueryParameter("login_hint", loginHint);
+                    }
+                    String prompt = config.optString("prompt", resolved.prompt);
+                    if (prompt != null && !prompt.isEmpty()) {
+                        builder.appendQueryParameter("prompt", prompt);
+                    }
+
+                    if (resolved.logsEnabled) {
+                        Log.d(LOG_TAG, "Opening authorization URL: " + builder.build().toString());
+                    }
+
+                    Intent intent = new Intent(activity, OAuth2LoginActivity.class);
+                    intent.putExtra(OAuth2LoginActivity.EXTRA_AUTH_URL, builder.build().toString());
+                    intent.putExtra(OAuth2LoginActivity.EXTRA_REDIRECT_URL, finalRedirect);
+                    activity.runOnUiThread(() -> activity.startActivityForResult(intent, REQUEST_CODE));
                 }
-            } catch (JSONException e) {
-                Log.w(LOG_TAG, "Failed to parse additionalParameters", e);
+
+                @Override
+                public void onError(String message) {
+                    call.reject(message);
+                }
             }
-        }
-
-        if (providerConfig.logsEnabled) {
-            Log.d(LOG_TAG, "Opening authorization URL: " + builder.build().toString());
-        }
-
-        Intent intent = new Intent(activity, OAuth2LoginActivity.class);
-        intent.putExtra(OAuth2LoginActivity.EXTRA_AUTH_URL, builder.build().toString());
-        intent.putExtra(OAuth2LoginActivity.EXTRA_REDIRECT_URL, redirect);
-        activity.startActivityForResult(intent, REQUEST_CODE);
+        );
     }
 
     @Override
@@ -305,15 +480,43 @@ public class OAuth2Provider implements SocialProvider {
             return;
         }
 
+        OAuth2StoredTokens stored = loadStoredTokens(providerId);
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().remove(getTokenStorageKey(providerId)).apply();
 
         OAuth2ProviderConfig config = getProvider(providerId);
-        if (config != null && config.logoutUrl != null && !config.logoutUrl.isEmpty()) {
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(config.logoutUrl));
-            activity.startActivity(browserIntent);
-        }
+        ensureDiscovered(
+            providerId,
+            config,
+            new DiscoveryCallback() {
+                @Override
+                public void onSuccess(OAuth2ProviderConfig resolved) {
+                    if (resolved != null && resolved.logoutUrl != null && !resolved.logoutUrl.isEmpty()) {
+                        Uri base = Uri.parse(resolved.logoutUrl);
+                        Uri.Builder b = base.buildUpon();
+                        if (stored != null && stored.idToken != null && !stored.idToken.isEmpty()) {
+                            b.appendQueryParameter("id_token_hint", stored.idToken);
+                        }
+                        if (resolved.postLogoutRedirectUrl != null && !resolved.postLogoutRedirectUrl.isEmpty()) {
+                            b.appendQueryParameter("post_logout_redirect_uri", resolved.postLogoutRedirectUrl);
+                        }
+                        if (resolved.additionalLogoutParameters != null) {
+                            for (Map.Entry<String, String> entry : resolved.additionalLogoutParameters.entrySet()) {
+                                b.appendQueryParameter(entry.getKey(), entry.getValue());
+                            }
+                        }
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, b.build());
+                        activity.runOnUiThread(() -> activity.startActivity(browserIntent));
+                    }
+                    call.resolve();
+                }
 
-        call.resolve();
+                @Override
+                public void onError(String message) {
+                    // Logout still succeeds locally even if discovery fails
+                    call.resolve();
+                }
+            }
+        );
     }
 
     @Override
@@ -374,7 +577,43 @@ public class OAuth2Provider implements SocialProvider {
             call.reject("OAuth2 refresh token is not available. Make sure offline_access scope is granted.");
             return;
         }
-        refreshWithToken(call, providerId, config, tokens.refreshToken);
+        refreshWithToken(call, providerId, config, tokens.refreshToken, null, true);
+    }
+
+    public void refreshTokenRaw(PluginCall call, String providerId, String refreshToken, JSONObject additionalParameters) {
+        OAuth2ProviderConfig config = getProvider(providerId);
+        if (config == null) {
+            call.reject("OAuth2 provider '" + providerId + "' is not initialized.");
+            return;
+        }
+        OAuth2StoredTokens stored = loadStoredTokens(providerId);
+        String effective = (refreshToken != null && !refreshToken.isEmpty()) ? refreshToken : (stored != null ? stored.refreshToken : null);
+        if (effective == null || effective.isEmpty()) {
+            call.reject("OAuth2 refresh token is not available. Make sure offline_access scope is granted.");
+            return;
+        }
+        refreshWithToken(call, providerId, config, effective, additionalParameters, false);
+    }
+
+    public Long getAccessTokenExpirationDateMs(String providerId) {
+        OAuth2StoredTokens tokens = loadStoredTokens(providerId);
+        return tokens != null && tokens.expiresAt > 0 ? tokens.expiresAt : null;
+    }
+
+    public boolean isAccessTokenAvailableStatus(String providerId) {
+        OAuth2StoredTokens tokens = loadStoredTokens(providerId);
+        return tokens != null && tokens.accessToken != null && !tokens.accessToken.isEmpty();
+    }
+
+    public boolean isAccessTokenExpiredStatus(String providerId) {
+        OAuth2StoredTokens tokens = loadStoredTokens(providerId);
+        if (tokens == null) return true;
+        return tokens.expiresAt <= System.currentTimeMillis();
+    }
+
+    public boolean isRefreshTokenAvailableStatus(String providerId) {
+        OAuth2StoredTokens tokens = loadStoredTokens(providerId);
+        return tokens != null && tokens.refreshToken != null && !tokens.refreshToken.isEmpty();
     }
 
     public boolean handleActivityResult(int requestCode, int resultCode, Intent data) {
@@ -493,10 +732,40 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         if (config.accessTokenEndpoint == null || config.accessTokenEndpoint.isEmpty()) {
-            pendingCall.reject("No accessTokenEndpoint configured for code exchange");
+            // Try discovery if issuerUrl exists
+            ensureDiscovered(
+                providerId,
+                config,
+                new DiscoveryCallback() {
+                    @Override
+                    public void onSuccess(OAuth2ProviderConfig resolved) {
+                        if (resolved.accessTokenEndpoint == null || resolved.accessTokenEndpoint.isEmpty()) {
+                            pendingCall.reject("No accessTokenEndpoint configured for code exchange");
+                            cleanupPending();
+                            return;
+                        }
+                        exchangeAuthorizationCodeWithConfig(code, resolved);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        pendingCall.reject(message);
+                        cleanupPending();
+                    }
+                }
+            );
+            return;
+        }
+
+        exchangeAuthorizationCodeWithConfig(code, config);
+    }
+
+    private void exchangeAuthorizationCodeWithConfig(String code, OAuth2ProviderConfig config) {
+        if (pendingState == null || pendingCall == null) {
             cleanupPending();
             return;
         }
+        final String providerId = pendingState.providerId;
 
         FormBody.Builder bodyBuilder = new FormBody.Builder()
             .add("grant_type", "authorization_code")
@@ -506,6 +775,12 @@ public class OAuth2Provider implements SocialProvider {
 
         if (config.pkceEnabled) {
             bodyBuilder.add("code_verifier", pendingState.codeVerifier);
+        }
+
+        if (config.additionalTokenParameters != null) {
+            for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
+                bodyBuilder.add(entry.getKey(), entry.getValue());
+            }
         }
 
         Request request = new Request.Builder().url(config.accessTokenEndpoint).post(bodyBuilder.build()).build();
@@ -551,19 +826,62 @@ public class OAuth2Provider implements SocialProvider {
             );
     }
 
-    private void refreshWithToken(final PluginCall pluginCall, String providerId, OAuth2ProviderConfig config, String refreshToken) {
+    private void refreshWithToken(
+        final PluginCall pluginCall,
+        String providerId,
+        OAuth2ProviderConfig config,
+        String refreshToken,
+        JSONObject additionalParameters,
+        boolean wrapResponse
+    ) {
         if (config.accessTokenEndpoint == null || config.accessTokenEndpoint.isEmpty()) {
-            pluginCall.reject("No accessTokenEndpoint configured for refresh");
+            // Try discovery if issuerUrl exists
+            ensureDiscovered(
+                providerId,
+                config,
+                new DiscoveryCallback() {
+                    @Override
+                    public void onSuccess(OAuth2ProviderConfig resolved) {
+                        if (resolved.accessTokenEndpoint == null || resolved.accessTokenEndpoint.isEmpty()) {
+                            pluginCall.reject("No accessTokenEndpoint configured for refresh");
+                            return;
+                        }
+                        refreshWithToken(pluginCall, providerId, resolved, refreshToken, additionalParameters, wrapResponse);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        pluginCall.reject(message);
+                    }
+                }
+            );
             return;
         }
 
-        FormBody body = new FormBody.Builder()
+        FormBody.Builder bodyBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
-            .add("client_id", config.appId)
-            .build();
+            .add("client_id", config.appId);
 
-        Request request = new Request.Builder().url(config.accessTokenEndpoint).post(body).build();
+        if (config.additionalTokenParameters != null) {
+            for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
+                bodyBuilder.add(entry.getKey(), entry.getValue());
+            }
+        }
+
+        if (additionalParameters != null) {
+            try {
+                Iterator<String> keys = additionalParameters.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    bodyBuilder.add(key, additionalParameters.getString(key));
+                }
+            } catch (JSONException e) {
+                Log.w(LOG_TAG, "Failed to parse additionalParameters for refresh", e);
+            }
+        }
+
+        Request request = new Request.Builder().url(config.accessTokenEndpoint).post(bodyBuilder.build()).build();
 
         httpClient
             .newCall(request)
@@ -584,7 +902,7 @@ public class OAuth2Provider implements SocialProvider {
                         String responseBody = response.body() != null ? response.body().string() : "";
                         try {
                             JSONObject tokenPayload = new JSONObject(responseBody);
-                            handleTokenSuccess(providerId, config, tokenPayload, pluginCall);
+                            handleTokenSuccess(providerId, config, tokenPayload, pluginCall, refreshToken, wrapResponse);
                         } catch (JSONException e) {
                             pluginCall.reject("Failed to parse OAuth2 refresh response", e);
                         }
@@ -594,12 +912,18 @@ public class OAuth2Provider implements SocialProvider {
     }
 
     private void handleTokenSuccess(String providerId, OAuth2ProviderConfig config, JSONObject tokenPayload) throws JSONException {
-        handleTokenSuccess(providerId, config, tokenPayload, pendingCall);
+        handleTokenSuccess(providerId, config, tokenPayload, pendingCall, null, true);
         cleanupPending();
     }
 
-    private void handleTokenSuccess(String providerId, OAuth2ProviderConfig config, JSONObject tokenPayload, PluginCall call)
-        throws JSONException {
+    private void handleTokenSuccess(
+        String providerId,
+        OAuth2ProviderConfig config,
+        JSONObject tokenPayload,
+        PluginCall call,
+        String fallbackRefreshToken,
+        boolean wrapResponse
+    ) throws JSONException {
         if (call == null) {
             return;
         }
@@ -607,7 +931,8 @@ public class OAuth2Provider implements SocialProvider {
         final String accessToken = tokenPayload.getString("access_token");
         final String tokenType = tokenPayload.optString("token_type", "bearer");
         final int expiresIn = tokenPayload.optInt("expires_in", 3600);
-        final String refreshToken = tokenPayload.optString("refresh_token", null);
+        final String refreshToken = tokenPayload.has("refresh_token") ? tokenPayload.optString("refresh_token", null) : null;
+        final String effectiveRefreshToken = (refreshToken != null && !refreshToken.isEmpty()) ? refreshToken : fallbackRefreshToken;
         final String idToken = tokenPayload.optString("id_token", null);
         final String scopeRaw = tokenPayload.optString("scope", "");
         final List<String> scopes = scopeRaw.isEmpty() ? Collections.emptyList() : Arrays.asList(scopeRaw.split(" "));
@@ -628,11 +953,12 @@ public class OAuth2Provider implements SocialProvider {
                             tokenType,
                             expiresIn,
                             expiresAt,
-                            refreshToken,
+                            effectiveRefreshToken,
                             idToken,
                             scopes,
                             resourceData,
-                            call
+                            call,
+                            wrapResponse
                         );
                     }
 
@@ -641,12 +967,36 @@ public class OAuth2Provider implements SocialProvider {
                         if (config.logsEnabled) {
                             Log.w(LOG_TAG, "Failed to fetch resource: " + message);
                         }
-                        completeLogin(providerId, accessToken, tokenType, expiresIn, expiresAt, refreshToken, idToken, scopes, null, call);
+                        completeLogin(
+                            providerId,
+                            accessToken,
+                            tokenType,
+                            expiresIn,
+                            expiresAt,
+                            effectiveRefreshToken,
+                            idToken,
+                            scopes,
+                            null,
+                            call,
+                            wrapResponse
+                        );
                     }
                 }
             );
         } else {
-            completeLogin(providerId, accessToken, tokenType, expiresIn, expiresAt, refreshToken, idToken, scopes, null, call);
+            completeLogin(
+                providerId,
+                accessToken,
+                tokenType,
+                expiresIn,
+                expiresAt,
+                effectiveRefreshToken,
+                idToken,
+                scopes,
+                null,
+                call,
+                wrapResponse
+            );
         }
     }
 
@@ -661,7 +1011,19 @@ public class OAuth2Provider implements SocialProvider {
         List<String> scopes,
         JSONObject resourceData
     ) {
-        completeLogin(providerId, accessToken, tokenType, expiresIn, expiresAt, refreshToken, idToken, scopes, resourceData, pendingCall);
+        completeLogin(
+            providerId,
+            accessToken,
+            tokenType,
+            expiresIn,
+            expiresAt,
+            refreshToken,
+            idToken,
+            scopes,
+            resourceData,
+            pendingCall,
+            true
+        );
         cleanupPending();
     }
 
@@ -675,7 +1037,8 @@ public class OAuth2Provider implements SocialProvider {
         String idToken,
         List<String> scopes,
         JSONObject resourceData,
-        PluginCall call
+        PluginCall call,
+        boolean wrapResponse
     ) {
         if (call == null) {
             return;
@@ -704,10 +1067,14 @@ public class OAuth2Provider implements SocialProvider {
         result.put("tokenType", tokenType);
         result.put("expiresIn", expiresIn);
 
-        JSObject response = new JSObject();
-        response.put("provider", "oauth2");
-        response.put("result", result);
-        call.resolve(response);
+        if (wrapResponse) {
+            JSObject response = new JSObject();
+            response.put("provider", "oauth2");
+            response.put("result", result);
+            call.resolve(response);
+        } else {
+            call.resolve(result);
+        }
     }
 
     private interface ResourceCallback {
@@ -814,6 +1181,21 @@ public class OAuth2Provider implements SocialProvider {
             map.put(key, json.getString(key));
         }
         return map;
+    }
+
+    private static String normalizeScopeValue(Object value) {
+        if (value == null || value == JSONObject.NULL) return "";
+        if (value instanceof String) return (String) value;
+        if (value instanceof JSONArray) {
+            JSONArray arr = (JSONArray) value;
+            List<String> parts = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                String s = arr.optString(i, null);
+                if (s != null && !s.isEmpty()) parts.add(s);
+            }
+            return String.join(" ", parts);
+        }
+        return "";
     }
 
     private static String generateCodeVerifier() {

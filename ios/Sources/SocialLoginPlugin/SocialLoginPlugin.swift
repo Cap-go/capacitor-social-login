@@ -27,6 +27,13 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "getUserInfo", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refresh", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "refreshToken", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "handleRedirectCallback", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "decodeIdToken", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getAccessTokenExpirationDate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isAccessTokenAvailable", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isAccessTokenExpired", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "isRefreshTokenAvailable", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "openSecureWindow", returnType: CAPPluginReturnPromise)
@@ -613,6 +620,105 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func refreshToken(_ call: CAPPluginCall) {
+        guard let provider = call.getString("provider") else {
+            call.reject("Missing provider")
+            return
+        }
+        if provider != "oauth2" {
+            call.reject("refreshToken is only implemented for oauth2")
+            return
+        }
+        guard let providerId = call.getString("providerId") else {
+            call.reject("providerId is required for oauth2 refreshToken")
+            return
+        }
+        let refreshToken = call.getString("refreshToken")
+        var additionalParameters: [String: String]?
+        if let raw = call.getObject("additionalParameters") {
+            var out: [String: String] = [:]
+            for (k, v) in raw {
+                if let s = v as? String {
+                    out[k] = s
+                }
+            }
+            if !out.isEmpty {
+                additionalParameters = out
+            }
+        }
+
+        oauth2.refreshToken(providerId: providerId, refreshToken: refreshToken, additionalParameters: additionalParameters) { result in
+            switch result {
+            case .success(let oauth2Response):
+                let accessToken: [String: Any] = [
+                    "token": oauth2Response.accessToken.token,
+                    "tokenType": oauth2Response.accessToken.tokenType,
+                    "expires": oauth2Response.accessToken.expires ?? NSNull(),
+                    "refreshToken": oauth2Response.accessToken.refreshToken ?? NSNull()
+                ]
+                let out: [String: Any] = [
+                    "providerId": oauth2Response.providerId,
+                    "accessToken": accessToken,
+                    "idToken": oauth2Response.idToken ?? NSNull(),
+                    "refreshToken": oauth2Response.refreshToken ?? NSNull(),
+                    "resourceData": oauth2Response.resourceData ?? NSNull(),
+                    "scope": oauth2Response.scope,
+                    "tokenType": oauth2Response.tokenType,
+                    "expiresIn": oauth2Response.expiresIn ?? NSNull()
+                ]
+                call.resolve(out)
+            case .failure(let err):
+                call.reject(err.localizedDescription)
+            }
+        }
+    }
+
+    @objc func handleRedirectCallback(_ call: CAPPluginCall) {
+        call.reject("handleRedirectCallback is only available on web")
+    }
+
+    @objc func decodeIdToken(_ call: CAPPluginCall) {
+        let idToken = call.getString("idToken") ?? call.getString("token")
+        guard let idToken = idToken, !idToken.isEmpty else {
+            call.reject("idToken (or token) is required")
+            return
+        }
+        do {
+            let claims = try self.decodeJwtClaims(idToken: idToken)
+            call.resolve(["claims": claims])
+        } catch {
+            call.reject(error.localizedDescription)
+        }
+    }
+
+    @objc func getAccessTokenExpirationDate(_ call: CAPPluginCall) {
+        guard let ms = call.getDouble("accessTokenExpirationDate") else {
+            call.reject("accessTokenExpirationDate is required")
+            return
+        }
+        let date = Date(timeIntervalSince1970: ms / 1000.0)
+        call.resolve(["date": ISO8601DateFormatter().string(from: date)])
+    }
+
+    @objc func isAccessTokenAvailable(_ call: CAPPluginCall) {
+        let token = call.getString("accessToken")
+        call.resolve(["isAvailable": (token?.isEmpty == false)])
+    }
+
+    @objc func isAccessTokenExpired(_ call: CAPPluginCall) {
+        guard let ms = call.getDouble("accessTokenExpirationDate") else {
+            call.reject("accessTokenExpirationDate is required")
+            return
+        }
+        let nowMs = Date().timeIntervalSince1970 * 1000.0
+        call.resolve(["isExpired": ms <= nowMs])
+    }
+
+    @objc func isRefreshTokenAvailable(_ call: CAPPluginCall) {
+        let token = call.getString("refreshToken")
+        call.resolve(["isAvailable": (token?.isEmpty == false)])
+    }
+
     @objc func openSecureWindow(_ call: CAPPluginCall) {
         guard let urlString = call.getString("authEndpoint") else {
             call.reject("authEndpoint is required")
@@ -664,6 +770,28 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             session.presentationContextProvider = self
             session.start()
         }
+    }
+
+    private func decodeJwtClaims(idToken: String) throws -> [String: Any] {
+        let parts = idToken.split(separator: ".")
+        if parts.count < 2 {
+            throw NSError(domain: "SocialLogin", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid JWT"])
+        }
+        let payload = String(parts[1])
+        guard let data = base64UrlDecode(payload) else {
+            throw NSError(domain: "SocialLogin", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid JWT payload encoding"])
+        }
+        let obj = try JSONSerialization.jsonObject(with: data)
+        return obj as? [String: Any] ?? [:]
+    }
+
+    private func base64UrlDecode(_ value: String) -> Data? {
+        var base64 = value.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        let padding = 4 - (base64.count % 4)
+        if padding < 4 {
+            base64 += String(repeating: "=", count: padding)
+        }
+        return Data(base64Encoded: base64)
     }
 
     private func handleLogoutResult<T>(_ result: Result<T, Error>, call: CAPPluginCall) {

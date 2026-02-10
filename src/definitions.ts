@@ -3,21 +3,51 @@
  */
 export interface OAuth2ProviderConfig {
   /**
-   * The OAuth 2.0 client identifier (App ID / Client ID)
+   * The OAuth 2.0 client identifier (App ID / Client ID).
+   *
+   * Note: this configuration object is only used by the plugin's built-in `oauth2` provider
+   * (i.e. `SocialLogin.initialize({ oauth2: { ... } })`). It does not affect Google/Apple/Facebook/Twitter.
    * @example 'your-client-id'
    */
-  appId: string;
+  appId?: string;
+  /**
+   * Alias for `appId` to match common OAuth/OIDC naming (`clientId`).
+   * If both are provided, `appId` takes precedence.
+   * @example 'your-client-id'
+   */
+  clientId?: string;
+  /**
+   * OpenID Connect issuer URL (enables discovery via `/.well-known/openid-configuration`).
+   * When set, you may omit explicit endpoints like `authorizationBaseUrl` and `accessTokenEndpoint`.
+   *
+   * Notes:
+   * - Explicit endpoints (authorization/token/logout) take precedence over discovered values.
+   * - Discovery is supported for `oauth2` on Web, iOS, and Android.
+   *
+   * @example 'https://accounts.example.com'
+   */
+  issuerUrl?: string;
   /**
    * The base URL of the authorization endpoint
    * @example 'https://accounts.example.com/oauth2/authorize'
    */
-  authorizationBaseUrl: string;
+  authorizationBaseUrl?: string;
+  /**
+   * Alias for `authorizationBaseUrl` (to match common OAuth/OIDC naming).
+   * @example 'https://accounts.example.com/oauth2/authorize'
+   */
+  authorizationEndpoint?: string;
   /**
    * The URL to exchange the authorization code for tokens
    * Required for authorization code flow
    * @example 'https://accounts.example.com/oauth2/token'
    */
   accessTokenEndpoint?: string;
+  /**
+   * Alias for `accessTokenEndpoint` (to match common OAuth/OIDC naming).
+   * @example 'https://accounts.example.com/oauth2/token'
+   */
+  tokenEndpoint?: string;
   /**
    * Redirect URL that receives the OAuth callback
    * @example 'myapp://oauth/callback'
@@ -45,13 +75,34 @@ export interface OAuth2ProviderConfig {
   /**
    * Default scopes to request during authorization
    * @example 'openid profile email'
+   * @example ['openid','profile','email']
    */
-  scope?: string;
+  scope?: string | string[];
+  /**
+   * Alias for `scope` using common naming (`scopes`).
+   * If both are provided, `scope` takes precedence.
+   */
+  scopes?: string[];
   /**
    * Additional parameters to include in the authorization request
    * @example { prompt: 'consent', login_hint: 'user@example.com' }
    */
   additionalParameters?: Record<string, string>;
+  /**
+   * Convenience option for OIDC `login_hint`.
+   * Equivalent to passing `additionalParameters.login_hint`.
+   */
+  loginHint?: string;
+  /**
+   * Convenience option for OAuth/OIDC `prompt`.
+   * Equivalent to passing `additionalParameters.prompt`.
+   */
+  prompt?: string;
+  /**
+   * Additional parameters to include in token requests (code exchange / refresh).
+   * Useful for providers that require non-standard parameters.
+   */
+  additionalTokenParameters?: Record<string, string>;
   /**
    * Additional headers to include when fetching the resource URL
    * @example { 'X-Custom-Header': 'value' }
@@ -62,6 +113,29 @@ export interface OAuth2ProviderConfig {
    * @example 'https://accounts.example.com/logout'
    */
   logoutUrl?: string;
+  /**
+   * Alias for `logoutUrl` to match OIDC naming (`endSessionEndpoint`).
+   * @example 'https://accounts.example.com/logout'
+   */
+  endSessionEndpoint?: string;
+  /**
+   * OIDC post logout redirect URL (sent as `post_logout_redirect_uri` when building the end-session URL).
+   * @example 'myapp://logout/callback'
+   */
+  postLogoutRedirectUrl?: string;
+  /**
+   * Additional parameters to include in logout / end-session URL.
+   */
+  additionalLogoutParameters?: Record<string, string>;
+  /**
+   * iOS-only: Whether to prefer an ephemeral browser session for ASWebAuthenticationSession.
+   * Defaults to true to match existing behavior in this plugin.
+   */
+  iosPrefersEphemeralWebBrowserSession?: boolean;
+  /**
+   * Alias for `iosPrefersEphemeralWebBrowserSession` (to match Capawesome OAuth naming).
+   */
+  iosPrefersEphemeralSession?: boolean;
   /**
    * Enable debug logging
    * @default false
@@ -343,7 +417,12 @@ export interface OAuth2LoginOptions {
    * Override the scopes for this login request
    * If not provided, uses the scopes from initialization
    */
-  scope?: string;
+  scope?: string | string[];
+  /**
+   * Alias for `scope` using common naming (`scopes`).
+   * If both are provided, `scope` takes precedence.
+   */
+  scopes?: string[];
   /**
    * Custom state parameter for CSRF protection
    * If not provided, a random value is generated
@@ -362,6 +441,26 @@ export interface OAuth2LoginOptions {
    * Additional parameters to add to the authorization URL
    */
   additionalParameters?: Record<string, string>;
+  /**
+   * Convenience option for OIDC `login_hint`.
+   * Equivalent to passing `additionalParameters.login_hint`.
+   */
+  loginHint?: string;
+  /**
+   * Convenience option for OAuth/OIDC `prompt`.
+   * Equivalent to passing `additionalParameters.prompt`.
+   */
+  prompt?: string;
+  /**
+   * Web-only (`oauth2` provider only): Use a full-page redirect instead of a popup window.
+   *
+   * When using `redirect`, the promise returned by `login()` will not resolve because the page navigates away.
+   * After the redirect lands back in your app, call `SocialLogin.handleRedirectCallback()` on that page to
+   * parse the result.
+   *
+   * @default 'popup'
+   */
+  flow?: 'popup' | 'redirect';
 }
 
 export interface OAuth2LoginResponse {
@@ -848,6 +947,77 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   refresh(options: LoginOptions): Promise<void>;
+
+  /**
+   * OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
+   *
+   * Scope:
+   * - Only applies to the built-in `oauth2` provider (not Google/Apple/Facebook/Twitter).
+   * - Requires a token endpoint (either `accessTokenEndpoint`/`tokenEndpoint` or `issuerUrl` discovery).
+   *
+   * Security note:
+   * - This does not validate JWT signatures. It only exchanges/refreshes tokens.
+   *
+   * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
+   */
+  refreshToken(options: {
+    provider: 'oauth2';
+    providerId: string;
+    refreshToken?: string;
+    additionalParameters?: Record<string, string>;
+  }): Promise<OAuth2LoginResponse>;
+
+  /**
+   * Web-only: handle the OAuth redirect callback and return the parsed result.
+   *
+   * Notes:
+   * - This is only meaningful on Web. iOS/Android implementations will reject.
+   * - Intended for redirect-based flows (e.g. `oauth2` with `flow: 'redirect'`) where the page navigates away.
+   */
+  handleRedirectCallback(): Promise<LoginResult | null>;
+
+  /**
+   * Decode a JWT (typically an OIDC ID token) into its claims.
+   *
+   * Notes:
+   * - Accepts both `idToken` and `token` to match common naming (Capawesome uses `token`).
+   * - This does not validate the signature or issuer/audience. It only base64url-decodes the payload.
+   */
+  decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }>;
+
+  /**
+   * Convert an access token expiration timestamp (milliseconds since epoch) to an ISO date string.
+   *
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
+   */
+  getAccessTokenExpirationDate(options: {
+    /**
+     * Access token expiration date in milliseconds since epoch.
+     * Typically: `Date.now() + expiresInSeconds * 1000`.
+     */
+    accessTokenExpirationDate: number;
+  }): Promise<{ date: string }>;
+
+  /**
+   * Check if an access token is available (non-empty).
+   *
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
+   */
+  isAccessTokenAvailable(options: { accessToken: string | null }): Promise<{ isAvailable: boolean }>;
+
+  /**
+   * Check if an access token is expired.
+   *
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
+   */
+  isAccessTokenExpired(options: { accessTokenExpirationDate: number }): Promise<{ isExpired: boolean }>;
+
+  /**
+   * Check if a refresh token is available (non-empty).
+   *
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
+   */
+  isRefreshTokenAvailable(options: { refreshToken: string | null }): Promise<{ isAvailable: boolean }>;
 
   /**
    * Execute provider-specific calls
