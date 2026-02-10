@@ -353,8 +353,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     return result;
   }
 
-  async decodeIdToken(options: { idToken: string }): Promise<{ claims: Record<string, any> }> {
-    const claims = this.oauth2Provider.decodeIdToken(options.idToken);
+  async decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }> {
+    const token = options?.idToken ?? options?.token;
+    if (!token) {
+      throw new Error('idToken (or token) is required');
+    }
+    const claims = this.oauth2Provider.decodeIdToken(token);
     return { claims };
   }
 

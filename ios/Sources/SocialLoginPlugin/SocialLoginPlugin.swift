@@ -678,8 +678,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func decodeIdToken(_ call: CAPPluginCall) {
-        guard let idToken = call.getString("idToken") else {
-            call.reject("idToken is required")
+        let idToken = call.getString("idToken") ?? call.getString("token")
+        guard let idToken = idToken, !idToken.isEmpty else {
+            call.reject("idToken (or token) is required")
             return
         }
         do {

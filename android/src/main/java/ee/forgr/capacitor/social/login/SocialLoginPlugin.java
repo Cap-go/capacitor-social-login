@@ -463,7 +463,10 @@ public class SocialLoginPlugin extends Plugin {
     public void decodeIdToken(final PluginCall call) {
         String idToken = call.getString("idToken");
         if (idToken == null || idToken.isEmpty()) {
-            call.reject("idToken is required");
+            idToken = call.getString("token");
+        }
+        if (idToken == null || idToken.isEmpty()) {
+            call.reject("idToken (or token) is required");
             return;
         }
         try {

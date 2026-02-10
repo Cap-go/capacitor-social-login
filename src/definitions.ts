@@ -979,10 +979,11 @@ export interface SocialLoginPlugin {
   /**
    * Decode a JWT (typically an OIDC ID token) into its claims.
    *
-   * Security note:
+   * Notes:
+   * - Accepts both `idToken` and `token` to match common naming (Capawesome uses `token`).
    * - This does not validate the signature or issuer/audience. It only base64url-decodes the payload.
    */
-  decodeIdToken(options: { idToken: string }): Promise<{ claims: Record<string, any> }>;
+  decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }>;
 
   /**
    * Convert an access token expiration timestamp (milliseconds since epoch) to an ISO date string.

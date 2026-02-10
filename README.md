@@ -864,17 +864,18 @@ Notes:
 ### decodeIdToken(...)
 
 ```typescript
-decodeIdToken(options: { idToken: string; }) => Promise<{ claims: Record<string, any>; }>
+decodeIdToken(options: { idToken?: string; token?: string; }) => Promise<{ claims: Record<string, any>; }>
 ```
 
 Decode a JWT (typically an OIDC ID token) into its claims.
 
-Security note:
+Notes:
+- Accepts both `idToken` and `token` to match common naming (Capawesome uses `token`).
 - This does not validate the signature or issuer/audience. It only base64url-decodes the payload.
 
-| Param         | Type                              |
-| ------------- | --------------------------------- |
-| **`options`** | <code>{ idToken: string; }</code> |
+| Param         | Type                                               |
+| ------------- | -------------------------------------------------- |
+| **`options`** | <code>{ idToken?: string; token?: string; }</code> |
 
 **Returns:** <code>Promise&lt;{ claims: <a href="#record">Record</a>&lt;string, any&gt;; }&gt;</code>
 
