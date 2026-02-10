@@ -16,7 +16,7 @@ import GoogleSignIn
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "8.2.24"
+    private let pluginVersion: String = "8.2.25"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     public let pluginMethods: [CAPPluginMethod] = [
