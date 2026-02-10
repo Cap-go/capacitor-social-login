@@ -297,7 +297,7 @@ public class OAuth2Provider implements SocialProvider {
                 config.optString("resourceUrl", null),
                 config.optString("responseType", "code"),
                 config.optBoolean("pkceEnabled", true),
-                config.optString("scope", ""),
+                normalizeScopeValue(config.has("scope") ? config.opt("scope") : config.opt("scopes")),
                 additionalParameters,
                 config.optString("loginHint", null),
                 config.optString("prompt", null),
@@ -361,8 +361,11 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         String loginScope = providerConfig.scope;
-        if (config.has("scope")) {
-            loginScope = config.optString("scope", providerConfig.scope);
+        if (config.has("scope") || config.has("scopes")) {
+            String normalized = normalizeScopeValue(config.has("scope") ? config.opt("scope") : config.opt("scopes"));
+            if (normalized != null && !normalized.isEmpty()) {
+                loginScope = normalized;
+            }
         }
 
         String redirect = providerConfig.redirectUrl;
@@ -1178,6 +1181,21 @@ public class OAuth2Provider implements SocialProvider {
             map.put(key, json.getString(key));
         }
         return map;
+    }
+
+    private static String normalizeScopeValue(Object value) {
+        if (value == null || value == JSONObject.NULL) return "";
+        if (value instanceof String) return (String) value;
+        if (value instanceof JSONArray) {
+            JSONArray arr = (JSONArray) value;
+            List<String> parts = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                String s = arr.optString(i, null);
+                if (s != null && !s.isEmpty()) parts.add(s);
+            }
+            return String.join(" ", parts);
+        }
+        return "";
     }
 
     private static String generateCodeVerifier() {

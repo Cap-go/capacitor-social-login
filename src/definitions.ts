@@ -79,6 +79,11 @@ export interface OAuth2ProviderConfig {
    */
   scope?: string | string[];
   /**
+   * Alias for `scope` using common naming (`scopes`).
+   * If both are provided, `scope` takes precedence.
+   */
+  scopes?: string[];
+  /**
    * Additional parameters to include in the authorization request
    * @example { prompt: 'consent', login_hint: 'user@example.com' }
    */
@@ -412,7 +417,12 @@ export interface OAuth2LoginOptions {
    * Override the scopes for this login request
    * If not provided, uses the scopes from initialization
    */
-  scope?: string;
+  scope?: string | string[];
+  /**
+   * Alias for `scope` using common naming (`scopes`).
+   * If both are provided, `scope` takes precedence.
+   */
+  scopes?: string[];
   /**
    * Custom state parameter for CSRF protection
    * If not provided, a random value is generated
@@ -975,39 +985,38 @@ export interface SocialLoginPlugin {
   decodeIdToken(options: { idToken: string }): Promise<{ claims: Record<string, any> }>;
 
   /**
-   * Get the access token expiration date for an OAuth2 provider.
+   * Convert an access token expiration timestamp (milliseconds since epoch) to an ISO date string.
    *
-   * Scope:
-   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
    */
   getAccessTokenExpirationDate(options: {
-    provider: 'oauth2';
-    providerId: string;
-  }): Promise<{ expirationDate: string | null }>;
+    /**
+     * Access token expiration date in milliseconds since epoch.
+     * Typically: `Date.now() + expiresInSeconds * 1000`.
+     */
+    accessTokenExpirationDate: number;
+  }): Promise<{ date: string }>;
 
   /**
-   * Check if an access token is available for an OAuth2 provider.
+   * Check if an access token is available (non-empty).
    *
-   * Scope:
-   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
    */
-  isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }>;
+  isAccessTokenAvailable(options: { accessToken: string | null }): Promise<{ isAvailable: boolean }>;
 
   /**
-   * Check if an access token is expired for an OAuth2 provider.
+   * Check if an access token is expired.
    *
-   * Scope:
-   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
    */
-  isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string }): Promise<{ isExpired: boolean }>;
+  isAccessTokenExpired(options: { accessTokenExpirationDate: number }): Promise<{ isExpired: boolean }>;
 
   /**
-   * Check if a refresh token is available for an OAuth2 provider.
+   * Check if a refresh token is available (non-empty).
    *
-   * Scope:
-   * - Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+   * This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
    */
-  isRefreshTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }>;
+  isRefreshTokenAvailable(options: { refreshToken: string | null }): Promise<{ isAvailable: boolean }>;
 
   /**
    * Execute provider-specific calls

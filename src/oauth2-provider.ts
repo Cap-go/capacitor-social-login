@@ -63,11 +63,19 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
   private readonly TOKENS_KEY_PREFIX = 'capgo_social_login_oauth2_tokens_';
   private readonly STATE_PREFIX = 'capgo_social_login_oauth2_state_';
 
+  private normalizeScopeValue(scope: unknown): string {
+    if (!scope) return '';
+    if (typeof scope === 'string') return scope;
+    if (Array.isArray(scope)) return scope.filter(Boolean).join(' ');
+    return '';
+  }
+
   private normalizeConfig(providerId: string, config: OAuth2ProviderConfig): OAuth2ConfigInternal {
     const appId = config.appId ?? config.clientId;
     const authorizationBaseUrl = config.authorizationBaseUrl ?? config.authorizationEndpoint;
     const accessTokenEndpoint = config.accessTokenEndpoint ?? config.tokenEndpoint;
     const logoutUrl = config.logoutUrl ?? config.endSessionEndpoint;
+    const scopeSource = config.scope ?? config.scopes;
 
     if (!appId) {
       throw new Error(`OAuth2 provider '${providerId}' requires appId (or clientId).`);
@@ -90,7 +98,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       resourceUrl: config.resourceUrl,
       responseType: (config.responseType ?? 'code') as 'code' | 'token',
       pkceEnabled: config.pkceEnabled ?? true,
-      scope: typeof config.scope === 'string' ? config.scope : ((config.scope as any)?.join?.(' ') ?? ''),
+      scope: this.normalizeScopeValue(scopeSource),
       additionalParameters: config.additionalParameters,
       loginHint: config.loginHint,
       prompt: config.prompt,
@@ -186,7 +194,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     await this.ensureDiscovered(providerId);
 
     const redirectUri = options.redirectUrl ?? config.redirectUrl;
-    const scope = options.scope ?? config.scope;
+    const scope = this.normalizeScopeValue(options.scope ?? options.scopes ?? config.scope);
     const state = options.state ?? this.generateState();
     const codeVerifier = options.codeVerifier ?? this.generateCodeVerifier();
 

@@ -358,38 +358,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     return { claims };
   }
 
-  async getAccessTokenExpirationDate(options: {
-    provider: 'oauth2';
-    providerId: string;
-  }): Promise<{ expirationDate: string | null }> {
-    if (options.provider !== 'oauth2') {
-      throw new Error('getAccessTokenExpirationDate is only implemented for oauth2 on web');
+  async getAccessTokenExpirationDate(options: { accessTokenExpirationDate: number }): Promise<{ date: string }> {
+    if (typeof options?.accessTokenExpirationDate !== 'number') {
+      throw new Error('accessTokenExpirationDate is required');
     }
-    return this.oauth2Provider.getAccessTokenExpirationDate(options.providerId);
+    return { date: new Date(options.accessTokenExpirationDate).toISOString() };
   }
 
-  async isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string }): Promise<{ isAvailable: boolean }> {
-    if (options.provider !== 'oauth2') {
-      throw new Error('isAccessTokenAvailable is only implemented for oauth2 on web');
-    }
-    return this.oauth2Provider.isAccessTokenAvailable(options.providerId);
+  async isAccessTokenAvailable(options: { accessToken: string | null }): Promise<{ isAvailable: boolean }> {
+    const token = options?.accessToken ?? null;
+    return { isAvailable: typeof token === 'string' && token.length > 0 };
   }
 
-  async isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string }): Promise<{ isExpired: boolean }> {
-    if (options.provider !== 'oauth2') {
-      throw new Error('isAccessTokenExpired is only implemented for oauth2 on web');
+  async isAccessTokenExpired(options: { accessTokenExpirationDate: number }): Promise<{ isExpired: boolean }> {
+    if (typeof options?.accessTokenExpirationDate !== 'number') {
+      throw new Error('accessTokenExpirationDate is required');
     }
-    return this.oauth2Provider.isAccessTokenExpired(options.providerId);
+    return { isExpired: options.accessTokenExpirationDate <= Date.now() };
   }
 
-  async isRefreshTokenAvailable(options: {
-    provider: 'oauth2';
-    providerId: string;
-  }): Promise<{ isAvailable: boolean }> {
-    if (options.provider !== 'oauth2') {
-      throw new Error('isRefreshTokenAvailable is only implemented for oauth2 on web');
-    }
-    return this.oauth2Provider.isRefreshTokenAvailable(options.providerId);
+  async isRefreshTokenAvailable(options: { refreshToken: string | null }): Promise<{ isAvailable: boolean }> {
+    const token = options?.refreshToken ?? null;
+    return { isAvailable: typeof token === 'string' && token.length > 0 };
   }
 
   async getPluginVersion(): Promise<{ version: string }> {

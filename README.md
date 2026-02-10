@@ -884,19 +884,18 @@ Security note:
 ### getAccessTokenExpirationDate(...)
 
 ```typescript
-getAccessTokenExpirationDate(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ expirationDate: string | null; }>
+getAccessTokenExpirationDate(options: { accessTokenExpirationDate: number; }) => Promise<{ date: string; }>
 ```
 
-Get the access token expiration date for an OAuth2 provider.
+Convert an access token expiration timestamp (milliseconds since epoch) to an ISO date string.
 
-Scope:
-- Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
 
-| Param         | Type                                                     |
-| ------------- | -------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+| Param         | Type                                                |
+| ------------- | --------------------------------------------------- |
+| **`options`** | <code>{ accessTokenExpirationDate: number; }</code> |
 
-**Returns:** <code>Promise&lt;{ expirationDate: string | null; }&gt;</code>
+**Returns:** <code>Promise&lt;{ date: string; }&gt;</code>
 
 --------------------
 
@@ -904,17 +903,16 @@ Scope:
 ### isAccessTokenAvailable(...)
 
 ```typescript
-isAccessTokenAvailable(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ isAvailable: boolean; }>
+isAccessTokenAvailable(options: { accessToken: string | null; }) => Promise<{ isAvailable: boolean; }>
 ```
 
-Check if an access token is available for an OAuth2 provider.
+Check if an access token is available (non-empty).
 
-Scope:
-- Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
 
-| Param         | Type                                                     |
-| ------------- | -------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+| Param         | Type                                          |
+| ------------- | --------------------------------------------- |
+| **`options`** | <code>{ accessToken: string \| null; }</code> |
 
 **Returns:** <code>Promise&lt;{ isAvailable: boolean; }&gt;</code>
 
@@ -924,17 +922,16 @@ Scope:
 ### isAccessTokenExpired(...)
 
 ```typescript
-isAccessTokenExpired(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ isExpired: boolean; }>
+isAccessTokenExpired(options: { accessTokenExpirationDate: number; }) => Promise<{ isExpired: boolean; }>
 ```
 
-Check if an access token is expired for an OAuth2 provider.
+Check if an access token is expired.
 
-Scope:
-- Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
 
-| Param         | Type                                                     |
-| ------------- | -------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+| Param         | Type                                                |
+| ------------- | --------------------------------------------------- |
+| **`options`** | <code>{ accessTokenExpirationDate: number; }</code> |
 
 **Returns:** <code>Promise&lt;{ isExpired: boolean; }&gt;</code>
 
@@ -944,17 +941,16 @@ Scope:
 ### isRefreshTokenAvailable(...)
 
 ```typescript
-isRefreshTokenAvailable(options: { provider: 'oauth2'; providerId: string; }) => Promise<{ isAvailable: boolean; }>
+isRefreshTokenAvailable(options: { refreshToken: string | null; }) => Promise<{ isAvailable: boolean; }>
 ```
 
-Check if a refresh token is available for an OAuth2 provider.
+Check if a refresh token is available (non-empty).
 
-Scope:
-- Only applies to the built-in `oauth2` provider (stored tokens for `providerId`).
+This is a pure helper (feature parity with Capawesome OAuth) and does not depend on provider state.
 
-| Param         | Type                                                     |
-| ------------- | -------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'oauth2'; providerId: string; }</code> |
+| Param         | Type                                           |
+| ------------- | ---------------------------------------------- |
+| **`options`** | <code>{ refreshToken: string \| null; }</code> |
 
 **Returns:** <code>Promise&lt;{ isAvailable: boolean; }&gt;</code>
 
@@ -1080,6 +1076,7 @@ Configuration for a single OAuth2 provider instance
 | **`responseType`**                         | <code>'code' \| 'token'</code>                                  | The OAuth response type - 'code': Authorization Code flow (recommended, requires accessTokenEndpoint) - 'token': Implicit flow (less secure, tokens returned directly)                                                                                                                                                                                   | <code>'code'</code> |
 | **`pkceEnabled`**                          | <code>boolean</code>                                            | Enable PKCE (Proof Key for Code Exchange) Strongly recommended for public clients (mobile/web apps)                                                                                                                                                                                                                                                      | <code>true</code>   |
 | **`scope`**                                | <code>string \| string[]</code>                                 | Default scopes to request during authorization                                                                                                                                                                                                                                                                                                           |                     |
+| **`scopes`**                               | <code>string[]</code>                                           | Alias for `scope` using common naming (`scopes`). If both are provided, `scope` takes precedence.                                                                                                                                                                                                                                                        |                     |
 | **`additionalParameters`**                 | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Additional parameters to include in the authorization request                                                                                                                                                                                                                                                                                            |                     |
 | **`loginHint`**                            | <code>string</code>                                             | Convenience option for OIDC `login_hint`. Equivalent to passing `additionalParameters.login_hint`.                                                                                                                                                                                                                                                       |                     |
 | **`prompt`**                               | <code>string</code>                                             | Convenience option for OAuth/OIDC `prompt`. Equivalent to passing `additionalParameters.prompt`.                                                                                                                                                                                                                                                         |                     |
@@ -1234,7 +1231,8 @@ Configuration for a single OAuth2 provider instance
 | Prop                       | Type                                                            | Description                                                                                                                                                                                                                                                                                                                | Default              |
 | -------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
 | **`providerId`**           | <code>string</code>                                             | The provider ID as configured in initialize() This is required to identify which OAuth2 provider to use                                                                                                                                                                                                                    |                      |
-| **`scope`**                | <code>string</code>                                             | Override the scopes for this login request If not provided, uses the scopes from initialization                                                                                                                                                                                                                            |                      |
+| **`scope`**                | <code>string \| string[]</code>                                 | Override the scopes for this login request If not provided, uses the scopes from initialization                                                                                                                                                                                                                            |                      |
+| **`scopes`**               | <code>string[]</code>                                           | Alias for `scope` using common naming (`scopes`). If both are provided, `scope` takes precedence.                                                                                                                                                                                                                          |                      |
 | **`state`**                | <code>string</code>                                             | Custom state parameter for CSRF protection If not provided, a random value is generated                                                                                                                                                                                                                                    |                      |
 | **`codeVerifier`**         | <code>string</code>                                             | Override PKCE code verifier (for testing purposes) If not provided, a secure random verifier is generated                                                                                                                                                                                                                  |                      |
 | **`redirectUrl`**          | <code>string</code>                                             | Override redirect URL for this login request                                                                                                                                                                                                                                                                               |                      |

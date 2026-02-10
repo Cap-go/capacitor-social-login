@@ -485,92 +485,37 @@ public class SocialLoginPlugin extends Plugin {
 
     @PluginMethod
     public void getAccessTokenExpirationDate(final PluginCall call) {
-        String provider = call.getString("provider", "");
-        if (!"oauth2".equals(provider)) {
-            call.reject("provider must be oauth2");
-            return;
-        }
-        String providerId = call.getString("providerId");
-        if (providerId == null || providerId.isEmpty()) {
-            call.reject("providerId is required for oauth2");
-            return;
-        }
-        SocialProvider p = socialProviderHashMap.get("oauth2");
-        if (!(p instanceof OAuth2Provider)) {
-            call.reject("OAuth2 provider is not initialized");
-            return;
-        }
-        Long expiresAt = ((OAuth2Provider) p).getAccessTokenExpirationDateMs(providerId);
-        JSObject ret = new JSObject();
+        Long expiresAt = call.getLong("accessTokenExpirationDate");
         if (expiresAt == null) {
-            ret.put("expirationDate", JSONObject.NULL);
-        } else {
-            String iso = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX").format(new java.util.Date(expiresAt));
-            ret.put("expirationDate", iso);
+            call.reject("accessTokenExpirationDate is required");
+            return;
         }
-        call.resolve(ret);
+        String iso = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX").format(new java.util.Date(expiresAt));
+        call.resolve(new JSObject().put("date", iso));
     }
 
     @PluginMethod
     public void isAccessTokenAvailable(final PluginCall call) {
-        String provider = call.getString("provider", "");
-        if (!"oauth2".equals(provider)) {
-            call.reject("provider must be oauth2");
-            return;
-        }
-        String providerId = call.getString("providerId");
-        if (providerId == null || providerId.isEmpty()) {
-            call.reject("providerId is required for oauth2");
-            return;
-        }
-        SocialProvider p = socialProviderHashMap.get("oauth2");
-        if (!(p instanceof OAuth2Provider)) {
-            call.reject("OAuth2 provider is not initialized");
-            return;
-        }
-        boolean ok = ((OAuth2Provider) p).isAccessTokenAvailableStatus(providerId);
+        String token = call.getString("accessToken");
+        boolean ok = token != null && !token.isEmpty();
         call.resolve(new JSObject().put("isAvailable", ok));
     }
 
     @PluginMethod
     public void isAccessTokenExpired(final PluginCall call) {
-        String provider = call.getString("provider", "");
-        if (!"oauth2".equals(provider)) {
-            call.reject("provider must be oauth2");
+        Long expiresAt = call.getLong("accessTokenExpirationDate");
+        if (expiresAt == null) {
+            call.reject("accessTokenExpirationDate is required");
             return;
         }
-        String providerId = call.getString("providerId");
-        if (providerId == null || providerId.isEmpty()) {
-            call.reject("providerId is required for oauth2");
-            return;
-        }
-        SocialProvider p = socialProviderHashMap.get("oauth2");
-        if (!(p instanceof OAuth2Provider)) {
-            call.reject("OAuth2 provider is not initialized");
-            return;
-        }
-        boolean expired = ((OAuth2Provider) p).isAccessTokenExpiredStatus(providerId);
+        boolean expired = expiresAt <= System.currentTimeMillis();
         call.resolve(new JSObject().put("isExpired", expired));
     }
 
     @PluginMethod
     public void isRefreshTokenAvailable(final PluginCall call) {
-        String provider = call.getString("provider", "");
-        if (!"oauth2".equals(provider)) {
-            call.reject("provider must be oauth2");
-            return;
-        }
-        String providerId = call.getString("providerId");
-        if (providerId == null || providerId.isEmpty()) {
-            call.reject("providerId is required for oauth2");
-            return;
-        }
-        SocialProvider p = socialProviderHashMap.get("oauth2");
-        if (!(p instanceof OAuth2Provider)) {
-            call.reject("OAuth2 provider is not initialized");
-            return;
-        }
-        boolean ok = ((OAuth2Provider) p).isRefreshTokenAvailableStatus(providerId);
+        String token = call.getString("refreshToken");
+        boolean ok = token != null && !token.isEmpty();
         call.resolve(new JSObject().put("isAvailable", ok));
     }
 

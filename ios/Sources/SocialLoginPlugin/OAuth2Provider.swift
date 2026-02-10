@@ -69,6 +69,15 @@ class OAuth2Provider: NSObject {
     private var currentProviderId: String?
     private let tokenStorageKeyPrefix = "CapgoOAuth2ProviderTokens_"
 
+    private func normalizeScope(_ value: Any?) -> String {
+        if let s = value as? String { return s }
+        if let arr = value as? [String] { return arr.joined(separator: " ") }
+        if let arr = value as? [Any] {
+            return arr.compactMap { $0 as? String }.joined(separator: " ")
+        }
+        return ""
+    }
+
     func initializeProviders(configs: [String: [String: Any]]) -> [String] {
         var errors: [String] = []
 
@@ -103,7 +112,7 @@ class OAuth2Provider: NSObject {
                 resourceUrl: config["resourceUrl"] as? String,
                 responseType: config["responseType"] as? String ?? "code",
                 pkceEnabled: config["pkceEnabled"] as? Bool ?? true,
-                scope: config["scope"] as? String ?? "",
+                scope: normalizeScope(config["scope"] ?? config["scopes"]),
                 additionalParameters: config["additionalParameters"] as? [String: String],
                 loginHint: config["loginHint"] as? String,
                 prompt: config["prompt"] as? String,
@@ -215,7 +224,7 @@ class OAuth2Provider: NSObject {
                     return
                 }
 
-                let loginScope = payload["scope"] as? String ?? config.scope
+                let loginScope = self.normalizeScope(payload["scope"] ?? payload["scopes"] ?? config.scope)
                 let state = payload["state"] as? String ?? UUID().uuidString
                 let codeVerifier = payload["codeVerifier"] as? String ?? self.generateCodeVerifier()
                 let redirect = payload["redirectUrl"] as? String ?? config.redirectUrl

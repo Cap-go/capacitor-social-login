@@ -691,55 +691,31 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func getAccessTokenExpirationDate(_ call: CAPPluginCall) {
-        guard let provider = call.getString("provider"), provider == "oauth2" else {
-            call.reject("provider must be oauth2")
+        guard let ms = call.getDouble("accessTokenExpirationDate") else {
+            call.reject("accessTokenExpirationDate is required")
             return
         }
-        guard let providerId = call.getString("providerId") else {
-            call.reject("providerId is required for oauth2")
-            return
-        }
-        if let date = oauth2.getAccessTokenExpirationDate(providerId: providerId) {
-            call.resolve(["expirationDate": ISO8601DateFormatter().string(from: date)])
-        } else {
-            call.resolve(["expirationDate": NSNull()])
-        }
+        let date = Date(timeIntervalSince1970: ms / 1000.0)
+        call.resolve(["date": ISO8601DateFormatter().string(from: date)])
     }
 
     @objc func isAccessTokenAvailable(_ call: CAPPluginCall) {
-        guard let provider = call.getString("provider"), provider == "oauth2" else {
-            call.reject("provider must be oauth2")
-            return
-        }
-        guard let providerId = call.getString("providerId") else {
-            call.reject("providerId is required for oauth2")
-            return
-        }
-        call.resolve(["isAvailable": oauth2.isAccessTokenAvailable(providerId: providerId)])
+        let token = call.getString("accessToken")
+        call.resolve(["isAvailable": (token?.isEmpty == false)])
     }
 
     @objc func isAccessTokenExpired(_ call: CAPPluginCall) {
-        guard let provider = call.getString("provider"), provider == "oauth2" else {
-            call.reject("provider must be oauth2")
+        guard let ms = call.getDouble("accessTokenExpirationDate") else {
+            call.reject("accessTokenExpirationDate is required")
             return
         }
-        guard let providerId = call.getString("providerId") else {
-            call.reject("providerId is required for oauth2")
-            return
-        }
-        call.resolve(["isExpired": oauth2.isAccessTokenExpired(providerId: providerId)])
+        let nowMs = Date().timeIntervalSince1970 * 1000.0
+        call.resolve(["isExpired": ms <= nowMs])
     }
 
     @objc func isRefreshTokenAvailable(_ call: CAPPluginCall) {
-        guard let provider = call.getString("provider"), provider == "oauth2" else {
-            call.reject("provider must be oauth2")
-            return
-        }
-        guard let providerId = call.getString("providerId") else {
-            call.reject("providerId is required for oauth2")
-            return
-        }
-        call.resolve(["isAvailable": oauth2.isRefreshTokenAvailable(providerId: providerId)])
+        let token = call.getString("refreshToken")
+        call.resolve(["isAvailable": (token?.isEmpty == false)])
     }
 
     @objc func openSecureWindow(_ call: CAPPluginCall) {
