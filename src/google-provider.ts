@@ -381,6 +381,9 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         return;
       }
 
+      // Track if we've encountered a COOP error to avoid repeated checks
+      let coopErrorDetected = false;
+
       const cleanup = () => {
         window.removeEventListener('message', handleMessage);
         clearInterval(popupClosedInterval);
@@ -478,6 +481,11 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       }, 300000);
 
       popupClosedInterval = setInterval(() => {
+        // Skip checking if we've already detected a COOP error
+        if (coopErrorDetected) {
+          return;
+        }
+
         try {
           // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
@@ -486,9 +494,14 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup
-          // navigates to a third-party OAuth provider with strict security settings.
+          // navigates to a third-party OAuth provider with strict security settings (COOP).
           // We can't detect if the window was closed, so we rely on timeout and message handlers.
-          clearInterval(popupClosedInterval);
+          // The popup will close itself after authentication completes.
+          coopErrorDetected = true;
+          console.log(
+            '[Google Login] Cannot check popup.closed due to Cross-Origin-Opener-Policy restrictions. ' +
+              'The popup will close automatically after login completes. Relying on BroadcastChannel and timeout.',
+          );
         }
       }, 1000);
     });
