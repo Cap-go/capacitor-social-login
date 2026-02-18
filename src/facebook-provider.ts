@@ -48,27 +48,46 @@ export class FacebookSocialLogin extends BaseSocialLogin {
           } else {
             // Handle non-connected status - could be cancelled, not authorized, or verification pending
             // In some cases (e.g., 2FA/verification flow), the callback fires before the user completes
-            // external verification. We'll wait a bit and check the status again.
-            setTimeout(() => {
-              FB.getLoginStatus((statusResponse) => {
-                if (statusResponse.status === 'connected' && statusResponse.authResponse) {
-                  // User completed verification externally
-                  this.handleConnectedResponse(statusResponse as any, resolve);
-                } else {
-                  // User cancelled, not authorized, or truly not connected
-                  const errorMessage =
-                    response.status === 'not_authorized'
-                      ? 'User denied app authorization'
-                      : 'Facebook login cancelled or failed';
-                  reject(new Error(errorMessage));
-                }
-              });
-            }, 2000); // Wait 2 seconds before checking status
+            // external verification. We'll poll the status to check if verification completes.
+            this.pollLoginStatus(response.status, resolve, reject);
           }
         },
         { scope: options.permissions.join(',') },
       );
     });
+  }
+
+  private pollLoginStatus(
+    initialStatus: string,
+    resolve: (value: LoginResult) => void,
+    reject: (reason: Error) => void,
+  ): void {
+    // Poll up to 5 times with 2-second intervals (10 seconds total)
+    // This handles cases where user is verifying login on another device
+    let attempts = 0;
+    const maxAttempts = 5;
+    const pollInterval = 2000; // 2 seconds
+
+    const checkStatus = () => {
+      attempts++;
+      FB.getLoginStatus((statusResponse) => {
+        if (statusResponse.status === 'connected' && statusResponse.authResponse) {
+          // User completed verification externally
+          this.handleConnectedResponse(statusResponse as any, resolve);
+        } else if (attempts >= maxAttempts) {
+          // Max attempts reached, reject with appropriate error
+          const errorMessage =
+            initialStatus === 'not_authorized' ? 'User denied app authorization' : 'Facebook login cancelled or failed';
+          reject(new Error(errorMessage));
+        } else {
+          // Continue polling
+          setTimeout(checkStatus, pollInterval);
+        }
+      });
+    };
+
+    // Start first check after initial delay
+    setTimeout(checkStatus, pollInterval);
   }
 
   private handleConnectedResponse(
