@@ -295,9 +295,6 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
         }
       }
 
-      // Track if we've encountered a COOP error to avoid repeated checks
-      let coopErrorDetected = false;
-
       const cleanup = (
         messageHandler: (event: MessageEvent) => void,
         timeoutHandle: number,
@@ -373,11 +370,6 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       }, 300000);
 
       const popupClosedInterval = window.setInterval(() => {
-        // Skip checking if we've already detected a COOP error
-        if (coopErrorDetected) {
-          return;
-        }
-
         try {
           // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
@@ -389,11 +381,13 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
           // navigates to a third-party OAuth provider with strict security settings (COOP).
           // We can't detect if the window was closed, so we just rely on the timeout
           // and message handlers. The popup will close itself after authentication completes.
-          coopErrorDetected = true;
+          clearInterval(popupClosedInterval);
           if (config.logsEnabled) {
             console.log(
               `[OAuth2:${providerId}] Cannot check popup.closed due to Cross-Origin-Opener-Policy restrictions. ` +
-                'The popup will close automatically after login completes. Relying on BroadcastChannel and timeout.',
+                'The popup will close automatically after login completes. Relying on ' +
+                (broadcastChannel ? 'BroadcastChannel, ' : '') +
+                'message handlers, and timeout.',
             );
           }
         }
