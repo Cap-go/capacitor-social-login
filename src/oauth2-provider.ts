@@ -62,6 +62,13 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
   private providers: Map<string, OAuth2ConfigInternal> = new Map();
   private readonly TOKENS_KEY_PREFIX = 'capgo_social_login_oauth2_tokens_';
   private readonly STATE_PREFIX = 'capgo_social_login_oauth2_state_';
+  private readonly CONFIG_KEY_PREFIX = 'capgo_social_login_oauth2_config_';
+
+  constructor() {
+    super();
+    // Restore configurations from localStorage for popup window context
+    this.restoreConfigurationsFromStorage();
+  }
 
   private normalizeScopeValue(scope: unknown): string {
     if (!scope) return '';
@@ -148,6 +155,9 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
         logoutUrl: config.logoutUrl,
       });
     }
+
+    // Persist updated configuration after discovery
+    this.persistConfiguration(providerId, config);
   }
 
   /**
@@ -171,6 +181,9 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
       // Pre-resolve discovery on web if issuerUrl is provided.
       await this.ensureDiscovered(providerId);
+
+      // Persist configuration to localStorage so it's available in popup window context
+      this.persistConfiguration(providerId, internalConfig);
     }
   }
 
@@ -184,6 +197,38 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
   private getTokensKey(providerId: string): string {
     return `${this.TOKENS_KEY_PREFIX}${providerId}`;
+  }
+
+  private getConfigKey(providerId: string): string {
+    return `${this.CONFIG_KEY_PREFIX}${providerId}`;
+  }
+
+  private persistConfiguration(providerId: string, config: OAuth2ConfigInternal): void {
+    try {
+      localStorage.setItem(this.getConfigKey(providerId), JSON.stringify(config));
+    } catch (err) {
+      console.warn(`Failed to persist OAuth2 configuration for provider '${providerId}'`, err);
+    }
+  }
+
+  private restoreConfigurationsFromStorage(): void {
+    // Restore all provider configurations from localStorage
+    // This is needed for popup window context where the parent's in-memory state is not available
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (key.startsWith(this.CONFIG_KEY_PREFIX)) {
+        const providerId = key.substring(this.CONFIG_KEY_PREFIX.length);
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const config = JSON.parse(raw) as OAuth2ConfigInternal;
+            this.providers.set(providerId, config);
+          }
+        } catch (err) {
+          console.warn(`Failed to restore OAuth2 configuration for provider '${providerId}'`, err);
+        }
+      }
+    }
   }
 
   async login<T extends 'oauth2'>(
