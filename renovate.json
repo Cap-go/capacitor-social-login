@@ -97,6 +97,15 @@
         "gradle"
       ],
       "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "androidx.browser:browser"
+      ],
+      "matchManagers": [
+        "gradle"
+      ],
+      "enabled": false
     }
   ]
 }
