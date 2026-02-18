@@ -27,8 +27,6 @@ public class SocialLoginPlugin extends Plugin {
     private final String pluginVersion = "8.3.2";
 
     public static String LOG_TAG = "CapgoSocialLogin";
-    private static final String OAUTH2_CALL_KEY = "oauth2LoginCall";
-
     public HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
     private PluginCall openSecureWindowSavedCall;
@@ -180,7 +178,6 @@ public class SocialLoginPlugin extends Plugin {
                 oauth2Provider.setActivityLauncher((intent, requestCode) -> {
                     PluginCall loginCall = oauth2Provider.getPendingCall();
                     if (loginCall != null) {
-                        bridge.saveCall(loginCall);
                         startActivityForResult(loginCall, intent, "handleOAuth2ActivityResult");
                     } else {
                         Log.e(LOG_TAG, "OAuth2 activityLauncher fired but pendingCall is null, cannot route result");

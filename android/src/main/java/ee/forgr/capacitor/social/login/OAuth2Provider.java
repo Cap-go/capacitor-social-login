@@ -483,6 +483,8 @@ public class OAuth2Provider implements SocialProvider {
                         if (activityLauncher != null) {
                             activityLauncher.launchForResult(intent, REQUEST_CODE);
                         } else {
+                            Log.w(LOG_TAG, "activityLauncher is null — falling back to raw startActivityForResult. "
+                                + "Activity result routing through Capacitor will not work.");
                             activity.startActivityForResult(intent, REQUEST_CODE);
                         }
                     });
@@ -645,6 +647,13 @@ public class OAuth2Provider implements SocialProvider {
             return false;
         }
         if (pendingCall == null || pendingState == null) {
+            if (pendingCall != null) {
+                // pendingCall was restored (e.g. via @ActivityCallback after process death)
+                // but pendingState (codeVerifier, state nonce, etc.) was lost. Cannot complete.
+                Log.e(LOG_TAG, "pendingCall present but pendingState is null — login state lost (process death?)");
+                pendingCall.reject("OAuth2 login state was lost (process death). Please retry.");
+                cleanupPending();
+            }
             return true;
         }
 
