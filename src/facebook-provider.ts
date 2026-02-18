@@ -44,35 +44,59 @@ export class FacebookSocialLogin extends BaseSocialLogin {
       FB.login(
         (response) => {
           if (response.status === 'connected') {
-            FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
-              const result: FacebookLoginResponse = {
-                accessToken: {
-                  token: response.authResponse.accessToken,
-                  userId: response.authResponse.userID,
-                },
-                profile: {
-                  userID: userInfo.id,
-                  name: userInfo.name,
-                  email: userInfo.email || null,
-                  imageURL: userInfo.picture?.data?.url || null,
-                  friendIDs: [],
-                  birthday: null,
-                  ageRange: null,
-                  gender: null,
-                  location: null,
-                  hometown: null,
-                  profileURL: null,
-                },
-                idToken: null,
-              };
-              resolve({ provider: 'facebook', result });
-            });
+            this.handleConnectedResponse(response, resolve);
           } else {
-            reject(new Error('Facebook login failed'));
+            // Handle non-connected status - could be cancelled, not authorized, or verification pending
+            // In some cases (e.g., 2FA/verification flow), the callback fires before the user completes
+            // external verification. We'll wait a bit and check the status again.
+            setTimeout(() => {
+              FB.getLoginStatus((statusResponse) => {
+                if (statusResponse.status === 'connected' && statusResponse.authResponse) {
+                  // User completed verification externally
+                  this.handleConnectedResponse(statusResponse as any, resolve);
+                } else {
+                  // User cancelled, not authorized, or truly not connected
+                  const errorMessage =
+                    response.status === 'not_authorized'
+                      ? 'User denied app authorization'
+                      : 'Facebook login cancelled or failed';
+                  reject(new Error(errorMessage));
+                }
+              });
+            }, 2000); // Wait 2 seconds before checking status
           }
         },
         { scope: options.permissions.join(',') },
       );
+    });
+  }
+
+  private handleConnectedResponse(
+    response: { authResponse: { accessToken: string; userID: string } },
+    resolve: (value: LoginResult) => void,
+  ): void {
+    FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
+      const result: FacebookLoginResponse = {
+        accessToken: {
+          token: response.authResponse.accessToken,
+          userId: response.authResponse.userID,
+        },
+        profile: {
+          userID: userInfo.id,
+          name: userInfo.name,
+          email: userInfo.email || null,
+          imageURL: userInfo.picture?.data?.url || null,
+          friendIDs: [],
+          birthday: null,
+          ageRange: null,
+          gender: null,
+          location: null,
+          hometown: null,
+          profileURL: null,
+        },
+        idToken: null,
+      };
+      resolve({ provider: 'facebook', result });
     });
   }
 
