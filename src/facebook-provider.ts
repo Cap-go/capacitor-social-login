@@ -44,35 +44,78 @@ export class FacebookSocialLogin extends BaseSocialLogin {
       FB.login(
         (response) => {
           if (response.status === 'connected') {
-            FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
-              const result: FacebookLoginResponse = {
-                accessToken: {
-                  token: response.authResponse.accessToken,
-                  userId: response.authResponse.userID,
-                },
-                profile: {
-                  userID: userInfo.id,
-                  name: userInfo.name,
-                  email: userInfo.email || null,
-                  imageURL: userInfo.picture?.data?.url || null,
-                  friendIDs: [],
-                  birthday: null,
-                  ageRange: null,
-                  gender: null,
-                  location: null,
-                  hometown: null,
-                  profileURL: null,
-                },
-                idToken: null,
-              };
-              resolve({ provider: 'facebook', result });
-            });
+            this.handleConnectedResponse(response, resolve);
           } else {
-            reject(new Error('Facebook login failed'));
+            // Handle non-connected status - could be cancelled, not authorized, or verification pending
+            // In some cases (e.g., 2FA/verification flow), the callback fires before the user completes
+            // external verification. We'll poll the status to check if verification completes.
+            this.pollLoginStatus(response.status, resolve, reject);
           }
         },
         { scope: options.permissions.join(',') },
       );
+    });
+  }
+
+  private pollLoginStatus(
+    initialStatus: string,
+    resolve: (value: LoginResult) => void,
+    reject: (reason: Error) => void,
+  ): void {
+    // Poll up to 5 times with 2-second intervals (10 seconds total)
+    // This handles cases where user is verifying login on another device
+    let attempts = 0;
+    const maxAttempts = 5;
+    const pollInterval = 2000; // 2 seconds
+
+    const checkStatus = () => {
+      attempts++;
+      FB.getLoginStatus((statusResponse) => {
+        if (statusResponse.status === 'connected' && statusResponse.authResponse) {
+          // User completed verification externally
+          this.handleConnectedResponse(statusResponse as any, resolve);
+        } else if (attempts >= maxAttempts) {
+          // Max attempts reached, reject with appropriate error
+          const errorMessage =
+            initialStatus === 'not_authorized' ? 'User denied app authorization' : 'Facebook login cancelled or failed';
+          reject(new Error(errorMessage));
+        } else {
+          // Continue polling
+          setTimeout(checkStatus, pollInterval);
+        }
+      });
+    };
+
+    // Start first check after initial delay
+    setTimeout(checkStatus, pollInterval);
+  }
+
+  private handleConnectedResponse(
+    response: { authResponse: { accessToken: string; userID: string } },
+    resolve: (value: LoginResult) => void,
+  ): void {
+    FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
+      const result: FacebookLoginResponse = {
+        accessToken: {
+          token: response.authResponse.accessToken,
+          userId: response.authResponse.userID,
+        },
+        profile: {
+          userID: userInfo.id,
+          name: userInfo.name,
+          email: userInfo.email || null,
+          imageURL: userInfo.picture?.data?.url || null,
+          friendIDs: [],
+          birthday: null,
+          ageRange: null,
+          gender: null,
+          location: null,
+          hometown: null,
+          profileURL: null,
+        },
+        idToken: null,
+      };
+      resolve({ provider: 'facebook', result });
     });
   }
 
