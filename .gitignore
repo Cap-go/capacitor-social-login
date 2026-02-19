@@ -70,4 +70,5 @@ captures
 .externalNativeBuild
 .gitsecret/keys/random_seed
 !*.secret
-scripts/configure-dependencies.jspackage-lock.json
+scripts/configure-dependencies.js
+package-lock.json

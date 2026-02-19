@@ -272,19 +272,19 @@ function configureIOS(providerConfig: ProviderConfig): void {
       },
       {
         // Facebook Core - handle both active and commented (including existing disabled comments)
-        old: /(#\s*)?s\.dependency\s+'FBSDKCoreKit',\s*'18\.0\.0'(\s*#.*)?/,
+        old: /(#\s*)?s\.dependency\s+'FBSDKCoreKit',\s*'~>\s*18\.0'(\s*#.*)?/,
         new:
           providerConfig.facebook === 'implementation'
-            ? `s.dependency 'FBSDKCoreKit', '18.0.0'`
-            : `# s.dependency 'FBSDKCoreKit', '18.0.0'  # Disabled via config (compileOnly)`,
+            ? `s.dependency 'FBSDKCoreKit', '~> 18.0'`
+            : `# s.dependency 'FBSDKCoreKit', '~> 18.0'  # Disabled via config (compileOnly)`,
       },
       {
         // Facebook Login - handle both active and commented (including existing disabled comments)
-        old: /(#\s*)?s\.dependency\s+'FBSDKLoginKit',\s*'18\.0\.0'(\s*#.*)?/,
+        old: /(#\s*)?s\.dependency\s+'FBSDKLoginKit',\s*'~>\s*18\.0'(\s*#.*)?/,
         new:
           providerConfig.facebook === 'implementation'
-            ? `s.dependency 'FBSDKLoginKit', '18.0.0'`
-            : `# s.dependency 'FBSDKLoginKit', '18.0.0'  # Disabled via config (compileOnly)`,
+            ? `s.dependency 'FBSDKLoginKit', '~> 18.0'`
+            : `# s.dependency 'FBSDKLoginKit', '~> 18.0'  # Disabled via config (compileOnly)`,
       },
       {
         // Alamofire (for Apple) - handle both active and commented (including existing disabled comments)
