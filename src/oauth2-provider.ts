@@ -7,6 +7,7 @@ import type {
   OAuth2ProviderConfig,
   ProviderResponseMap,
 } from './definitions';
+import { createSocialLoginError, SocialLoginErrorCode } from './error-utils';
 
 interface OAuth2TokenResponse {
   token_type: string;
@@ -337,7 +338,10 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
             return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          reject(new Error((data.error as string) || 'OAuth2 login was cancelled.'));
+          reject(createSocialLoginError(
+            SocialLoginErrorCode.USER_CANCELLED,
+            (data.error as string) || 'OAuth2 login was cancelled.'
+          ));
           return true;
         }
         return false;
@@ -374,7 +378,10 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
           // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
             cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-            reject(new Error('OAuth2 login window was closed.'));
+            reject(createSocialLoginError(
+              SocialLoginErrorCode.USER_CANCELLED,
+              'OAuth2 login window was closed.'
+            ));
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup

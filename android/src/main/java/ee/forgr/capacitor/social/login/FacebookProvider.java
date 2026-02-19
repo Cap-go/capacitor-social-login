@@ -109,7 +109,7 @@ public class FacebookProvider implements SocialProvider {
                     @Override
                     public void onCancel() {
                         Log.d(LOG_TAG, "LoginManager.onCancel");
-                        call.reject("Login cancelled");
+                        call.reject("Login cancelled", "USER_CANCELLED");
                     }
 
                     @Override

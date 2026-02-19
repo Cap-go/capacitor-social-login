@@ -1,5 +1,6 @@
 import { BaseSocialLogin } from './base';
 import type { GoogleLoginOptions, LoginResult, ProviderResponseMap, AuthorizationCode } from './definitions';
+import { createSocialLoginError, SocialLoginErrorCode } from './error-utils';
 
 export class GoogleSocialLogin extends BaseSocialLogin {
   private clientId: string | null = null;
@@ -442,7 +443,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         } else if (event.data?.type === 'oauth-error') {
           cleanup();
           const errorMessage = event.data.error || 'User cancelled the OAuth flow';
-          reject(new Error(errorMessage));
+          reject(createSocialLoginError(
+            SocialLoginErrorCode.USER_CANCELLED,
+            errorMessage
+          ));
         }
         // Don't reject for non-OAuth messages, just ignore them
       };
@@ -459,7 +463,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           } else if (data?.type === 'oauth-error') {
             cleanup();
             const errorMessage = (data.error as string) || 'User cancelled the OAuth flow';
-            reject(new Error(errorMessage));
+            reject(createSocialLoginError(
+              SocialLoginErrorCode.USER_CANCELLED,
+              errorMessage
+            ));
           }
         };
       }
@@ -482,7 +489,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
             cleanup();
-            reject(new Error('Popup closed'));
+            reject(createSocialLoginError(
+              SocialLoginErrorCode.USER_CANCELLED,
+              'Popup closed'
+            ));
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup

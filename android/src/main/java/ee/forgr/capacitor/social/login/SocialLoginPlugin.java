@@ -567,7 +567,7 @@ public class SocialLoginPlugin extends Plugin {
 
         // If we have a saved call and user returned without callback, reject
         if (openSecureWindowSavedCall != null) {
-            openSecureWindowSavedCall.reject("OAuth cancelled or no callback received");
+            openSecureWindowSavedCall.reject("OAuth cancelled or no callback received", "USER_CANCELLED");
             openSecureWindowSavedCall = null;
         }
     }
