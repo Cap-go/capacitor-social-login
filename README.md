@@ -76,7 +76,7 @@ const config: CapacitorConfig = {
       providers: {
         google: true,      // true = enabled (bundled), false = disabled (not bundled)
         facebook: true,   // Use false to reduce app size
-        apple: true,      // Apple uses system APIs, no external deps
+        apple: true,      // Apple Sign-In works without Alamofire (basic flow). Advanced features require Alamofire.
         twitter: false   // false = disabled (not bundled)
       },
       logLevel: 1 // Warnings and errors only
@@ -99,6 +99,7 @@ export default config;
 - **Important**: Disabling a provider (`false`) will make it unavailable at runtime, regardless of whether it actually adds any dependencies. The provider will be disabled even if it uses only system APIs.
 - This configuration only affects iOS and Android platforms; it does not affect the web platform.
 - **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
+- **Apple Sign-In (iOS)**: Basic Sign in with Apple works without any external dependencies. Advanced features (redirectUrl for backend token exchange) require the Alamofire dependency. If you use `apple: false` and don't include Alamofire, you can still use basic Sign in with Apple, but backend flows will fail with a clear error message.
 - Apple Sign-In on Android uses OAuth flow without external SDK dependencies
 - Twitter uses standard OAuth 2.0 flow without external SDK dependencies
 
@@ -612,6 +613,37 @@ await SocialLogin.refresh({
 4. **Use HTTPS** for all endpoints and redirect URLs in production
 
 ## Troubleshooting
+
+### Apple Sign-In: "Dependencies are not available. Ensure Alamofire dependency is included"
+
+**Problem**: You get this error when trying to use Apple Sign-In on iOS:
+```
+Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile
+```
+
+**Root Cause**: The Alamofire dependency was not properly installed, or you're using advanced Apple Sign-In features (redirectUrl) without Alamofire available.
+
+**Solutions**:
+
+1. **Basic Sign in with Apple (Most common case)**: If you're NOT using `redirectUrl` in your Apple configuration, basic Sign in with Apple should work without Alamofire. This error might indicate an older version of the plugin. Update to the latest version:
+   ```bash
+   npm install @capgo/capacitor-social-login@latest
+   npx cap sync ios
+   ```
+
+2. **If using redirectUrl (Advanced backend flows)**: You need Alamofire. Make sure:
+   - You have `apple: true` in your `capacitor.config.ts` providers configuration
+   - You ran `npx cap sync ios` after installing the plugin
+   - Your Podfile was updated and `pod install` completed successfully
+   - Check your Podfile for the line: `pod 'Alamofire', '~> 5.10.2'`
+
+3. **If using Swift Package Manager (SPM)**: Currently, the dependency configuration system only works with CocoaPods. If you're using SPM, Alamofire is always included by default in Package.swift.
+
+4. **Manual fix for CocoaPods**: If the automatic configuration didn't work, you can manually add Alamofire to your app's Podfile:
+   ```ruby
+   pod 'Alamofire', '~> 5.10.2'
+   ```
+   Then run `pod install` in your `ios/App` directory.
 
 
 ### Invalid Privacy Manifest (ITMS-91056)
