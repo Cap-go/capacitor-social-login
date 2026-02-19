@@ -71,3 +71,4 @@ captures
 .gitsecret/keys/random_seed
 !*.secret
 scripts/configure-dependencies.js
+package-lock.json
