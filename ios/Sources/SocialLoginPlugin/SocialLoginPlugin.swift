@@ -88,6 +88,47 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         return nil
         #endif
     }
+    
+    // Helper to extract error code from NSError for standardized error handling
+    private func getErrorCode(from error: Error) -> String? {
+        let nsError = error as NSError
+        
+        // Check if this is a user cancellation error
+        if nsError.domain == "OAuth2Provider" && nsError.code == -3 {
+            return "USER_CANCELLED"
+        }
+        if nsError.domain == "FacebookProvider" && nsError.localizedDescription.contains("cancelled") {
+            return "USER_CANCELLED"
+        }
+        if nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+            return "USER_CANCELLED"
+        }
+        
+        // Check for other known error types
+        if nsError.domain == "OAuth2Provider" && nsError.code == -1 {
+            return "NOT_INITIALIZED"
+        }
+        if nsError.domain == "OAuth2Provider" && nsError.code == -2 {
+            return "INVALID_CONFIGURATION"
+        }
+        
+        return nil
+    }
+    
+    // Helper to reject a call with standardized error code
+    private func rejectWithError(_ call: CAPPluginCall, _ error: Error) {
+        let errorCode = getErrorCode(from: error)
+        call.reject(error.localizedDescription, errorCode, error)
+    }
+
+    // Helper to get Apple provider (returns nil if unavailable)
+    private var appleProvider: AppleProvider? {
+        #if canImport(Alamofire)
+        return apple
+        #else
+        return nil
+        #endif
+    }
 
     /**
      * Check if a provider is enabled in Capacitor config.
@@ -981,7 +1022,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Unsupported provider response")
             }
         case .failure(let error):
-            call.reject(error.localizedDescription)
+            self.rejectWithError(call, error)
         }
     }
 }
