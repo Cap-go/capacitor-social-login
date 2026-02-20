@@ -483,8 +483,11 @@ public class OAuth2Provider implements SocialProvider {
                         if (activityLauncher != null) {
                             activityLauncher.launchForResult(intent, REQUEST_CODE);
                         } else {
-                            Log.w(LOG_TAG, "activityLauncher is null — falling back to raw startActivityForResult. "
-                                + "Activity result routing through Capacitor will not work.");
+                            Log.w(
+                                LOG_TAG,
+                                "activityLauncher is null — falling back to raw startActivityForResult. " +
+                                    "Activity result routing through Capacitor will not work."
+                            );
                             activity.startActivityForResult(intent, REQUEST_CODE);
                         }
                     });
