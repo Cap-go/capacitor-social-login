@@ -378,14 +378,16 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup
-          // navigates to a third-party OAuth provider with strict security settings.
+          // navigates to a third-party OAuth provider with strict security settings (COOP).
           // We can't detect if the window was closed, so we just rely on the timeout
-          // and message handlers. Clear the interval to avoid repeated errors.
+          // and message handlers. The popup will close itself after authentication completes.
           clearInterval(popupClosedInterval);
           if (config.logsEnabled) {
             console.log(
-              `[OAuth2:${providerId}] Cannot check popup.closed due to cross-origin restrictions. ` +
-                'Relying on message handlers and timeout.',
+              `[OAuth2:${providerId}] Cannot check popup.closed due to Cross-Origin-Opener-Policy restrictions. ` +
+                'The popup will close automatically after login completes. Relying on ' +
+                (broadcastChannel ? 'BroadcastChannel, ' : '') +
+                'message handlers, and timeout.',
             );
           }
         }
