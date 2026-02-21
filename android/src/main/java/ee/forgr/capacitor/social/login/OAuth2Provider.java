@@ -42,6 +42,10 @@ public class OAuth2Provider implements SocialProvider {
     private static final String PREFS_NAME = "CapgoOAuth2ProviderPrefs";
     private static final String PREFS_KEY_PREFIX = "OAuth2Tokens_";
 
+    public interface ActivityLauncher {
+        void launchForResult(Intent intent, int requestCode);
+    }
+
     private final Activity activity;
     private final Context context;
     private final OkHttpClient httpClient;
@@ -51,6 +55,19 @@ public class OAuth2Provider implements SocialProvider {
 
     private PluginCall pendingCall;
     private OAuth2PendingState pendingState;
+    private ActivityLauncher activityLauncher;
+
+    public void setActivityLauncher(ActivityLauncher launcher) {
+        this.activityLauncher = launcher;
+    }
+
+    public PluginCall getPendingCall() {
+        return pendingCall;
+    }
+
+    public void setPendingCall(PluginCall call) {
+        this.pendingCall = call;
+    }
 
     private static class OAuth2ProviderConfig {
 
@@ -461,7 +478,19 @@ public class OAuth2Provider implements SocialProvider {
                     Intent intent = new Intent(activity, OAuth2LoginActivity.class);
                     intent.putExtra(OAuth2LoginActivity.EXTRA_AUTH_URL, builder.build().toString());
                     intent.putExtra(OAuth2LoginActivity.EXTRA_REDIRECT_URL, finalRedirect);
-                    activity.runOnUiThread(() -> activity.startActivityForResult(intent, REQUEST_CODE));
+
+                    activity.runOnUiThread(() -> {
+                        if (activityLauncher != null) {
+                            activityLauncher.launchForResult(intent, REQUEST_CODE);
+                        } else {
+                            Log.w(
+                                LOG_TAG,
+                                "activityLauncher is null — falling back to raw startActivityForResult. " +
+                                    "Activity result routing through Capacitor will not work."
+                            );
+                            activity.startActivityForResult(intent, REQUEST_CODE);
+                        }
+                    });
                 }
 
                 @Override
@@ -621,6 +650,13 @@ public class OAuth2Provider implements SocialProvider {
             return false;
         }
         if (pendingCall == null || pendingState == null) {
+            if (pendingCall != null) {
+                // pendingCall was restored (e.g. via @ActivityCallback after process death)
+                // but pendingState (codeVerifier, state nonce, etc.) was lost. Cannot complete.
+                Log.e(LOG_TAG, "pendingCall present but pendingState is null — login state lost (process death?)");
+                pendingCall.reject("OAuth2 login state was lost (process death). Please retry.");
+                cleanupPending();
+            }
             return true;
         }
 

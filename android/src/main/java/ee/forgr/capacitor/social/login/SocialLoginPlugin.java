@@ -4,12 +4,14 @@ import android.content.Intent;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
+import androidx.activity.result.ActivityResult;
 import androidx.browser.customtabs.CustomTabsIntent;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
@@ -25,7 +27,6 @@ public class SocialLoginPlugin extends Plugin {
     private final String pluginVersion = "8.3.4";
 
     public static String LOG_TAG = "CapgoSocialLogin";
-
     public HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
     private PluginCall openSecureWindowSavedCall;
@@ -174,6 +175,14 @@ public class SocialLoginPlugin extends Plugin {
                     return;
                 }
                 this.socialProviderHashMap.put("oauth2", oauth2Provider);
+                oauth2Provider.setActivityLauncher((intent, requestCode) -> {
+                    PluginCall loginCall = oauth2Provider.getPendingCall();
+                    if (loginCall != null) {
+                        startActivityForResult(loginCall, intent, "handleOAuth2ActivityResult");
+                    } else {
+                        Log.e(LOG_TAG, "OAuth2 activityLauncher fired but pendingCall is null, cannot route result");
+                    }
+                });
             } catch (JSONException e) {
                 call.reject("Failed to initialize OAuth2 provider: " + e.getMessage());
                 return;
@@ -357,6 +366,29 @@ public class SocialLoginPlugin extends Plugin {
         }
     }
 
+    @ActivityCallback
+    private void handleOAuth2ActivityResult(PluginCall call, ActivityResult result) {
+        if (call == null) {
+            Log.e(LOG_TAG, "OAuth2 activity result: saved call is null");
+            return;
+        }
+
+        SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
+        if (!(oauth2Provider instanceof OAuth2Provider)) {
+            call.reject("OAuth2 provider not found");
+            return;
+        }
+
+        OAuth2Provider p = (OAuth2Provider) oauth2Provider;
+        if (p.getPendingCall() == null) {
+            p.setPendingCall(call);
+        }
+
+        Intent data = result.getData();
+        int resultCode = result.getResultCode();
+        p.handleActivityResult(OAuth2Provider.REQUEST_CODE, resultCode, data);
+    }
+
     public void handleGoogleLoginIntent(int requestCode, Intent intent) {
         try {
             SocialProvider provider = socialProviderHashMap.get("google");
@@ -387,7 +419,7 @@ public class SocialLoginPlugin extends Plugin {
     protected void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
         super.handleOnActivityResult(requestCode, resultCode, data);
 
-        Log.d(LOG_TAG, "SocialLoginPlugin.handleOnActivityResult called");
+        Log.d(LOG_TAG, "SocialLoginPlugin.handleOnActivityResult called (legacy fallback path)");
 
         // Handle Facebook login result
         SocialProvider facebookProvider = socialProviderHashMap.get("facebook");
