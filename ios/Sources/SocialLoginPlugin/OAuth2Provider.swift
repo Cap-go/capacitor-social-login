@@ -113,14 +113,14 @@ class OAuth2Provider: NSObject {
                 responseType: config["responseType"] as? String ?? "code",
                 pkceEnabled: config["pkceEnabled"] as? Bool ?? true,
                 scope: normalizeScope(config["scope"] ?? config["scopes"]),
-                additionalParameters: (config["additionalParameters"] as? [String: Any]).map { $0.compactMapValues { $0 as? String } },
+                additionalParameters: (config["additionalParameters"] as? [String: Any]).map { $0.mapValues { "\($0)" } },
                 loginHint: config["loginHint"] as? String,
                 prompt: config["prompt"] as? String,
-                additionalTokenParameters: (config["additionalTokenParameters"] as? [String: Any]).map { $0.compactMapValues { $0 as? String } },
-                additionalResourceHeaders: (config["additionalResourceHeaders"] as? [String: Any]).map { $0.compactMapValues { $0 as? String } },
+                additionalTokenParameters: (config["additionalTokenParameters"] as? [String: Any]).map { $0.mapValues { "\($0)" } },
+                additionalResourceHeaders: (config["additionalResourceHeaders"] as? [String: Any]).map { $0.mapValues { "\($0)" } },
                 logoutUrl: (config["logoutUrl"] as? String) ?? (config["endSessionEndpoint"] as? String),
                 postLogoutRedirectUrl: config["postLogoutRedirectUrl"] as? String,
-                additionalLogoutParameters: (config["additionalLogoutParameters"] as? [String: Any]).map { $0.compactMapValues { $0 as? String } },
+                additionalLogoutParameters: (config["additionalLogoutParameters"] as? [String: Any]).map { $0.mapValues { "\($0)" } },
                 iosPrefersEphemeralWebBrowserSession:
                     (config["iosPrefersEphemeralWebBrowserSession"] as? Bool) ??
                     (config["iosPrefersEphemeralSession"] as? Bool) ??
@@ -228,7 +228,7 @@ class OAuth2Provider: NSObject {
                 let state = payload["state"] as? String ?? UUID().uuidString
                 let codeVerifier = payload["codeVerifier"] as? String ?? self.generateCodeVerifier()
                 let redirect = payload["redirectUrl"] as? String ?? config.redirectUrl
-                let additionalLoginParams = payload["additionalParameters"] as? [String: String]
+                let additionalLoginParams = (payload["additionalParameters"] as? [String: Any]).map { $0.mapValues { "\($0)" } }
 
                 self.currentState = state
                 self.currentCodeVerifier = codeVerifier
@@ -741,7 +741,7 @@ extension OAuth2Provider: ASWebAuthenticationPresentationContextProviding {
 private extension Dictionary where Key == String, Value == String {
     func percentEncoded() -> Data? {
         var formValueAllowed = CharacterSet.urlQueryAllowed
-        formValueAllowed.remove(charactersIn: "+&=")
+        formValueAllowed.remove(charactersIn: "+&=/")
         return map { key, value in
             "\(key.addingPercentEncoding(withAllowedCharacters: formValueAllowed) ?? key)=\(value.addingPercentEncoding(withAllowedCharacters: formValueAllowed) ?? value)"
         }
