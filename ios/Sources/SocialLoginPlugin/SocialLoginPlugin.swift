@@ -40,11 +40,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     // Providers - conditionally initialized based on available dependencies
-    #if canImport(Alamofire)
     private let apple = AppleProvider()
-    #else
-    private let apple: AppleProvider? = nil
-    #endif
 
     #if canImport(FBSDKLoginKit)
     private let facebook = FacebookProvider()
@@ -75,15 +71,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private var googleProvider: GoogleProvider? {
         #if canImport(GoogleSignIn)
         return google
-        #else
-        return nil
-        #endif
-    }
-
-    // Helper to get Apple provider (returns nil if unavailable)
-    private var appleProvider: AppleProvider? {
-        #if canImport(Alamofire)
-        return apple
         #else
         return nil
         #endif
@@ -120,15 +107,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private func isProviderAvailable(_ provider: String) -> Bool {
         switch provider.lowercased() {
         case "apple":
-            // Check config first (for "fake disable"), then check Alamofire dependency
-            if !isProviderEnabledInConfig("apple") {
-                return false
-            }
-            #if canImport(Alamofire)
-            return true
-            #else
-            return false
-            #endif
+            // Apple is always available (basic Sign in with Apple doesn't need Alamofire)
+            // Only advanced features (redirectUrl) need Alamofire, checked at runtime
+            return isProviderEnabledInConfig("apple")
         case "facebook":
             #if canImport(FBSDKLoginKit)
             return true
@@ -199,13 +180,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         if let appleSettings = call.getObject("apple") {
-            guard let apProvider = appleProvider else {
-                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
-                return
-            }
             let redirectUrl = appleSettings["redirectUrl"] as? String
             let useProperTokenExchange = appleSettings["useProperTokenExchange"] as? Bool ?? false
-            apProvider.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
+            apple.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
             initialized = true
         }
 
@@ -259,11 +236,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "apple": do {
-            guard let apProvider = appleProvider else {
-                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
-                return
-            }
-            if let idToken = apProvider.idToken {
+            if let idToken = apple.idToken {
                 if !idToken.isEmpty {
                     call.resolve([ "jwt": idToken ])
                 } else {
@@ -365,11 +338,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
         switch provider {
         case "apple": do {
-            guard let apProvider = appleProvider else {
-                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
-                return
-            }
-            if let idToken = apProvider.idToken {
+            if let idToken = apple.idToken {
                 if !idToken.isEmpty {
                     call.resolve([ "isLoggedIn": true ])
                 } else {
@@ -454,11 +423,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.handleLoginResult(result, call: call)
             }
         case "apple":
-            guard let apProvider = appleProvider else {
-                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
-                return
-            }
-            apProvider.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
+            apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "twitter":
@@ -548,11 +513,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.handleLogoutResult(result, call: call)
             }
         case "apple":
-            guard let apProvider = appleProvider else {
-                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
-                return
-            }
-            apProvider.logout { result in
+            apple.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
         case "twitter":
@@ -596,11 +557,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.handleRefreshResult(result, call: call)
             }
         case "apple":
-            guard let apProvider = appleProvider else {
-                call.reject("Apple Sign-In provider is disabled. Dependencies are not available. Ensure Alamofire dependency is included in your Podfile")
-                return
-            }
-            apProvider.refresh { result in
+            apple.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
         case "twitter":
