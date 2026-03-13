@@ -84,7 +84,21 @@ class GoogleProvider {
                         login()
                         return
                     }
-                    completion(.success(self.createOnlineLoginResponse(user: user!)))
+                    guard let user = user else {
+                        login()
+                        return
+                    }
+                    user.refreshTokensIfNeeded { refreshedUser, refreshError in
+                        if let refreshError = refreshError {
+                            completion(.failure(refreshError))
+                            return
+                        }
+                        guard let refreshedUser = refreshedUser else {
+                            login()
+                            return
+                        }
+                        completion(.success(self.createOnlineLoginResponse(user: refreshedUser)))
+                    }
                 }
             } else {
                 login()
