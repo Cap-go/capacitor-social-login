@@ -483,6 +483,18 @@ await SocialLogin.initialize({
         audience: 'https://your-api.example.com',
       },
     },
+    // Uber OAuth2 (requires client_secret in token request)
+    uber: {
+      appId: 'your-uber-client-id',
+      authorizationBaseUrl: 'https://login.uber.com/oauth/v2/authorize',
+      accessTokenEndpoint: 'https://login.uber.com/oauth/v2/token',
+      redirectUrl: 'myapp://oauth/uber',
+      scope: 'profile',
+      pkceEnabled: false, // Uber doesn't support PKCE
+      additionalTokenParameters: {
+        client_secret: 'your-uber-client-secret',
+      },
+    },
   },
 });
 ```
@@ -523,6 +535,42 @@ const auth0Result = await SocialLoginAuthConnect.login({
 Notes:
 - Presets can be overridden: any `oauth2` entry with the same provider key (for example, `oauth2: { auth0: ... }`) overrides the preset for that provider.
 - If your provider uses non-standard endpoints, override `authorizationBaseUrl`, `accessTokenEndpoint`, `resourceUrl`, or `logoutUrl` in the preset.
+
+### Additional Parameters: Authorization vs Token Requests
+
+When configuring OAuth2 providers, you may need to add custom parameters at different stages:
+
+- **`additionalParameters`**: Parameters added to the **authorization request** (the initial redirect to the OAuth provider's login page). Use this for parameters like `audience`, `prompt`, or custom query parameters required by your provider.
+
+- **`additionalTokenParameters`**: Parameters added to the **token endpoint request** (when exchanging the authorization code for access tokens). Use this for parameters like `client_secret`, `resource`, or other provider-specific requirements.
+
+Example showing both:
+
+```typescript
+await SocialLogin.initialize({
+  oauth2: {
+    customProvider: {
+      appId: 'your-client-id',
+      authorizationBaseUrl: 'https://oauth.example.com/authorize',
+      accessTokenEndpoint: 'https://oauth.example.com/token',
+      redirectUrl: 'myapp://oauth/callback',
+      scope: 'openid profile',
+      
+      // Parameters for authorization request (login page)
+      additionalParameters: {
+        prompt: 'consent',
+        audience: 'https://api.example.com',
+      },
+      
+      // Parameters for token request (code exchange)
+      additionalTokenParameters: {
+        client_secret: 'your-client-secret',
+        resource: 'https://api.example.com',
+      },
+    },
+  },
+});
+```
 
 ### Login with a Specific Provider
 
