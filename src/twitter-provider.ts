@@ -207,9 +207,16 @@ export class TwitterSocialLogin extends BaseSocialLogin {
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup
-          // navigates to a third-party OAuth provider with strict security settings.
+          // navigates to a third-party OAuth provider with strict security settings (COOP).
           // We can't detect if the window was closed, so we rely on timeout and message handlers.
+          // The popup will close itself after authentication completes.
           clearInterval(popupClosedInterval);
+          console.log(
+            '[Twitter Login] Cannot check popup.closed due to Cross-Origin-Opener-Policy restrictions. ' +
+              'The popup will close automatically after login completes. Relying on ' +
+              (broadcastChannel ? 'BroadcastChannel, ' : '') +
+              'message handlers, and timeout.',
+          );
         }
       }, 1000);
     });
