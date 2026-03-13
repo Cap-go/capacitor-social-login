@@ -27,6 +27,7 @@ interface TwitterUserResponse {
 }
 
 interface TwitterPendingLogin {
+  clientId: string;
   codeVerifier: string;
   redirectUri: string;
   scopes: string[];
@@ -81,6 +82,7 @@ export class TwitterSocialLogin extends BaseSocialLogin {
     const codeChallenge = await this.generateCodeChallenge(codeVerifier);
 
     this.persistPendingLogin(state, {
+      clientId: this.clientId,
       codeVerifier,
       redirectUri,
       scopes,
@@ -320,7 +322,7 @@ export class TwitterSocialLogin extends BaseSocialLogin {
   private async exchangeAuthorizationCode(code: string, pending: TwitterPendingLogin): Promise<TwitterTokenResponse> {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: this.clientId ?? '',
+      client_id: pending.clientId,
       code,
       redirect_uri: pending.redirectUri,
       code_verifier: pending.codeVerifier,
