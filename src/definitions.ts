@@ -1,4 +1,52 @@
 /**
+ * Standard error codes for Social Login operations
+ */
+export enum SocialLoginErrorCode {
+  /**
+   * User cancelled the login flow (closed dialog, pressed cancel, etc.)
+   */
+  USER_CANCELLED = 'USER_CANCELLED',
+  /**
+   * Authentication failed due to invalid credentials or other auth errors
+   */
+  AUTHENTICATION_FAILED = 'AUTHENTICATION_FAILED',
+  /**
+   * Provider not initialized or configuration missing
+   */
+  NOT_INITIALIZED = 'NOT_INITIALIZED',
+  /**
+   * Network error during authentication
+   */
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  /**
+   * Invalid or missing configuration parameters
+   */
+  INVALID_CONFIGURATION = 'INVALID_CONFIGURATION',
+  /**
+   * Unknown or unspecified error
+   */
+  UNKNOWN = 'UNKNOWN',
+}
+
+/**
+ * Standard error structure for Social Login operations
+ */
+export interface SocialLoginError {
+  /**
+   * Error code identifying the type of error
+   */
+  code: SocialLoginErrorCode;
+  /**
+   * Human-readable error message
+   */
+  message: string;
+  /**
+   * Original error from the underlying SDK (if available)
+   */
+  originalError?: any;
+}
+
+/**
  * Configuration for a single OAuth2 provider instance
  */
 export interface OAuth2ProviderConfig {

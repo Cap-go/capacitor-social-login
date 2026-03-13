@@ -611,6 +611,66 @@ await SocialLogin.refresh({
 3. **Store tokens securely** using [@capgo/capacitor-persistent-account](https://github.com/Cap-go/capacitor-persistent-account)
 4. **Use HTTPS** for all endpoints and redirect URLs in production
 
+## Error Handling
+
+The plugin provides standardized error codes to help you distinguish between different types of errors, especially user cancellations vs actual failures.
+
+### Error Codes
+
+```typescript
+import { SocialLoginErrorCode, isUserCancellation } from '@capgo/capacitor-social-login';
+
+try {
+  const result = await SocialLogin.login({
+    provider: 'google',
+    options: { scopes: ['email', 'profile'] }
+  });
+  // Handle successful login
+} catch (error) {
+  // Check if the error is a user cancellation
+  if (isUserCancellation(error)) {
+    // User closed the login dialog - this is expected behavior
+    console.log('User cancelled the login');
+    // Don't show an error message to the user
+  } else {
+    // This is an actual error
+    console.error('Login failed:', error.message);
+    // Show error UI to the user
+  }
+}
+```
+
+### Available Error Codes
+
+- `USER_CANCELLED` - User closed the login dialog or pressed the back button
+- `AUTHENTICATION_FAILED` - Authentication failed due to invalid credentials or other auth errors
+- `NOT_INITIALIZED` - Provider not initialized or configuration missing
+- `NETWORK_ERROR` - Network error during authentication
+- `INVALID_CONFIGURATION` - Invalid or missing configuration parameters
+- `UNKNOWN` - Unknown or unspecified error
+
+### Error Structure
+
+Errors thrown by the plugin have the following structure:
+
+```typescript
+interface SocialLoginError {
+  code: SocialLoginErrorCode;  // Standardized error code
+  message: string;              // Human-readable error message
+  originalError?: any;          // Original error from the underlying SDK (if available)
+}
+```
+
+### Platform-Specific Notes
+
+**iOS**: Error codes are automatically extracted from `NSError` objects. User cancellations are detected when:
+- OAuth2/Twitter: `ASWebAuthenticationSession` returns `canceledLogin` error
+- Facebook: Facebook SDK returns `.cancelled` status
+
+**Android**: Error codes are passed through Capacitor's `reject()` method with the code parameter.
+
+**Web**: Errors are thrown with the `code` property attached to the Error object.
+
 ## Troubleshooting
 
 
