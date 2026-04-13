@@ -68,6 +68,7 @@
     "@ionic/eslint-config": "^0.4.0",
     "@ionic/prettier-config": "^4.0.0",
     "@ionic/swiftlint-config": "^2.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/google.accounts": "^0.0.18",
     "@types/node": "^24.10.1",
     "eslint": "^8.57.1",
