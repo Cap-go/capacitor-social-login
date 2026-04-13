@@ -13,6 +13,7 @@
     "outDir": "dist/esm",
     "pretty": true,
     "sourceMap": true,
+    "importHelpers": true,
     "strict": true,
     "target": "es2017",
     "types": ["google.accounts", "@capacitor/core"]
