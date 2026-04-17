@@ -58,6 +58,8 @@ public class GoogleProvider implements SocialProvider {
     private static final String GOOGLE_DATA_PREFERENCE = "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
     private static final Integer FUTURE_LIST_LENGTH = 128;
     private static final String TOKEN_REQUEST_URL = "https://www.googleapis.com/oauth2/v3/tokeninfo";
+    private static final String OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE =
+        "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh.";
     private static final String[] DEFAULT_SCOPES = new String[] {
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile",
@@ -871,7 +873,8 @@ public class GoogleProvider implements SocialProvider {
     @Override
     public void refresh(PluginCall call) {
         if (this.mode == GoogleProviderLoginType.OFFLINE) {
-            call.reject("refresh is not implemented when using offline mode");
+            Log.w(LOG_TAG, OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE);
+            call.reject(OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE);
             return;
         }
         if (this.clientId == null || this.clientId.isEmpty()) {

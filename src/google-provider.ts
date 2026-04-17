@@ -1,6 +1,9 @@
 import { BaseSocialLogin } from './base';
 import type { GoogleLoginOptions, LoginResult, ProviderResponseMap, AuthorizationCode } from './definitions';
 
+const GOOGLE_OFFLINE_REFRESH_MESSAGE =
+  "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh.";
+
 export class GoogleSocialLogin extends BaseSocialLogin {
   private clientId: string | null = null;
   private hostedDomain?: string;
@@ -125,8 +128,13 @@ export class GoogleSocialLogin extends BaseSocialLogin {
   }
 
   async refresh(): Promise<void> {
-    // For Google, we can prompt for re-authentication
-    return Promise.reject('Not implemented');
+    if (this.loginType === 'offline') {
+      console.warn(`[SocialLogin] ${GOOGLE_OFFLINE_REFRESH_MESSAGE}`);
+      return Promise.reject(new Error(GOOGLE_OFFLINE_REFRESH_MESSAGE));
+    }
+    return Promise.reject(
+      new Error('Google refresh is not implemented on web. Use login() again to obtain a new token.'),
+    );
   }
 
   handleOAuthRedirect(url: URL): LoginResult | { error: string } | null {
