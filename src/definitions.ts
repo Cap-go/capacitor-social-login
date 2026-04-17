@@ -948,6 +948,10 @@ export interface SocialLoginPlugin {
    * The plugin logs and rejects with a message explaining that you should send `serverAuthCode` to your backend,
    * refresh the Google tokens there, or switch to `mode: 'online'` for client-side refresh.
    *
+   * **Google Web Limitation:**
+   * On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
+   * Call `login()` again on Web to obtain a fresh token instead.
+   *
    * @throws Error if Google provider is in offline mode
    */
   refresh(options: LoginOptions): Promise<void>;

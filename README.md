@@ -445,6 +445,8 @@ When using `mode: 'offline'`, the login response will only contain:
 
 Initialize method to create a script tag with Google lib. We cannot know when it's ready so be sure to do it early in web otherwise it will fail.
 
+On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`. Call `SocialLogin.login({ provider: 'google', ... })` again to obtain a fresh token.
+
 ## OAuth2 (Generic)
 
 The plugin supports generic OAuth2 authentication, allowing you to integrate with any OAuth2-compliant provider (GitHub, Azure AD, Auth0, Okta, custom servers, etc.). You can configure multiple OAuth2 providers simultaneously.
