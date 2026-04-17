@@ -952,7 +952,7 @@ export interface SocialLoginPlugin {
    * On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
    * Call `login()` again on Web to obtain a fresh token instead.
    *
-   * @throws Error if Google provider is in offline mode
+   * @throws Error if Google provider is in offline mode, or on Web where Google `refresh()` is not implemented
    */
   refresh(options: LoginOptions): Promise<void>;
 

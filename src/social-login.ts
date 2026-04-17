@@ -13,6 +13,7 @@ import type {
   ProviderSpecificCallOptionsMap,
   ProviderSpecificCallResponseMap,
   SocialLoginPlugin,
+  isLoggedInOptions,
 } from './definitions';
 
 const GOOGLE_OFFLINE_REFRESH_MESSAGE =
@@ -43,9 +44,7 @@ class SocialLoginClient implements SocialLoginPlugin {
     return rawSocialLogin.logout(options);
   }
 
-  async isLoggedIn(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2' }): Promise<{
-    isLoggedIn: boolean;
-  }> {
+  async isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }> {
     return rawSocialLogin.isLoggedIn(options);
   }
 
