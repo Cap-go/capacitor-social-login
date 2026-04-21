@@ -4,7 +4,7 @@ This guide explains how to implement Facebook Business Login to access business-
 
 ## Overview
 
-Facebook Business Login enables your app to access business features like Instagram Basic Display, Pages management, and business insights. The Capacitor Social Login plugin fully supports all Facebook business permissions through the standard login flow.
+Facebook Business Login enables your app to access business features like Instagram Basic Display, Pages management, and business insights. The Capacitor Social Login plugin fully supports all Facebook business permissions through the standard login flow on **iOS**, **Android**, and **Web** (via the Facebook JS SDK).
 
 ## Key Differences: Consumer vs Business Login
 

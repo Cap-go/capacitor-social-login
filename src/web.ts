@@ -18,6 +18,7 @@ import type {
   OAuth2LoginResponse,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
+  FacebookGetProfileOptions,
 } from './definitions';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
@@ -328,7 +329,20 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     call: T;
     options: ProviderSpecificCallOptionsMap[T];
   }): Promise<ProviderSpecificCallResponseMap[T]> {
-    throw new Error(`Provider specific call for ${options.call} is not implemented`);
+    switch (options.call) {
+      case 'facebook#getProfile': {
+        const { fields } = options.options as FacebookGetProfileOptions;
+        if (!Array.isArray(fields) || fields.length === 0) {
+          throw new Error('fields are required for facebook#getProfile');
+        }
+        return this.facebookProvider.getProfile(fields) as Promise<ProviderSpecificCallResponseMap[T]>;
+      }
+      case 'facebook#requestTracking':
+        // Tracking transparency is only relevant on native platforms; web does not require explicit permission.
+        return Promise.resolve({ status: 'authorized' } as ProviderSpecificCallResponseMap[T]);
+      default:
+        throw new Error(`Provider specific call for ${options.call} is not implemented`);
+    }
   }
 
   async refreshToken(options: {

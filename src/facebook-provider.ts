@@ -1,5 +1,12 @@
 import { BaseSocialLogin } from './base';
-import type { FacebookLoginOptions, FacebookLoginResponse, AuthorizationCode, LoginResult } from './definitions';
+import type {
+  FacebookGetProfileResponse,
+  FacebookLoginOptions,
+  FacebookLoginResponse,
+  AuthorizationCode,
+  FacebookRequestTrackingResponse,
+  LoginResult,
+} from './definitions';
 
 declare const FB: {
   init(options: any): void;
@@ -104,6 +111,39 @@ export class FacebookSocialLogin extends BaseSocialLogin {
 
   async refresh(options: FacebookLoginOptions): Promise<void> {
     await this.login(options);
+  }
+
+  async getProfile(fields: string[]): Promise<FacebookGetProfileResponse> {
+    if (!this.appId) {
+      throw new Error('Facebook App ID not set. Call initialize() first.');
+    }
+
+    if (!Array.isArray(fields) || fields.length === 0) {
+      throw new Error('At least one field is required for facebook#getProfile');
+    }
+
+    return new Promise((resolve, reject) => {
+      FB.getLoginStatus((statusResponse) => {
+        if (statusResponse.status !== 'connected') {
+          reject(new Error('User is not logged in. Call login() before fetching profile.'));
+          return;
+        }
+
+        FB.api('/me', { fields: fields.join(',') }, (profile: any) => {
+          if (profile && !profile.error) {
+            resolve({ profile });
+          } else {
+            const errorMessage = profile?.error?.message ?? 'Failed to fetch Facebook profile';
+            reject(new Error(errorMessage));
+          }
+        });
+      });
+    });
+  }
+
+  async requestTracking(): Promise<FacebookRequestTrackingResponse> {
+    // App Tracking Transparency is not applicable on web, return authorized to keep parity with native behavior.
+    return { status: 'authorized' };
   }
 
   private async loadFacebookScript(locale: string): Promise<void> {
