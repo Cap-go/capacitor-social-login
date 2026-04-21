@@ -35,6 +35,7 @@ interface OAuth2StoredTokens {
 
 interface OAuth2ConfigInternal {
   appId: string;
+  clientSecret?: string;
   issuerUrl?: string;
   authorizationBaseUrl?: string;
   accessTokenEndpoint?: string;
@@ -91,6 +92,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
     return {
       appId,
+      clientSecret: config.clientSecret,
       issuerUrl: config.issuerUrl,
       authorizationBaseUrl,
       accessTokenEndpoint,
@@ -630,6 +632,10 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       redirect_uri: pending.redirectUri,
     });
 
+    if (config.clientSecret) {
+      params.set('client_secret', config.clientSecret);
+    }
+
     if (config.pkceEnabled) {
       params.set('code_verifier', pending.codeVerifier);
     }
@@ -675,6 +681,10 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       refresh_token: refreshToken,
       client_id: config.appId,
     });
+
+    if (config.clientSecret) {
+      params.set('client_secret', config.clientSecret);
+    }
 
     if (config.additionalTokenParameters) {
       for (const [k, v] of Object.entries(config.additionalTokenParameters)) {

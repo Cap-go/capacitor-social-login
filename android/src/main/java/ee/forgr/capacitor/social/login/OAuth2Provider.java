@@ -72,6 +72,7 @@ public class OAuth2Provider implements SocialProvider {
     private static class OAuth2ProviderConfig {
 
         final String appId;
+        final String clientSecret;
         final String issuerUrl;
         final String authorizationBaseUrl;
         final String accessTokenEndpoint;
@@ -92,6 +93,7 @@ public class OAuth2Provider implements SocialProvider {
 
         OAuth2ProviderConfig(
             String appId,
+            String clientSecret,
             String issuerUrl,
             String authorizationBaseUrl,
             String accessTokenEndpoint,
@@ -111,6 +113,7 @@ public class OAuth2Provider implements SocialProvider {
             boolean logsEnabled
         ) {
             this.appId = appId;
+            this.clientSecret = clientSecret;
             this.issuerUrl = issuerUrl;
             this.authorizationBaseUrl = authorizationBaseUrl;
             this.accessTokenEndpoint = accessTokenEndpoint;
@@ -271,6 +274,7 @@ public class OAuth2Provider implements SocialProvider {
                 authorizationBaseUrl = config.optString("authorizationEndpoint", null);
             }
             String redirectUrl = config.optString("redirectUrl", null);
+            String clientSecret = config.optString("clientSecret", null);
 
             if (appId == null || appId.isEmpty()) {
                 errors.add("oauth2." + providerId + ".appId (or clientId) is required");
@@ -307,6 +311,7 @@ public class OAuth2Provider implements SocialProvider {
 
             OAuth2ProviderConfig providerConfig = new OAuth2ProviderConfig(
                 appId,
+                clientSecret,
                 issuerUrl,
                 (authorizationBaseUrl != null && !authorizationBaseUrl.isEmpty()) ? authorizationBaseUrl : null,
                 config.has("accessTokenEndpoint") ? config.optString("accessTokenEndpoint", null) : config.optString("tokenEndpoint", null),
@@ -809,6 +814,10 @@ public class OAuth2Provider implements SocialProvider {
             .add("code", code)
             .add("redirect_uri", pendingState.redirectUri);
 
+        if (config.clientSecret != null && !config.clientSecret.isEmpty()) {
+            bodyBuilder.add("client_secret", config.clientSecret);
+        }
+
         if (config.pkceEnabled) {
             bodyBuilder.add("code_verifier", pendingState.codeVerifier);
         }
@@ -898,6 +907,10 @@ public class OAuth2Provider implements SocialProvider {
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
             .add("client_id", config.appId);
+
+        if (config.clientSecret != null && !config.clientSecret.isEmpty()) {
+            bodyBuilder.add("client_secret", config.clientSecret);
+        }
 
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
