@@ -389,12 +389,19 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         return;
       }
 
-      const cleanup = () => {
+      const cleanup = (shouldClose = false) => {
         window.removeEventListener('message', handleMessage);
         clearInterval(popupClosedInterval);
         clearTimeout(timeoutHandle);
         if (broadcastChannel) {
           broadcastChannel.close();
+        }
+        if (shouldClose) {
+          try {
+            popup.close();
+          } catch {
+            // Ignore cross-origin errors when closing the popup
+          }
         }
       };
 
@@ -445,10 +452,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         if (event.origin !== window.location.origin || event.data?.source?.startsWith('angular')) return;
 
         if (event.data?.type === 'oauth-response') {
-          cleanup();
+          cleanup(true);
           processOAuthResponse(event.data);
         } else if (event.data?.type === 'oauth-error') {
-          cleanup();
+          cleanup(true);
           const errorMessage = event.data.error || 'User cancelled the OAuth flow';
           reject(new Error(errorMessage));
         }
@@ -462,10 +469,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           if (data?.source?.toString().startsWith('angular')) return;
 
           if (data?.type === 'oauth-response') {
-            cleanup();
+            cleanup(true);
             processOAuthResponse(data);
           } else if (data?.type === 'oauth-error') {
-            cleanup();
+            cleanup(true);
             const errorMessage = (data.error as string) || 'User cancelled the OAuth flow';
             reject(new Error(errorMessage));
           }
@@ -476,12 +483,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
 
       // Timeout after 5 minutes
       timeoutHandle = setTimeout(() => {
-        cleanup();
-        try {
-          popup.close();
-        } catch {
-          // Ignore cross-origin errors when closing
-        }
+        cleanup(true);
         reject(new Error('OAuth timeout'));
       }, 300000);
 
