@@ -183,6 +183,33 @@ export interface InitializeOptions {
      */
     audience?: string;
   };
+  telegram?: {
+    /**
+     * Telegram bot ID (numeric, not the bot token)
+     * @example 123456789
+     */
+    botId: string;
+    /**
+     * Default redirect URL that will receive Telegram auth data.
+     * For mobile apps, prefer a custom scheme (e.g., `myapp://telegram-auth`) so the app can intercept the callback.
+     */
+    redirectUrl?: string;
+    /**
+     * Origin/domain registered for the Telegram login widget.
+     * Defaults to the origin of `redirectUrl` on mobile and `window.location.origin` on web.
+     * @example 'https://example.com'
+     */
+    origin?: string;
+    /**
+     * Requested access level.
+     * @default 'write'
+     */
+    requestAccess?: 'read' | 'write';
+    /**
+     * Optional language code passed to Telegram (e.g., 'en', 'fr').
+     */
+    languageCode?: string;
+  };
   facebook?: {
     /**
      * Facebook App ID, provided by Facebook for web, in mobile it's set in the native files
@@ -406,6 +433,25 @@ export interface TwitterLoginOptions {
    * Force the consent screen on every attempt, maps to `force_login=true`.
    */
   forceLogin?: boolean;
+}
+
+export interface TelegramLoginOptions {
+  /**
+   * Override the redirect URL for this login attempt.
+   * Defaults to the redirect configured during initialize().
+   */
+  redirectUrl?: string;
+  /**
+   * Optional state parameter for CSRF protection.
+   * If omitted, a secure random value is generated automatically.
+   */
+  state?: string;
+  /**
+   * Override requested access level for this login.
+   * Defaults to the value configured during initialize().
+   * @default 'write'
+   */
+  requestAccess?: 'read' | 'write';
 }
 
 export interface OAuth2LoginOptions {
@@ -686,6 +732,10 @@ export type LoginOptions =
       options: TwitterLoginOptions;
     }
   | {
+      provider: 'telegram';
+      options: TelegramLoginOptions;
+    }
+  | {
       provider: 'oauth2';
       options: OAuth2LoginOptions;
     };
@@ -706,6 +756,10 @@ export type LoginResult =
   | {
       provider: 'twitter';
       result: TwitterLoginResponse;
+    }
+  | {
+      provider: 'telegram';
+      result: TelegramLoginResponse;
     }
   | {
       provider: 'oauth2';
@@ -761,6 +815,30 @@ export interface TwitterLoginResponse {
   profile: TwitterProfile;
 }
 
+export interface TelegramProfile {
+  id: string;
+  firstName: string;
+  lastName?: string | null;
+  username?: string | null;
+  photoUrl?: string | null;
+}
+
+export interface TelegramLoginResponse {
+  profile: TelegramProfile;
+  /**
+   * Unix timestamp (seconds) when the user authorized the login.
+   */
+  authDate: number;
+  /**
+   * Telegram-provided hash for server-side verification.
+   */
+  hash: string;
+  /**
+   * Requested access level that was used for this login.
+   */
+  requestAccess: 'read' | 'write';
+}
+
 export interface AuthorizationCode {
   /**
    * Jwt
@@ -779,7 +857,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -792,7 +870,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -883,6 +961,7 @@ export type ProviderResponseMap = {
   google: GoogleLoginResponse;
   apple: AppleProviderResponse;
   twitter: TwitterLoginResponse;
+  telegram: TelegramLoginResponse;
   oauth2: OAuth2LoginResponse;
 };
 
@@ -910,7 +989,7 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
     providerId?: string;
   }): Promise<void>;
   /**

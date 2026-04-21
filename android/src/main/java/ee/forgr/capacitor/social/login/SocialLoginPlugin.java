@@ -164,6 +164,27 @@ public class SocialLoginPlugin extends Plugin {
             }
         }
 
+        JSObject telegram = call.getObject("telegram");
+        if (telegram != null) {
+            if (!DependencyAvailabilityChecker.isProviderAvailable("telegram")) {
+                call.reject("Telegram provider is disabled.");
+                return;
+            }
+            String botId = telegram.getString("botId");
+            if (botId == null || botId.isEmpty()) {
+                call.reject("telegram.botId is null or empty");
+                return;
+            }
+            TelegramProvider telegramProvider = new TelegramProvider(this.getActivity(), this.getContext());
+            try {
+                telegramProvider.initialize(telegram);
+                this.socialProviderHashMap.put("telegram", telegramProvider);
+            } catch (JSONException e) {
+                call.reject("Failed to initialize Telegram provider: " + e.getMessage());
+                return;
+            }
+        }
+
         JSObject oauth2 = call.getObject("oauth2");
         if (oauth2 != null && oauth2.length() > 0) {
             // oauth2 is now a map of providerId -> config: { "github": {...}, "azure": {...} }
@@ -436,6 +457,15 @@ public class SocialLoginPlugin extends Plugin {
             boolean handled = ((TwitterProvider) twitterProvider).handleActivityResult(requestCode, resultCode, data);
             if (handled) {
                 Log.d(LOG_TAG, "Twitter activity result handled");
+                return;
+            }
+        }
+
+        SocialProvider telegramProvider = socialProviderHashMap.get("telegram");
+        if (telegramProvider instanceof TelegramProvider) {
+            boolean handled = ((TelegramProvider) telegramProvider).handleActivityResult(requestCode, resultCode, data);
+            if (handled) {
+                Log.d(LOG_TAG, "Telegram activity result handled");
                 return;
             }
         }
