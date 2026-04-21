@@ -26,6 +26,11 @@ const rawSocialLogin = registerPlugin<SocialLoginPlugin>('SocialLogin', {
 class SocialLoginClient implements SocialLoginPlugin {
   private initializeOptions?: InitializeOptions;
 
+  constructor() {
+    this.initialize = this.initialize.bind(this);
+    this.refresh = this.refresh.bind(this);
+  }
+
   async initialize(options: InitializeOptions): Promise<void> {
     this.initializeOptions = options;
     return rawSocialLogin.initialize(options);
