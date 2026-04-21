@@ -9,7 +9,7 @@ declare const FB: {
   ): void;
   logout(callback: () => void): void;
   api(path: string, params: { fields: string }, callback: (response: any) => void): void;
-  getLoginStatus(callback: (response: { status: string; authResponse?: { accessToken: string } }) => void): void;
+  getLoginStatus(callback: (response: { status: string; authResponse?: { accessToken: string; userID?: string } }) => void): void;
 };
 
 export class FacebookSocialLogin extends BaseSocialLogin {
@@ -41,37 +41,67 @@ export class FacebookSocialLogin extends BaseSocialLogin {
     }
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      let waitingForStatus = false;
+
+      const resolveWithProfile = (authResponse: { accessToken?: string; userID?: string } | undefined) => {
+        if (settled) return;
+        if (!authResponse?.accessToken || !authResponse.userID) {
+          settled = true;
+          reject(new Error('Facebook login failed'));
+          return;
+        }
+
+        const accessToken = authResponse.accessToken;
+        const userId = authResponse.userID;
+
+        FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
+          settled = true;
+          const result: FacebookLoginResponse = {
+            accessToken: {
+              token: accessToken,
+              userId,
+            },
+            profile: {
+              userID: userInfo.id,
+              name: userInfo.name,
+              email: userInfo.email || null,
+              imageURL: userInfo.picture?.data?.url || null,
+              friendIDs: [],
+              birthday: null,
+              ageRange: null,
+              gender: null,
+              location: null,
+              hometown: null,
+              profileURL: null,
+            },
+            idToken: null,
+          };
+          resolve({ provider: 'facebook', result });
+        });
+      };
+
+      const waitForConnected = () => {
+        if (settled || waitingForStatus) return;
+        waitingForStatus = true;
+        this.waitForConnection()
+          .then((statusResponse) => resolveWithProfile(statusResponse.authResponse))
+          .catch((error) => {
+            if (settled) return;
+            settled = true;
+            reject(error);
+          });
+      };
+
       FB.login(
         (response) => {
           if (response.status === 'connected') {
-            FB.api('/me', { fields: 'id,name,email,picture' }, (userInfo: any) => {
-              const result: FacebookLoginResponse = {
-                accessToken: {
-                  token: response.authResponse.accessToken,
-                  userId: response.authResponse.userID,
-                },
-                profile: {
-                  userID: userInfo.id,
-                  name: userInfo.name,
-                  email: userInfo.email || null,
-                  imageURL: userInfo.picture?.data?.url || null,
-                  friendIDs: [],
-                  birthday: null,
-                  ageRange: null,
-                  gender: null,
-                  location: null,
-                  hometown: null,
-                  profileURL: null,
-                },
-                idToken: null,
-              };
-              resolve({ provider: 'facebook', result });
-            });
+            resolveWithProfile(response.authResponse);
           } else {
-            reject(new Error('Facebook login failed'));
+            waitForConnected();
           }
         },
-        { scope: options.permissions.join(',') },
+        options.permissions?.length ? { scope: options.permissions.join(',') } : undefined,
       );
     });
   }
@@ -104,6 +134,37 @@ export class FacebookSocialLogin extends BaseSocialLogin {
 
   async refresh(options: FacebookLoginOptions): Promise<void> {
     await this.login(options);
+  }
+
+  private waitForConnection(timeoutMs = 120000, pollIntervalMs = 500): Promise<{ status: string; authResponse?: { accessToken: string; userID?: string } }> {
+    const start = Date.now();
+    return new Promise((resolve, reject) => {
+      let finished = false;
+
+      const pollStatus = () => {
+        if (finished) return;
+
+        FB.getLoginStatus((response) => {
+          if (finished) return;
+
+          if (response.status === 'connected' && response.authResponse?.accessToken) {
+            finished = true;
+            resolve(response);
+            return;
+          }
+
+          if (Date.now() - start >= timeoutMs) {
+            finished = true;
+            reject(new Error('Facebook login failed or timed out'));
+            return;
+          }
+
+          setTimeout(pollStatus, pollIntervalMs);
+        });
+      };
+
+      pollStatus();
+    });
   }
 
   private async loadFacebookScript(locale: string): Promise<void> {
