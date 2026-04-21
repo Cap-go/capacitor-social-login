@@ -144,6 +144,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         case "twitter":
             // Check config first (for "fake disable")
             return isProviderEnabledInConfig("twitter")
+        case "tiktok":
+            return isProviderEnabledInConfig("tiktok")
         default:
             return false
         }
@@ -155,6 +157,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func initialize(_ call: CAPPluginCall) {
         var initialized = false
+        var oauth2Configs: [String: [String: Any]] = [:]
 
         if let facebookSettings = call.getObject("facebook") {
             if facebookSettings["appId"] is String {
@@ -226,22 +229,57 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
 
         if let oauth2Settings = call.getObject("oauth2"), !oauth2Settings.isEmpty {
-            // oauth2Settings is now a dictionary of provider configs: { "github": {...}, "azure": {...} }
-            var oauth2Configs: [String: [String: Any]] = [:]
             for (providerId, value) in oauth2Settings {
                 if let config = value as? [String: Any] {
                     oauth2Configs[providerId] = config
                 }
             }
+        }
 
-            if !oauth2Configs.isEmpty {
-                let errors = oauth2.initializeProviders(configs: oauth2Configs)
-                if !errors.isEmpty {
-                    call.reject(errors.joined(separator: ", "))
-                    return
-                }
-                initialized = true
+        if let tiktokSettings = call.getObject("tiktok") {
+            guard let clientKey = tiktokSettings["clientKey"] as? String, !clientKey.isEmpty else {
+                call.reject("tiktok.clientKey is required")
+                return
             }
+            guard let redirectUrl = tiktokSettings["redirectUrl"] as? String, !redirectUrl.isEmpty else {
+                call.reject("tiktok.redirectUrl is required")
+                return
+            }
+
+            var tiktokConfig: [String: Any] = [
+                "appId": clientKey,
+                "redirectUrl": redirectUrl,
+                "authorizationBaseUrl": "https://www.tiktok.com/v2/auth/authorize/",
+                "accessTokenEndpoint": "https://open.tiktokapis.com/v2/oauth/token/",
+                "responseType": "code",
+                "pkceEnabled": tiktokSettings["pkceEnabled"] as? Bool ?? true,
+                "clientIdParamName": "client_key",
+                "clientSecretParamName": "client_secret",
+                "logsEnabled": tiktokSettings["logsEnabled"] as? Bool ?? false
+            ]
+
+            if let scopes = tiktokSettings["scopes"] {
+                tiktokConfig["scope"] = scopes
+            } else if let scope = tiktokSettings["scope"] {
+                tiktokConfig["scope"] = scope
+            } else {
+                tiktokConfig["scope"] = "user.info.basic"
+            }
+
+            if let clientSecret = tiktokSettings["clientSecret"] as? String, !clientSecret.isEmpty {
+                tiktokConfig["clientSecret"] = clientSecret
+            }
+
+            oauth2Configs["tiktok"] = tiktokConfig
+        }
+
+        if !oauth2Configs.isEmpty {
+            let errors = oauth2.initializeProviders(configs: oauth2Configs)
+            if !errors.isEmpty {
+                call.reject(errors.joined(separator: ", "))
+                return
+            }
+            initialized = true
         }
 
         if initialized {
@@ -352,6 +390,26 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "tiktok": do {
+            self.oauth2.getAuthorizationCode(providerId: "tiktok") { res in
+                do {
+                    let token = try res.get()
+                    var response: [String: Any] = [
+                        "accessToken": token.token,
+                        "tokenType": token.tokenType
+                    ]
+                    if let expires = token.expires {
+                        response["expires"] = expires
+                    }
+                    if let refreshToken = token.refreshToken {
+                        response["refreshToken"] = refreshToken
+                    }
+                    call.resolve(response)
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -424,6 +482,16 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "tiktok": do {
+            self.oauth2.isLoggedIn(providerId: "tiktok") { res in
+                do {
+                    let status = try res.get()
+                    call.resolve([ "isLoggedIn": status ])
+                } catch {
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         default:
             call.reject("Invalid provider")
         }
@@ -471,6 +539,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             oauth2.login(providerId: providerId, payload: payload) { (result: Result<OAuth2LoginResponse, Error>) in
+                self.handleLoginResult(result, call: call)
+            }
+        case "tiktok":
+            oauth2.login(providerId: "tiktok", payload: payload) { (result: Result<OAuth2LoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         default:
@@ -567,6 +639,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             oauth2.logout(providerId: providerId) { result in
                 self.handleLogoutResult(result, call: call)
             }
+        case "tiktok":
+            oauth2.logout(providerId: "tiktok") { result in
+                self.handleLogoutResult(result, call: call)
+            }
         default:
             call.reject("Invalid provider")
         }
@@ -613,6 +689,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             oauth2.refresh(providerId: providerId) { result in
+                self.handleRefreshResult(result, call: call)
+            }
+        case "tiktok":
+            oauth2.refresh(providerId: "tiktok") { result in
                 self.handleRefreshResult(result, call: call)
             }
         default:
@@ -963,6 +1043,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "expires": oauth2Response.accessToken.expires ?? NSNull(),
                     "refreshToken": oauth2Response.accessToken.refreshToken ?? NSNull()
                 ]
+                let providerName = oauth2Response.providerId == "tiktok" ? "tiktok" : "oauth2"
                 var oauth2Result: [String: Any] = [
                     "providerId": oauth2Response.providerId,
                     "accessToken": accessToken,
@@ -974,7 +1055,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "expiresIn": oauth2Response.expiresIn ?? NSNull()
                 ]
                 call.resolve([
-                    "provider": "oauth2",
+                    "provider": providerName,
                     "result": oauth2Result
                 ])
             } else {

@@ -72,6 +72,9 @@ public class OAuth2Provider implements SocialProvider {
     private static class OAuth2ProviderConfig {
 
         final String appId;
+        final String clientIdParamName;
+        final String clientSecret;
+        final String clientSecretParamName;
         final String issuerUrl;
         final String authorizationBaseUrl;
         final String accessTokenEndpoint;
@@ -92,6 +95,9 @@ public class OAuth2Provider implements SocialProvider {
 
         OAuth2ProviderConfig(
             String appId,
+            String clientIdParamName,
+            String clientSecret,
+            String clientSecretParamName,
             String issuerUrl,
             String authorizationBaseUrl,
             String accessTokenEndpoint,
@@ -111,6 +117,9 @@ public class OAuth2Provider implements SocialProvider {
             boolean logsEnabled
         ) {
             this.appId = appId;
+            this.clientIdParamName = clientIdParamName;
+            this.clientSecret = clientSecret;
+            this.clientSecretParamName = clientSecretParamName;
             this.issuerUrl = issuerUrl;
             this.authorizationBaseUrl = authorizationBaseUrl;
             this.accessTokenEndpoint = accessTokenEndpoint;
@@ -305,8 +314,15 @@ public class OAuth2Provider implements SocialProvider {
                 additionalLogoutParameters = jsonObjectToMap(config.getJSONObject("additionalLogoutParameters"));
             }
 
+            String clientIdParamName = config.optString("clientIdParamName", "client_id");
+            String clientSecretParamName = config.optString("clientSecretParamName", "client_secret");
+            String clientSecret = config.optString("clientSecret", null);
+
             OAuth2ProviderConfig providerConfig = new OAuth2ProviderConfig(
                 appId,
+                clientIdParamName,
+                clientSecret,
+                clientSecretParamName,
                 issuerUrl,
                 (authorizationBaseUrl != null && !authorizationBaseUrl.isEmpty()) ? authorizationBaseUrl : null,
                 config.has("accessTokenEndpoint") ? config.optString("accessTokenEndpoint", null) : config.optString("tokenEndpoint", null),
@@ -428,7 +444,7 @@ public class OAuth2Provider implements SocialProvider {
                     Uri.Builder builder = Uri.parse(resolved.authorizationBaseUrl)
                         .buildUpon()
                         .appendQueryParameter("response_type", resolved.responseType)
-                        .appendQueryParameter("client_id", resolved.appId)
+                        .appendQueryParameter(resolved.clientIdParamName, resolved.appId)
                         .appendQueryParameter("redirect_uri", finalRedirect)
                         .appendQueryParameter("state", finalState);
 
@@ -805,12 +821,16 @@ public class OAuth2Provider implements SocialProvider {
 
         FormBody.Builder bodyBuilder = new FormBody.Builder()
             .add("grant_type", "authorization_code")
-            .add("client_id", config.appId)
+            .add(config.clientIdParamName, config.appId)
             .add("code", code)
             .add("redirect_uri", pendingState.redirectUri);
 
         if (config.pkceEnabled) {
             bodyBuilder.add("code_verifier", pendingState.codeVerifier);
+        }
+
+        if (config.clientSecret != null && !config.clientSecret.isEmpty()) {
+            bodyBuilder.add(config.clientSecretParamName, config.clientSecret);
         }
 
         if (config.additionalTokenParameters != null) {
@@ -897,7 +917,11 @@ public class OAuth2Provider implements SocialProvider {
         FormBody.Builder bodyBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
-            .add("client_id", config.appId);
+            .add(config.clientIdParamName, config.appId);
+
+        if (config.clientSecret != null && !config.clientSecret.isEmpty()) {
+            bodyBuilder.add(config.clientSecretParamName, config.clientSecret);
+        }
 
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {

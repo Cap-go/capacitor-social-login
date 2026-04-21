@@ -137,6 +137,22 @@ export interface OAuth2ProviderConfig {
    */
   iosPrefersEphemeralSession?: boolean;
   /**
+   * Override the client identifier parameter name used for authorization and token requests.
+   * Some providers (e.g., TikTok) expect `client_key` instead of the default `client_id`.
+   * @default 'client_id'
+   */
+  clientIdParamName?: string;
+  /**
+   * Client secret used during token exchange. Leave undefined when your provider uses PKCE-only public clients.
+   */
+  clientSecret?: string;
+  /**
+   * Override the client secret parameter name used for token requests.
+   * Useful for providers that expect a different parameter name (e.g., `client_secret` vs `app_secret`).
+   * @default 'client_secret'
+   */
+  clientSecretParamName?: string;
+  /**
    * Enable debug logging
    * @default false
    */
@@ -334,6 +350,40 @@ export interface InitializeOptions {
      */
     useBroadcastChannel?: boolean;
   };
+  tiktok?: {
+    /**
+     * TikTok client key (also known as app key).
+     * @example 'aw3y*****'
+     */
+    clientKey: string;
+    /**
+     * Redirect URL registered in your TikTok developer app.
+     * @example 'myapp://auth/tiktok'
+     */
+    redirectUrl: string;
+    /**
+     * TikTok client secret. Provide this if you want the plugin to exchange the authorization code for tokens client-side.
+     * If omitted, only authorization code flows that do not require a client secret (e.g., PKCE) will succeed.
+     */
+    clientSecret?: string;
+    /**
+     * Scopes to request during login.
+     * @default ['user.info.basic']
+     * @example ['user.info.basic','video.list']
+     */
+    scopes?: string[];
+    /**
+     * Toggle PKCE usage during the authorization code flow.
+     * TikTok supports PKCE for public clients.
+     * @default true
+     */
+    pkceEnabled?: boolean;
+    /**
+     * Enable verbose debug logging for TikTok OAuth2 flow.
+     * @default false
+     */
+    logsEnabled?: boolean;
+  };
 }
 
 export interface FacebookLoginOptions {
@@ -463,6 +513,30 @@ export interface OAuth2LoginOptions {
    * @default 'popup'
    */
   flow?: 'popup' | 'redirect';
+}
+
+export interface TikTokLoginOptions {
+  /**
+   * Optional scopes to override the initialization scopes.
+   * @example ['user.info.basic']
+   */
+  scopes?: string[];
+  /**
+   * Alias for `scopes`.
+   */
+  scope?: string | string[];
+  /**
+   * Custom state parameter for CSRF protection.
+   */
+  state?: string;
+  /**
+   * Custom PKCE code verifier (mostly for testing).
+   */
+  codeVerifier?: string;
+  /**
+   * Override redirect URL for this login request.
+   */
+  redirectUrl?: string;
 }
 
 export interface OAuth2LoginResponse {
@@ -686,6 +760,10 @@ export type LoginOptions =
       options: TwitterLoginOptions;
     }
   | {
+      provider: 'tiktok';
+      options: TikTokLoginOptions;
+    }
+  | {
       provider: 'oauth2';
       options: OAuth2LoginOptions;
     };
@@ -706,6 +784,10 @@ export type LoginResult =
   | {
       provider: 'twitter';
       result: TwitterLoginResponse;
+    }
+  | {
+      provider: 'tiktok';
+      result: TikTokLoginResponse;
     }
   | {
       provider: 'oauth2';
@@ -761,6 +843,8 @@ export interface TwitterLoginResponse {
   profile: TwitterProfile;
 }
 
+export type TikTokLoginResponse = OAuth2LoginResponse;
+
 export interface AuthorizationCode {
   /**
    * Jwt
@@ -779,7 +863,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'tiktok' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -792,7 +876,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'tiktok' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -883,6 +967,7 @@ export type ProviderResponseMap = {
   google: GoogleLoginResponse;
   apple: AppleProviderResponse;
   twitter: TwitterLoginResponse;
+  tiktok: TikTokLoginResponse;
   oauth2: OAuth2LoginResponse;
 };
 
@@ -910,7 +995,7 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void>;
   /**

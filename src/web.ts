@@ -18,6 +18,8 @@ import type {
   OAuth2LoginResponse,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
+  TikTokLoginOptions,
+  OAuth2ProviderConfig,
 } from './definitions';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
@@ -109,16 +111,32 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     let message: Record<string, unknown>;
     if ('error' in result) {
       const resolvedProvider = parsed.provider ?? null;
-      message = {
-        type: 'oauth-error',
-        provider: resolvedProvider,
-        error: result.error,
-      };
+      // Normalize oauth2->tiktok responses to the tiktok provider id for popup consumers
+      if (resolvedProvider === 'oauth2' && (result as any)?.providerId === 'tiktok') {
+        message = {
+          type: 'oauth-error',
+          provider: 'tiktok',
+          error: result.error,
+        };
+      } else {
+        message = {
+          type: 'oauth-error',
+          provider: resolvedProvider,
+          error: result.error,
+        };
+      }
     } else {
+      let normalizedResult: LoginResult = result;
+      if (result.provider === 'oauth2' && (result.result as any)?.providerId === 'tiktok') {
+        normalizedResult = {
+          provider: 'tiktok',
+          result: result.result as any,
+        };
+      }
       message = {
         type: 'oauth-response',
-        provider: result.provider,
-        ...result.result,
+        provider: normalizedResult.provider,
+        ...normalizedResult.result,
       };
     }
 
@@ -158,8 +176,25 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     window.close();
   }
 
+  private buildTikTokConfig(config: NonNullable<InitializeOptions['tiktok']>): OAuth2ProviderConfig {
+    return {
+      appId: config.clientKey,
+      redirectUrl: config.redirectUrl,
+      authorizationBaseUrl: 'https://www.tiktok.com/v2/auth/authorize/',
+      accessTokenEndpoint: 'https://open.tiktokapis.com/v2/oauth/token/',
+      scope: config.scopes ?? ['user.info.basic'],
+      responseType: 'code',
+      pkceEnabled: config.pkceEnabled ?? true,
+      clientIdParamName: 'client_key',
+      clientSecret: config.clientSecret,
+      clientSecretParamName: 'client_secret',
+      logsEnabled: config.logsEnabled ?? false,
+    };
+  }
+
   async initialize(options: InitializeOptions): Promise<void> {
     const initPromises: Promise<void>[] = [];
+    const oauth2Configs: Record<string, OAuth2ProviderConfig> = {};
 
     if (options.google?.webClientId) {
       initPromises.push(
@@ -199,7 +234,15 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     if (options.oauth2 && Object.keys(options.oauth2).length > 0) {
-      initPromises.push(this.oauth2Provider.initializeProviders(options.oauth2));
+      Object.assign(oauth2Configs, options.oauth2);
+    }
+
+    if (options.tiktok?.clientKey && options.tiktok.redirectUrl) {
+      oauth2Configs.tiktok = this.buildTikTokConfig(options.tiktok);
+    }
+
+    if (Object.keys(oauth2Configs).length > 0) {
+      initPromises.push(this.oauth2Provider.initializeProviders(oauth2Configs));
     }
 
     await Promise.all(initPromises);
@@ -234,13 +277,28 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           provider: T;
           result: ProviderResponseMap[T];
         }>;
+      case 'tiktok': {
+        const tiktokOptions = options.options as TikTokLoginOptions;
+        const response = await this.oauth2Provider.login({
+          providerId: 'tiktok',
+          scope: tiktokOptions.scope,
+          scopes: tiktokOptions.scopes,
+          state: tiktokOptions.state,
+          codeVerifier: tiktokOptions.codeVerifier,
+          redirectUrl: tiktokOptions.redirectUrl,
+        });
+        return {
+          provider: options.provider,
+          result: response.result as ProviderResponseMap[T],
+        };
+      }
       default:
         throw new Error(`Login for ${options.provider} is not implemented on web`);
     }
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
     switch (options.provider) {
@@ -252,6 +310,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.logout();
       case 'twitter':
         return this.twitterProvider.logout();
+      case 'tiktok':
+        return this.oauth2Provider.logout('tiktok');
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 logout');
@@ -272,6 +332,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.isLoggedIn();
       case 'twitter':
         return this.twitterProvider.isLoggedIn();
+      case 'tiktok':
+        return this.oauth2Provider.isLoggedIn('tiktok');
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 isLoggedIn');
@@ -292,6 +354,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.getAuthorizationCode();
       case 'twitter':
         return this.twitterProvider.getAuthorizationCode();
+      case 'tiktok':
+        return this.oauth2Provider.getAuthorizationCode('tiktok');
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 getAuthorizationCode');
@@ -312,6 +376,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.refresh(options.options as FacebookLoginOptions);
       case 'twitter':
         return this.twitterProvider.refresh();
+      case 'tiktok':
+        return this.oauth2Provider.refresh('tiktok');
       case 'oauth2': {
         const oauth2Options = options.options as OAuth2LoginOptions;
         if (!oauth2Options?.providerId) {
@@ -345,10 +411,16 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   async handleRedirectCallback(): Promise<LoginResult | null> {
     const parsed = await this.parseRedirectResult();
-    const result = parsed.result;
+    let result = parsed.result;
     if (!result) return null;
     if ('error' in result) {
       throw new Error(result.error);
+    }
+    if (result.provider === 'oauth2' && (result.result as any)?.providerId === 'tiktok') {
+      result = {
+        provider: 'tiktok',
+        result: result.result as any,
+      };
     }
     return result;
   }

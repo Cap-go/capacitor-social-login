@@ -41,6 +41,9 @@ struct OAuth2AccessToken {
 
 struct OAuth2ProviderConfig {
     let appId: String
+    let clientIdParamName: String
+    let clientSecret: String?
+    let clientSecretParamName: String
     let issuerUrl: String?
     var authorizationBaseUrl: String?
     var accessTokenEndpoint: String?
@@ -103,6 +106,18 @@ class OAuth2Provider: NSObject {
 
             let providerConfig = OAuth2ProviderConfig(
                 appId: resolvedAppId,
+                clientIdParamName:
+                    (config["clientIdParamName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                        ? (config["clientIdParamName"] as? String ?? "client_id")
+                        : "client_id",
+                clientSecret:
+                    (config["clientSecret"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                        ? (config["clientSecret"] as? String)
+                        : nil,
+                clientSecretParamName:
+                    (config["clientSecretParamName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                        ? (config["clientSecretParamName"] as? String ?? "client_secret")
+                        : "client_secret",
                 issuerUrl: issuerUrl,
                 authorizationBaseUrl: (authorizationBaseUrl?.isEmpty == false ? authorizationBaseUrl : nil),
                 accessTokenEndpoint:
@@ -237,7 +252,7 @@ class OAuth2Provider: NSObject {
                 var components = URLComponents(string: authorizationBaseUrl)
                 var queryItems: [URLQueryItem] = [
                     URLQueryItem(name: "response_type", value: config.responseType),
-                    URLQueryItem(name: "client_id", value: config.appId),
+                    URLQueryItem(name: config.clientIdParamName, value: config.appId),
                     URLQueryItem(name: "redirect_uri", value: redirect),
                     URLQueryItem(name: "state", value: state)
                 ]
@@ -457,13 +472,17 @@ class OAuth2Provider: NSObject {
 
         var body: [String: String] = [
             "grant_type": "authorization_code",
-            "client_id": config.appId,
+            config.clientIdParamName: config.appId,
             "code": code,
             "redirect_uri": redirectUri
         ]
 
         if config.pkceEnabled {
             body["code_verifier"] = codeVerifier
+        }
+
+        if let clientSecret = config.clientSecret, !clientSecret.isEmpty {
+            body[config.clientSecretParamName] = clientSecret
         }
 
         if let extra = config.additionalTokenParameters {
@@ -493,8 +512,12 @@ class OAuth2Provider: NSObject {
         var body: [String: String] = [
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
-            "client_id": config.appId
+            config.clientIdParamName: config.appId
         ]
+
+        if let clientSecret = config.clientSecret, !clientSecret.isEmpty {
+            body[config.clientSecretParamName] = clientSecret
+        }
 
         if let extra = config.additionalTokenParameters {
             for (k, v) in extra { body[k] = v }
