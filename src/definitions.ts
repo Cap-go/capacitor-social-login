@@ -241,7 +241,9 @@ export interface InitializeOptions {
      *   - `logout()` - Will reject with "not implemented when using offline mode"
      *   - `isLoggedIn()` - Will reject with "not implemented when using offline mode"
      *   - `getAuthorizationCode()` - Will reject with "not implemented when using offline mode"
+     *   - `refresh()` - Will reject because offline mode only returns `serverAuthCode`; token refresh must happen on your backend
      * - Only `login()` method works in offline mode, returning serverAuthCode only
+     * - `serverAuthCode` must be exchanged on your backend for access/refresh tokens
      * - Requires `iOSServerClientId` to be set on iOS
      *
      * @example 'offline'
@@ -942,9 +944,15 @@ export interface SocialLoginPlugin {
    *
    * **Google Offline Mode Limitation:**
    * This method is NOT supported when Google is initialized with `mode: 'offline'`.
-   * It will reject with error: "refresh is not implemented when using offline mode"
+   * Offline mode only returns `serverAuthCode` for backend token exchange, so token refresh must happen on your backend.
+   * The plugin logs and rejects with a message explaining that you should send `serverAuthCode` to your backend,
+   * refresh the Google tokens there, or switch to `mode: 'online'` for client-side refresh.
    *
-   * @throws Error if Google provider is in offline mode
+   * **Google Web Limitation:**
+   * On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
+   * Call `login()` again on Web to obtain a fresh token instead.
+   *
+   * @throws Error if Google provider is in offline mode, or on Web where Google `refresh()` is not implemented
    */
   refresh(options: LoginOptions): Promise<void>;
 

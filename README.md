@@ -383,7 +383,7 @@ await SocialLogin.initialize({
 - `webClientId`: Required for Android and Web platforms
 - `iOSClientId`: Required for iOS platform  
 - `iOSServerClientId`: Required when using `mode: 'offline'` on iOS or when you need to verify the token on the server (should be the same value as `webClientId`)
-- `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data
+- `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data, and `refresh()` is not available in-app. Exchange `serverAuthCode` on your backend and refresh there.
 - `mode: 'online'`: Returns user profile data and access tokens (default)
 
 ### Android configuration
@@ -439,9 +439,13 @@ When using `mode: 'offline'`, the login response will only contain:
 }
 ```
 
+`serverAuthCode` is for your backend. In offline mode you should exchange it on your server for access and refresh tokens, then refresh those tokens on the server side. Calling `SocialLogin.refresh({ provider: 'google' ... })` is not supported in offline mode.
+
 ### Web
 
 Initialize method to create a script tag with Google lib. We cannot know when it's ready so be sure to do it early in web otherwise it will fail.
+
+On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`. Call `SocialLogin.login({ provider: 'google', ... })` again to obtain a fresh token.
 
 ## OAuth2 (Generic)
 

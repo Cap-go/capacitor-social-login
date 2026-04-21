@@ -16,6 +16,7 @@ class GoogleProvider {
     var additionalScopes: [String]!
     var defaultGrantedScopes = ["email", "profile", "openid"]
     var mode = GoogleProviderLoginType.ONLINE
+    private let offlineRefreshNotSupportedMessage = "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh."
 
     func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil, hostedDomain: String? = nil) {
         configuration = GIDConfiguration(clientID: clientId, serverClientID: serverClientId, hostedDomain: hostedDomain, openIDRealm: nil)
@@ -194,6 +195,11 @@ class GoogleProvider {
     }
 
     func refresh(completion: @escaping (Result<Void, Error>) -> Void) {
+        if self.mode == .OFFLINE {
+            print("[GoogleProvider] \(offlineRefreshNotSupportedMessage)")
+            completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: offlineRefreshNotSupportedMessage])))
+            return
+        }
         DispatchQueue.main.async {
             guard let currentUser = GIDSignIn.sharedInstance.currentUser else {
                 completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not logged in"])))
