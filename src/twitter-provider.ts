@@ -7,6 +7,7 @@ import type {
   TwitterLoginResponse,
   TwitterProfile,
 } from './definitions';
+import { createUserCancelledError, inferUserCancelledError } from './errors';
 
 interface TwitterTokenResponse {
   token_type: 'bearer';
@@ -166,7 +167,7 @@ export class TwitterSocialLogin extends BaseSocialLogin {
             return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          reject(new Error((data.error as string) || 'Twitter login was cancelled.'));
+          reject(inferUserCancelledError((data.error as string) || 'Twitter login was cancelled.'));
           return true;
         }
         return false;
@@ -203,7 +204,7 @@ export class TwitterSocialLogin extends BaseSocialLogin {
           // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
             cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-            reject(new Error('Twitter login window was closed.'));
+            reject(createUserCancelledError('Twitter login window was closed.'));
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup

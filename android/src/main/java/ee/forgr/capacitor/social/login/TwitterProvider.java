@@ -37,6 +37,7 @@ public class TwitterProvider implements SocialProvider {
 
     public static final int REQUEST_CODE = 9401;
     private static final String LOG_TAG = "TwitterProvider";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
     private static final String TOKEN_ENDPOINT = "https://api.x.com/2/oauth2/token";
     private static final String PROFILE_ENDPOINT = "https://api.x.com/2/users/me";
     private static final String PREFS_NAME = "CapgoTwitterProviderPrefs";
@@ -203,7 +204,7 @@ public class TwitterProvider implements SocialProvider {
 
         if (resultCode != Activity.RESULT_OK) {
             String error = data != null ? data.getStringExtra("error") : "User cancelled";
-            pendingCall.reject(error != null ? error : "User cancelled");
+            pendingCall.reject(error != null ? error : "User cancelled", USER_CANCELLED_CODE);
             cleanupPending();
             return true;
         }

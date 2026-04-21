@@ -16,6 +16,7 @@ import androidx.credentials.CustomCredential;
 import androidx.credentials.GetCredentialRequest;
 import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.ClearCredentialException;
+import androidx.credentials.exceptions.GetCredentialCancellationException;
 import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 import com.getcapacitor.JSObject;
@@ -54,6 +55,7 @@ import org.json.JSONTokener;
 public class GoogleProvider implements SocialProvider {
 
     private static final String LOG_TAG = "GoogleProvider";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
     private static final String SHARED_PREFERENCE_NAME = "GOOGLE_LOGIN_F13oz0I_SHARED_PERF";
     private static final String GOOGLE_DATA_PREFERENCE = "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
     private static final Integer FUTURE_LIST_LENGTH = 128;
@@ -650,6 +652,10 @@ public class GoogleProvider implements SocialProvider {
             } catch (JSONException ex) {
                 // do nothing
             }
+        }
+        if (e instanceof GetCredentialCancellationException) {
+            call.reject("Google Sign-In cancelled by user", USER_CANCELLED_CODE, e);
+            return;
         }
         if (e instanceof NoCredentialException) {
             // Check if filterByAuthorizedAccounts is set (default is false if not explicitly set to false)

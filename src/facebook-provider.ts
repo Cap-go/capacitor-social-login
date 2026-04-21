@@ -1,5 +1,6 @@
 import { BaseSocialLogin } from './base';
-import type { FacebookLoginOptions, FacebookLoginResponse, AuthorizationCode, LoginResult } from './definitions';
+import type { AuthorizationCode, FacebookLoginOptions, FacebookLoginResponse, LoginResult } from './definitions';
+import { createUserCancelledError } from './errors';
 
 declare const FB: {
   init(options: any): void;
@@ -68,7 +69,12 @@ export class FacebookSocialLogin extends BaseSocialLogin {
               resolve({ provider: 'facebook', result });
             });
           } else {
-            reject(new Error('Facebook login failed'));
+            const status = response?.status;
+            if (status === 'unknown' || status === 'not_authorized') {
+              reject(createUserCancelledError('Facebook login was cancelled.'));
+            } else {
+              reject(new Error('Facebook login failed'));
+            }
           }
         },
         { scope: options.permissions.join(',') },

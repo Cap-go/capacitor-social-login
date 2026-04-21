@@ -39,6 +39,7 @@ public class OAuth2Provider implements SocialProvider {
 
     public static final int REQUEST_CODE = 9402;
     private static final String LOG_TAG = "OAuth2Provider";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
     private static final String PREFS_NAME = "CapgoOAuth2ProviderPrefs";
     private static final String PREFS_KEY_PREFIX = "OAuth2Tokens_";
 
@@ -662,7 +663,7 @@ public class OAuth2Provider implements SocialProvider {
 
         if (resultCode != Activity.RESULT_OK) {
             String error = data != null ? data.getStringExtra("error") : "User cancelled";
-            pendingCall.reject(error != null ? error : "User cancelled");
+            pendingCall.reject(error != null ? error : "User cancelled", USER_CANCELLED_CODE);
             cleanupPending();
             return true;
         }

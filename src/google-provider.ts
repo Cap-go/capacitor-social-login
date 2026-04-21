@@ -1,5 +1,6 @@
 import { BaseSocialLogin } from './base';
-import type { GoogleLoginOptions, LoginResult, ProviderResponseMap, AuthorizationCode } from './definitions';
+import type { AuthorizationCode, GoogleLoginOptions, LoginResult, ProviderResponseMap } from './definitions';
+import { createUserCancelledError, inferUserCancelledError } from './errors';
 
 const GOOGLE_OFFLINE_REFRESH_MESSAGE =
   "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh.";
@@ -450,7 +451,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         } else if (event.data?.type === 'oauth-error') {
           cleanup();
           const errorMessage = event.data.error || 'User cancelled the OAuth flow';
-          reject(new Error(errorMessage));
+          reject(inferUserCancelledError(errorMessage));
         }
         // Don't reject for non-OAuth messages, just ignore them
       };
@@ -467,7 +468,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           } else if (data?.type === 'oauth-error') {
             cleanup();
             const errorMessage = (data.error as string) || 'User cancelled the OAuth flow';
-            reject(new Error(errorMessage));
+            reject(inferUserCancelledError(errorMessage));
           }
         };
       }
@@ -490,7 +491,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
           // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
             cleanup();
-            reject(new Error('Popup closed'));
+            reject(createUserCancelledError('Popup closed'));
           }
         } catch {
           // Cross-origin error when checking popup.closed - this happens when the popup

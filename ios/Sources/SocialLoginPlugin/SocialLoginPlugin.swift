@@ -19,6 +19,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let pluginVersion: String = "8.3.16"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
+    private static let userCancelledCode = "USER_CANCELLED"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "login", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "logout", returnType: CAPPluginReturnPromise),
@@ -981,8 +982,44 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Unsupported provider response")
             }
         case .failure(let error):
-            call.reject(error.localizedDescription)
+            rejectLoginError(call, error: error)
         }
+    }
+}
+
+extension SocialLoginPlugin {
+    private func isUserCancelledError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        let description = nsError.localizedDescription.lowercased()
+
+        if description.contains("cancelled") || description.contains("canceled") {
+            return true
+        }
+
+        if nsError.domain == ASWebAuthenticationSessionError.errorDomain && nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+            return true
+        }
+
+        if nsError.domain == ASAuthorizationError.errorDomain && nsError.code == ASAuthorizationError.canceled.rawValue {
+            return true
+        }
+
+        if nsError.domain == "OAuth2Provider" && nsError.code == -3 {
+            return true
+        }
+
+        #if canImport(GoogleSignIn)
+        if nsError.domain == kGIDSignInErrorDomain && nsError.code == GIDSignInErrorCode.canceled.rawValue {
+            return true
+        }
+        #endif
+
+        return false
+    }
+
+    private func rejectLoginError(_ call: CAPPluginCall, error: Error) {
+        let cancelled = isUserCancelledError(error)
+        call.reject(error.localizedDescription, cancelled ? SocialLoginPlugin.userCancelledCode : nil, error)
     }
 }
 
