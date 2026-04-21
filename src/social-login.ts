@@ -32,8 +32,8 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async initialize(options: InitializeOptions): Promise<void> {
+    await rawSocialLogin.initialize(options);
     this.initializeOptions = options;
-    return rawSocialLogin.initialize(options);
   }
 
   async login<T extends LoginOptions['provider']>(
