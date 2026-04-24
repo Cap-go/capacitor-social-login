@@ -20,6 +20,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     private static let userCancelledCode = "USER_CANCELLED"
+    #if canImport(GoogleSignIn)
+    private static let googleSignInCancelledCode = -5
+    #endif
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "login", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "logout", returnType: CAPPluginReturnPromise),
@@ -1009,7 +1012,7 @@ extension SocialLoginPlugin {
         }
 
         #if canImport(GoogleSignIn)
-        if nsError.domain == kGIDSignInErrorDomain && nsError.code == GIDSignInErrorCode.canceled.rawValue {
+        if nsError.domain == kGIDSignInErrorDomain && nsError.code == SocialLoginPlugin.googleSignInCancelledCode {
             return true
         }
         #endif
