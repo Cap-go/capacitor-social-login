@@ -406,6 +406,27 @@ const res = await SocialLogin.login({
 });
 ```
 
+#### Android troubleshooting (SHA-1 and Firebase)
+
+Many Android "auth 10/16" or blank-response issues come from a mismatched SHA-1 fingerprint. Use the exact build you install on the device to register the SHA-1 in Google Cloud/Firebase:
+
+1. Build a signed APK from Android Studio (`Build` → `Generate Signed App Bundle / APK`, pick APK) using your release keystore.
+2. Extract the SHA-1 from that final APK:
+   ```bash
+   keytool -printcert -jarfile android/app/release/app-release.apk
+   ```
+3. Add that SHA-1 to your Android OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (package name + SHA-1).
+4. Reinstall the same signed APK on device for testing:
+   ```bash
+   adb install android/app/release/app-release.apk
+   ```
+5. When consuming the plugin result, read tokens from `result.result`:
+   ```ts
+   const login = await SocialLogin.login({ provider: 'google' });
+   const idToken = login.result?.idToken; // not login.idToken
+   ```
+   For Firebase Auth, create credentials with that `idToken` (and use the Web Client ID as `webClientId` in `initialize`).
+
 ### iOS configuration
 
 Call the `initialize` method with the `google` provider:
