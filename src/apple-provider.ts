@@ -76,7 +76,7 @@ export class AppleSocialLogin extends BaseSocialLogin {
           resolve({ provider: 'apple', result });
         })
         .catch((error: any) => {
-          const message = error?.message ?? error?.localizedDescription ?? 'Apple login failed';
+          const message = error?.message ?? error?.localizedDescription ?? error?.error ?? 'Apple login failed';
           reject(inferUserCancelledError(message));
         });
     });

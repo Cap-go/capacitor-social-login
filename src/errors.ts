@@ -5,6 +5,8 @@ export const USER_CANCELLED_CODE: SocialLoginErrorCode = 'USER_CANCELLED';
 const CANCELLED_PATTERNS = [
   'access_denied',
   'access denied',
+  'user_cancelled_authorize',
+  'user_cancelled',
   'user cancelled',
   'user canceled',
   'login cancelled',
