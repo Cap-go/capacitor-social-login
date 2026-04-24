@@ -17,6 +17,13 @@ export interface OAuth2ProviderConfig {
    */
   clientId?: string;
   /**
+   * OAuth 2.0 client secret (if the provider requires it during token exchange/refresh).
+   *
+   * ⚠️ Avoid using this on public clients (web/SPAs) unless the provider explicitly supports it,
+   * because distributing client secrets in client apps is insecure.
+   */
+  clientSecret?: string;
+  /**
    * OpenID Connect issuer URL (enables discovery via `/.well-known/openid-configuration`).
    * When set, you may omit explicit endpoints like `authorizationBaseUrl` and `accessTokenEndpoint`.
    *
@@ -143,6 +150,28 @@ export interface OAuth2ProviderConfig {
   logsEnabled?: boolean;
 }
 
+/**
+ * LinkedIn provider configuration (convenience wrapper around the generic OAuth2 provider)
+ * @description
+ * Uses the OAuth2 provider under the hood with LinkedIn defaults:
+ * - Authorization URL: https://www.linkedin.com/oauth/v2/authorization
+ * - Token URL: https://www.linkedin.com/oauth/v2/accessToken
+ * - Resource URL: https://api.linkedin.com/v2/userinfo
+ * - Default scopes: 'openid profile email'
+ */
+export interface LinkedInProviderConfig extends OAuth2ProviderConfig {
+  /**
+   * LinkedIn Client ID
+   */
+  clientId: string;
+  /**
+   * LinkedIn Client Secret (required for authorization code exchange/refresh).
+   *
+   * ⚠️ Avoid bundling this in public clients when possible; prefer exchanging codes on a backend.
+   */
+  clientSecret?: string;
+}
+
 export interface InitializeOptions {
   /**
    * OAuth2 provider configurations.
@@ -154,6 +183,11 @@ export interface InitializeOptions {
    * }
    */
   oauth2?: Record<string, OAuth2ProviderConfig>;
+  /**
+   * LinkedIn configuration.
+   * Convenience wrapper that maps to the OAuth2 provider using LinkedIn defaults.
+   */
+  linkedin?: LinkedInProviderConfig;
   twitter?: {
     /**
      * The OAuth 2.0 client identifier issued by X (Twitter) Developer Portal
@@ -465,6 +499,12 @@ export interface OAuth2LoginOptions {
   flow?: 'popup' | 'redirect';
 }
 
+/**
+ * LinkedIn login options (maps to the OAuth2 provider internally)
+ * @description `providerId` is set to `linkedin` automatically.
+ */
+export type LinkedInLoginOptions = Omit<OAuth2LoginOptions, 'providerId'>;
+
 export interface OAuth2LoginResponse {
   /**
    * The provider ID that was used for this login
@@ -500,6 +540,12 @@ export interface OAuth2LoginResponse {
    */
   expiresIn: number | null;
 }
+
+/**
+ * LinkedIn login response (returned when using the LinkedIn provider convenience API).
+ * Mirrors the OAuth2 login response.
+ */
+export type LinkedInLoginResponse = OAuth2LoginResponse;
 
 export interface GoogleLoginOptions {
   /**
@@ -686,6 +732,10 @@ export type LoginOptions =
       options: TwitterLoginOptions;
     }
   | {
+      provider: 'linkedin';
+      options: LinkedInLoginOptions;
+    }
+  | {
       provider: 'oauth2';
       options: OAuth2LoginOptions;
     };
@@ -706,6 +756,10 @@ export type LoginResult =
   | {
       provider: 'twitter';
       result: TwitterLoginResponse;
+    }
+  | {
+      provider: 'linkedin';
+      result: LinkedInLoginResponse;
     }
   | {
       provider: 'oauth2';
@@ -779,7 +833,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2' | 'linkedin';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -792,7 +846,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2' | 'linkedin';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -883,6 +937,7 @@ export type ProviderResponseMap = {
   google: GoogleLoginResponse;
   apple: AppleProviderResponse;
   twitter: TwitterLoginResponse;
+  linkedin: LinkedInLoginResponse;
   oauth2: OAuth2LoginResponse;
 };
 
@@ -910,7 +965,7 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2' | 'linkedin';
     providerId?: string;
   }): Promise<void>;
   /**
@@ -969,7 +1024,7 @@ export interface SocialLoginPlugin {
    * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
    */
   refreshToken(options: {
-    provider: 'oauth2';
+    provider: 'oauth2' | 'linkedin';
     providerId: string;
     refreshToken?: string;
     additionalParameters?: Record<string, string>;
