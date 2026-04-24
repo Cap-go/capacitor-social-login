@@ -37,6 +37,7 @@ public class TwitterProvider implements SocialProvider {
 
     public static final int REQUEST_CODE = 9401;
     private static final String LOG_TAG = "TwitterProvider";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
     private static final String TOKEN_ENDPOINT = "https://api.x.com/2/oauth2/token";
     private static final String PROFILE_ENDPOINT = "https://api.x.com/2/users/me";
     private static final String PREFS_NAME = "CapgoTwitterProviderPrefs";
@@ -202,8 +203,14 @@ public class TwitterProvider implements SocialProvider {
         }
 
         if (resultCode != Activity.RESULT_OK) {
+            boolean userCancelled = data != null && data.getBooleanExtra(TwitterLoginActivity.EXTRA_USER_CANCELLED, false);
             String error = data != null ? data.getStringExtra("error") : "User cancelled";
-            pendingCall.reject(error != null ? error : "User cancelled");
+            String message = error != null ? error : "User cancelled";
+            if (userCancelled) {
+                pendingCall.reject(message, USER_CANCELLED_CODE);
+            } else {
+                pendingCall.reject(message);
+            }
             cleanupPending();
             return true;
         }
@@ -218,7 +225,12 @@ public class TwitterProvider implements SocialProvider {
         String error = data.getStringExtra("error");
         if (error != null) {
             String description = data.getStringExtra("error_description");
-            pendingCall.reject(description != null ? description : error);
+            String message = description != null ? description : error;
+            if (isUserDeniedRedirect(error, description)) {
+                pendingCall.reject(message, USER_CANCELLED_CODE);
+            } else {
+                pendingCall.reject(message);
+            }
             cleanupPending();
             return true;
         }
@@ -232,6 +244,17 @@ public class TwitterProvider implements SocialProvider {
 
         exchangeAuthorizationCode(code);
         return true;
+    }
+
+    private boolean isUserDeniedRedirect(String error, String description) {
+        if ("access_denied".equalsIgnoreCase(error)) {
+            return true;
+        }
+        if (description == null) {
+            return false;
+        }
+        String normalizedDescription = description.toLowerCase();
+        return normalizedDescription.contains("access_denied") || normalizedDescription.contains("access denied");
     }
 
     private void exchangeAuthorizationCode(String code) {

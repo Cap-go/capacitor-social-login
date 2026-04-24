@@ -1,5 +1,6 @@
 import { BaseSocialLogin } from './base';
 import type { AppleProviderOptions, AppleProviderResponse, AuthorizationCode, LoginResult } from './definitions';
+import { inferUserCancelledError } from './errors';
 
 declare const AppleID: any;
 
@@ -75,7 +76,8 @@ export class AppleSocialLogin extends BaseSocialLogin {
           resolve({ provider: 'apple', result });
         })
         .catch((error: any) => {
-          reject(error);
+          const message = error?.message ?? error?.localizedDescription ?? error?.error ?? 'Apple login failed';
+          reject(inferUserCancelledError(message));
         });
     });
   }

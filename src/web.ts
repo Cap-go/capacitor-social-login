@@ -19,6 +19,7 @@ import type {
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
 } from './definitions';
+import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
 import { OAuth2SocialLogin } from './oauth2-provider';
@@ -109,10 +110,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     let message: Record<string, unknown>;
     if ('error' in result) {
       const resolvedProvider = parsed.provider ?? null;
+      const error = inferUserCancelledError(result.error);
       message = {
         type: 'oauth-error',
         provider: resolvedProvider,
-        error: result.error,
+        error: error.message,
+        ...(error.code ? { code: error.code } : null),
       };
     } else {
       message = {
@@ -348,7 +351,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     const result = parsed.result;
     if (!result) return null;
     if ('error' in result) {
-      throw new Error(result.error);
+      throw inferUserCancelledError(result.error);
     }
     return result;
   }

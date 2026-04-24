@@ -29,6 +29,7 @@ import org.json.JSONObject;
 public class FacebookProvider implements SocialProvider {
 
     private static final String LOG_TAG = "FacebookProvider";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
 
     private Activity activity;
     private CallbackManager callbackManager;
@@ -109,7 +110,7 @@ public class FacebookProvider implements SocialProvider {
                     @Override
                     public void onCancel() {
                         Log.d(LOG_TAG, "LoginManager.onCancel");
-                        call.reject("Login cancelled");
+                        call.reject("Login cancelled", USER_CANCELLED_CODE);
                     }
 
                     @Override

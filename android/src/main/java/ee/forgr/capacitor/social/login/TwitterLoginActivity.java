@@ -17,6 +17,7 @@ public class TwitterLoginActivity extends Activity {
 
     public static final String EXTRA_AUTH_URL = "authUrl";
     public static final String EXTRA_REDIRECT_URL = "redirectUrl";
+    public static final String EXTRA_USER_CANCELLED = "userCancelled";
 
     private String redirectUrl;
 
@@ -57,7 +58,7 @@ public class TwitterLoginActivity extends Activity {
         setContentView(webView);
 
         if (authUrl == null) {
-            finishWithError("Missing authorization URL");
+            finishWithError("Missing authorization URL", false);
             return;
         }
 
@@ -79,15 +80,16 @@ public class TwitterLoginActivity extends Activity {
         return false;
     }
 
-    private void finishWithError(String message) {
+    private void finishWithError(String message, boolean userCancelled) {
         Intent data = new Intent();
         data.putExtra("error", message);
+        data.putExtra(EXTRA_USER_CANCELLED, userCancelled);
         setResult(Activity.RESULT_CANCELED, data);
         finish();
     }
 
     @Override
     public void onBackPressed() {
-        finishWithError("User cancelled");
+        finishWithError("User cancelled", true);
     }
 }

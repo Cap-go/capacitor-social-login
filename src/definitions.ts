@@ -891,6 +891,23 @@ export type ProviderResponseMap = {
   oauth2: OAuth2LoginResponse;
 };
 
+/**
+ * Error codes returned by the plugin.
+ * @since 8.3.x
+ */
+export type SocialLoginErrorCode = 'USER_CANCELLED';
+
+/**
+ * Errors thrown by SocialLogin methods.
+ *
+ * When a user dismisses or cancels the provider UI (popup closed, system dialog cancelled, access denied, etc.),
+ * the plugin rejects with `code === 'USER_CANCELLED'` so the caller can distinguish user intent from real failures.
+ * Other errors may omit the code or use provider-specific values.
+ */
+export interface SocialLoginError extends Error {
+  code?: SocialLoginErrorCode | string;
+}
+
 export interface SocialLoginPlugin {
   /**
    * Initialize the plugin
@@ -900,6 +917,8 @@ export interface SocialLoginPlugin {
   /**
    * Login with the selected provider
    * @description login with the selected provider
+   *
+   * On user dismissal/cancellation, the Promise is rejected with `code === 'USER_CANCELLED'` (see `SocialLoginError`).
    */
   login<T extends LoginOptions['provider']>(
     options: Extract<LoginOptions, { provider: T }>,
