@@ -9,7 +9,9 @@ declare const FB: {
   ): void;
   logout(callback: () => void): void;
   api(path: string, params: { fields: string }, callback: (response: any) => void): void;
-  getLoginStatus(callback: (response: { status: string; authResponse?: { accessToken: string; userID?: string } }) => void): void;
+  getLoginStatus(
+    callback: (response: { status: string; authResponse?: { accessToken: string; userID?: string } }) => void,
+  ): void;
 };
 
 export class FacebookSocialLogin extends BaseSocialLogin {
@@ -136,7 +138,10 @@ export class FacebookSocialLogin extends BaseSocialLogin {
     await this.login(options);
   }
 
-  private waitForConnection(timeoutMs = 120000, pollIntervalMs = 500): Promise<{ status: string; authResponse?: { accessToken: string; userID?: string } }> {
+  private waitForConnection(
+    timeoutMs = 120000,
+    pollIntervalMs = 500,
+  ): Promise<{ status: string; authResponse?: { accessToken: string; userID?: string } }> {
     const start = Date.now();
     return new Promise((resolve, reject) => {
       let finished = false;
