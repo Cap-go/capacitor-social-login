@@ -406,6 +406,27 @@ const res = await SocialLogin.login({
 });
 ```
 
+#### Android troubleshooting (SHA-1 and Firebase)
+
+Many Android "auth 10/16" or blank-response issues come from a mismatched SHA-1 fingerprint. Use the exact build you install on the device to register the SHA-1 in Google Cloud/Firebase:
+
+1. Build a signed APK from Android Studio (`Build` → `Generate Signed App Bundle / APK`, pick APK) using your release keystore.
+2. Extract the SHA-1 from that final APK:
+   ```bash
+   keytool -printcert -jarfile android/app/release/app-release.apk
+   ```
+3. Add that SHA-1 to your Android OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (package name + SHA-1).
+4. Reinstall the same signed APK on device for testing:
+   ```bash
+   adb install android/app/release/app-release.apk
+   ```
+5. When consuming the plugin result, read tokens from `result.result`:
+   ```ts
+   const login = await SocialLogin.login({ provider: 'google' });
+   const idToken = login.result?.idToken; // not login.idToken
+   ```
+   For Firebase Auth, create credentials with that `idToken` (and use the Web Client ID as `webClientId` in `initialize`).
+
 ### iOS configuration
 
 Call the `initialize` method with the `google` provider:
@@ -1074,6 +1095,7 @@ Configuration for a single OAuth2 provider instance
 | **`issuerUrl`**                            | <code>string</code>                                             | OpenID Connect issuer URL (enables discovery via `/.well-known/openid-configuration`). When set, you may omit explicit endpoints like `authorizationBaseUrl` and `accessTokenEndpoint`. Notes: - Explicit endpoints (authorization/token/logout) take precedence over discovered values. - Discovery is supported for `oauth2` on Web, iOS, and Android. |                     |
 | **`authorizationBaseUrl`**                 | <code>string</code>                                             | The base URL of the authorization endpoint                                                                                                                                                                                                                                                                                                               |                     |
 | **`authorizationEndpoint`**                | <code>string</code>                                             | Alias for `authorizationBaseUrl` (to match common OAuth/OIDC naming).                                                                                                                                                                                                                                                                                    |                     |
+| **`clientSecret`**                         | <code>string</code>                                             | OAuth 2.0 client secret for token requests (e.g., when exchanging the code). This value is sent as `client_secret` in token/refresh requests when provided.                                                                                                                                                                                              |                     |
 | **`accessTokenEndpoint`**                  | <code>string</code>                                             | The URL to exchange the authorization code for tokens Required for authorization code flow                                                                                                                                                                                                                                                               |                     |
 | **`tokenEndpoint`**                        | <code>string</code>                                             | Alias for `accessTokenEndpoint` (to match common OAuth/OIDC naming).                                                                                                                                                                                                                                                                                     |                     |
 | **`redirectUrl`**                          | <code>string</code>                                             | Redirect URL that receives the OAuth callback                                                                                                                                                                                                                                                                                                            |                     |

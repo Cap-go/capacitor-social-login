@@ -41,6 +41,7 @@ struct OAuth2AccessToken {
 
 struct OAuth2ProviderConfig {
     let appId: String
+    let clientSecret: String?
     let issuerUrl: String?
     var authorizationBaseUrl: String?
     var accessTokenEndpoint: String?
@@ -103,6 +104,7 @@ class OAuth2Provider: NSObject {
 
             let providerConfig = OAuth2ProviderConfig(
                 appId: resolvedAppId,
+                clientSecret: config["clientSecret"] as? String,
                 issuerUrl: issuerUrl,
                 authorizationBaseUrl: (authorizationBaseUrl?.isEmpty == false ? authorizationBaseUrl : nil),
                 accessTokenEndpoint:
@@ -466,6 +468,10 @@ class OAuth2Provider: NSObject {
             body["code_verifier"] = codeVerifier
         }
 
+        if let secret = config.clientSecret {
+            body["client_secret"] = secret
+        }
+
         if let extra = config.additionalTokenParameters {
             for (k, v) in extra { body[k] = v }
         }
@@ -496,6 +502,9 @@ class OAuth2Provider: NSObject {
             "client_id": config.appId
         ]
 
+        if let secret = config.clientSecret {
+            body["client_secret"] = secret
+        }
         if let extra = config.additionalTokenParameters {
             for (k, v) in extra { body[k] = v }
         }

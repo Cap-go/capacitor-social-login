@@ -16,7 +16,7 @@ import GoogleSignIn
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "8.3.16"
+    private let pluginVersion: String = "8.3.19"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     private static let userCancelledCode = "USER_CANCELLED"
@@ -996,6 +996,10 @@ extension SocialLoginPlugin {
         let description = nsError.localizedDescription.lowercased()
 
         if description.contains("cancelled") || description.contains("canceled") {
+            return true
+        }
+
+        if description.contains("access_denied") || description.contains("access denied") {
             return true
         }
 

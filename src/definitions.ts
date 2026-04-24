@@ -38,6 +38,11 @@ export interface OAuth2ProviderConfig {
    */
   authorizationEndpoint?: string;
   /**
+   * OAuth 2.0 client secret for token requests (e.g., when exchanging the code).
+   * This value is sent as `client_secret` in token/refresh requests when provided.
+   */
+  clientSecret?: string;
+  /**
    * The URL to exchange the authorization code for tokens
    * Required for authorization code flow
    * @example 'https://accounts.example.com/oauth2/token'

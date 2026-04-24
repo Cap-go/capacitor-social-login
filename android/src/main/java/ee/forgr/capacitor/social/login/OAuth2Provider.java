@@ -73,6 +73,7 @@ public class OAuth2Provider implements SocialProvider {
     private static class OAuth2ProviderConfig {
 
         final String appId;
+        final String clientSecret;
         final String issuerUrl;
         final String authorizationBaseUrl;
         final String accessTokenEndpoint;
@@ -93,6 +94,7 @@ public class OAuth2Provider implements SocialProvider {
 
         OAuth2ProviderConfig(
             String appId,
+            String clientSecret,
             String issuerUrl,
             String authorizationBaseUrl,
             String accessTokenEndpoint,
@@ -112,6 +114,7 @@ public class OAuth2Provider implements SocialProvider {
             boolean logsEnabled
         ) {
             this.appId = appId;
+            this.clientSecret = clientSecret;
             this.issuerUrl = issuerUrl;
             this.authorizationBaseUrl = authorizationBaseUrl;
             this.accessTokenEndpoint = accessTokenEndpoint;
@@ -217,6 +220,7 @@ public class OAuth2Provider implements SocialProvider {
 
                             OAuth2ProviderConfig resolved = new OAuth2ProviderConfig(
                                 config.appId,
+                                config.clientSecret,
                                 config.issuerUrl,
                                 (config.authorizationBaseUrl != null && !config.authorizationBaseUrl.isEmpty())
                                     ? config.authorizationBaseUrl
@@ -286,6 +290,11 @@ public class OAuth2Provider implements SocialProvider {
                 continue;
             }
 
+            String clientSecret = config.optString("clientSecret", null);
+            if (clientSecret != null && clientSecret.isEmpty()) {
+                clientSecret = null;
+            }
+
             Map<String, String> additionalParameters = null;
             if (config.has("additionalParameters")) {
                 additionalParameters = jsonObjectToMap(config.getJSONObject("additionalParameters"));
@@ -308,6 +317,7 @@ public class OAuth2Provider implements SocialProvider {
 
             OAuth2ProviderConfig providerConfig = new OAuth2ProviderConfig(
                 appId,
+                clientSecret,
                 issuerUrl,
                 (authorizationBaseUrl != null && !authorizationBaseUrl.isEmpty()) ? authorizationBaseUrl : null,
                 config.has("accessTokenEndpoint") ? config.optString("accessTokenEndpoint", null) : config.optString("tokenEndpoint", null),
@@ -684,7 +694,12 @@ public class OAuth2Provider implements SocialProvider {
         String error = data.getStringExtra("error");
         if (error != null) {
             String description = data.getStringExtra("error_description");
-            pendingCall.reject(description != null ? description : error);
+            String message = description != null ? description : error;
+            if (isUserDeniedRedirect(error, description)) {
+                pendingCall.reject(message, USER_CANCELLED_CODE);
+            } else {
+                pendingCall.reject(message);
+            }
             cleanupPending();
             return true;
         }
@@ -706,6 +721,17 @@ public class OAuth2Provider implements SocialProvider {
         pendingCall.reject("No authorization code or access token in callback");
         cleanupPending();
         return true;
+    }
+
+    private boolean isUserDeniedRedirect(String error, String description) {
+        if ("access_denied".equalsIgnoreCase(error)) {
+            return true;
+        }
+        if (description == null) {
+            return false;
+        }
+        String normalizedDescription = description.toLowerCase();
+        return normalizedDescription.contains("access_denied") || normalizedDescription.contains("access denied");
     }
 
     private void handleImplicitFlowResponse(Intent data) {
@@ -820,6 +846,10 @@ public class OAuth2Provider implements SocialProvider {
             bodyBuilder.add("code_verifier", pendingState.codeVerifier);
         }
 
+        if (config.clientSecret != null) {
+            bodyBuilder.add("client_secret", config.clientSecret);
+        }
+
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
                 bodyBuilder.add(entry.getKey(), entry.getValue());
@@ -905,6 +935,10 @@ public class OAuth2Provider implements SocialProvider {
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
             .add("client_id", config.appId);
+
+        if (config.clientSecret != null) {
+            bodyBuilder.add("client_secret", config.clientSecret);
+        }
 
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {

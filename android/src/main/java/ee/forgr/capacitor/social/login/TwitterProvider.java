@@ -225,7 +225,12 @@ public class TwitterProvider implements SocialProvider {
         String error = data.getStringExtra("error");
         if (error != null) {
             String description = data.getStringExtra("error_description");
-            pendingCall.reject(description != null ? description : error);
+            String message = description != null ? description : error;
+            if (isUserDeniedRedirect(error, description)) {
+                pendingCall.reject(message, USER_CANCELLED_CODE);
+            } else {
+                pendingCall.reject(message);
+            }
             cleanupPending();
             return true;
         }
@@ -239,6 +244,17 @@ public class TwitterProvider implements SocialProvider {
 
         exchangeAuthorizationCode(code);
         return true;
+    }
+
+    private boolean isUserDeniedRedirect(String error, String description) {
+        if ("access_denied".equalsIgnoreCase(error)) {
+            return true;
+        }
+        if (description == null) {
+            return false;
+        }
+        String normalizedDescription = description.toLowerCase();
+        return normalizedDescription.contains("access_denied") || normalizedDescription.contains("access denied");
     }
 
     private void exchangeAuthorizationCode(String code) {
