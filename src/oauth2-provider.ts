@@ -35,6 +35,9 @@ interface OAuth2StoredTokens {
 
 interface OAuth2ConfigInternal {
   appId: string;
+  clientIdParamName: string;
+  clientSecret?: string;
+  clientSecretParamName: string;
   issuerUrl?: string;
   authorizationBaseUrl?: string;
   accessTokenEndpoint?: string;
@@ -76,6 +79,8 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     const accessTokenEndpoint = config.accessTokenEndpoint ?? config.tokenEndpoint;
     const logoutUrl = config.logoutUrl ?? config.endSessionEndpoint;
     const scopeSource = config.scope ?? config.scopes;
+    const clientIdParamName = config.clientIdParamName || 'client_id';
+    const clientSecretParamName = config.clientSecretParamName || 'client_secret';
 
     if (!appId) {
       throw new Error(`OAuth2 provider '${providerId}' requires appId (or clientId).`);
@@ -91,6 +96,9 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
     return {
       appId,
+      clientIdParamName,
+      clientSecret: config.clientSecret,
+      clientSecretParamName,
       issuerUrl: config.issuerUrl,
       authorizationBaseUrl,
       accessTokenEndpoint,
@@ -201,7 +209,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     // Build authorization URL
     const params = new URLSearchParams({
       response_type: config.responseType,
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
       redirect_uri: redirectUri,
       state,
     });
@@ -625,13 +633,17 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
       code,
       redirect_uri: pending.redirectUri,
     });
 
     if (config.pkceEnabled) {
       params.set('code_verifier', pending.codeVerifier);
+    }
+
+    if (config.clientSecret) {
+      params.set(config.clientSecretParamName, config.clientSecret);
     }
 
     if (config.additionalTokenParameters) {
@@ -673,8 +685,12 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
     });
+
+    if (config.clientSecret) {
+      params.set(config.clientSecretParamName, config.clientSecret);
+    }
 
     if (config.additionalTokenParameters) {
       for (const [k, v] of Object.entries(config.additionalTokenParameters)) {

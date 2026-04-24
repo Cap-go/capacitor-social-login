@@ -36,6 +36,10 @@ public class SocialLoginPlugin extends Plugin {
     public void initialize(PluginCall call) {
         // Set plugin instance for config access
         DependencyAvailabilityChecker.setPluginInstance(this);
+        OAuth2Provider oauth2Provider = null;
+        JSObject oauth2Configs = new JSObject();
+        boolean hasOAuth2Config = false;
+        boolean hasTikTokConfig = false;
 
         JSObject apple = call.getObject("apple");
         if (apple != null) {
@@ -166,15 +170,55 @@ public class SocialLoginPlugin extends Plugin {
 
         JSObject oauth2 = call.getObject("oauth2");
         if (oauth2 != null && oauth2.length() > 0) {
-            // oauth2 is now a map of providerId -> config: { "github": {...}, "azure": {...} }
-            OAuth2Provider oauth2Provider = new OAuth2Provider(this.getActivity(), this.getContext());
+            oauth2Configs = oauth2;
+            hasOAuth2Config = true;
+        }
+
+        JSObject tiktok = call.getObject("tiktok");
+        if (tiktok != null) {
+            String clientKey = tiktok.getString("clientKey");
+            String redirectUrl = tiktok.getString("redirectUrl");
+            if (clientKey == null || clientKey.isEmpty()) {
+                call.reject("tiktok.clientKey is null or empty");
+                return;
+            }
+            if (redirectUrl == null || redirectUrl.isEmpty()) {
+                call.reject("tiktok.redirectUrl is null or empty");
+                return;
+            }
+            JSObject tikTokConfig = new JSObject();
+            tikTokConfig.put("appId", clientKey);
+            tikTokConfig.put("redirectUrl", redirectUrl);
+            tikTokConfig.put("authorizationBaseUrl", "https://www.tiktok.com/v2/auth/authorize/");
+            tikTokConfig.put("accessTokenEndpoint", "https://open.tiktokapis.com/v2/oauth/token/");
+            tikTokConfig.put("responseType", "code");
+            tikTokConfig.put("pkceEnabled", tiktok.getBool("pkceEnabled", true));
+            tikTokConfig.put("scope", tiktok.has("scopes") ? tiktok.get("scopes") : tiktok.optString("scope", "user.info.basic"));
+            tikTokConfig.put("clientIdParamName", "client_key");
+            tikTokConfig.put("clientSecretParamName", "client_secret");
+            tikTokConfig.put("logsEnabled", tiktok.getBool("logsEnabled", false));
+            String clientSecret = tiktok.getString("clientSecret");
+            if (clientSecret != null && !clientSecret.isEmpty()) {
+                tikTokConfig.put("clientSecret", clientSecret);
+            }
+            oauth2Configs.put("tiktok", tikTokConfig);
+            hasOAuth2Config = true;
+            hasTikTokConfig = true;
+        }
+
+        if (hasOAuth2Config) {
+            // oauth2Configs is a map of providerId -> config: { "github": {...}, "azure": {...}, "tiktok": {...} }
+            oauth2Provider = new OAuth2Provider(this.getActivity(), this.getContext());
             try {
-                java.util.List<String> errors = oauth2Provider.initializeProviders(oauth2);
+                java.util.List<String> errors = oauth2Provider.initializeProviders(oauth2Configs);
                 if (!errors.isEmpty()) {
                     call.reject(String.join(", ", errors));
                     return;
                 }
                 this.socialProviderHashMap.put("oauth2", oauth2Provider);
+                if (hasTikTokConfig) {
+                    this.socialProviderHashMap.put("tiktok", oauth2Provider);
+                }
                 oauth2Provider.setActivityLauncher((intent, requestCode) -> {
                     PluginCall loginCall = oauth2Provider.getPendingCall();
                     if (loginCall != null) {
@@ -200,6 +244,14 @@ public class SocialLoginPlugin extends Plugin {
         }
 
         JSONObject options = call.getObject("options", new JSObject());
+        if ("tiktok".equals(providerStr)) {
+            try {
+                options.put("providerId", "tiktok");
+            } catch (JSONException e) {
+                call.reject("Failed to prepare TikTok login options", e);
+                return;
+            }
+        }
 
         SocialProvider provider = this.socialProviderHashMap.get(providerStr);
         if (provider == null) {
@@ -226,6 +278,15 @@ public class SocialLoginPlugin extends Plugin {
         String providerStr = call.getString("provider", "");
         if (providerStr == null || providerStr.isEmpty()) {
             call.reject("provider not provided");
+        }
+
+        if ("tiktok".equals(providerStr)) {
+            try {
+                call.getData().put("providerId", "tiktok");
+            } catch (Exception e) {
+                call.reject("Failed to prepare TikTok logout options", e);
+                return;
+            }
         }
 
         SocialProvider provider = this.socialProviderHashMap.get(providerStr);
@@ -255,6 +316,15 @@ public class SocialLoginPlugin extends Plugin {
             call.reject("provider not provided");
         }
 
+        if ("tiktok".equals(providerStr)) {
+            try {
+                call.getData().put("providerId", "tiktok");
+            } catch (Exception e) {
+                call.reject("Failed to prepare TikTok authorization options", e);
+                return;
+            }
+        }
+
         SocialProvider provider = this.socialProviderHashMap.get(providerStr);
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
@@ -282,6 +352,15 @@ public class SocialLoginPlugin extends Plugin {
             call.reject("provider not provided");
         }
 
+        if ("tiktok".equals(providerStr)) {
+            try {
+                call.getData().put("providerId", "tiktok");
+            } catch (Exception e) {
+                call.reject("Failed to prepare TikTok isLoggedIn options", e);
+                return;
+            }
+        }
+
         SocialProvider provider = this.socialProviderHashMap.get(providerStr);
         if (provider == null) {
             // Check if provider is disabled (dependencies not available)
@@ -307,6 +386,18 @@ public class SocialLoginPlugin extends Plugin {
         String providerStr = call.getString("provider", "");
         if (providerStr == null || providerStr.isEmpty()) {
             call.reject("provider not provided");
+        }
+
+        if ("tiktok".equals(providerStr)) {
+            try {
+                JSObject data = call.getData();
+                JSObject options = call.getObject("options", new JSObject());
+                options.put("providerId", "tiktok");
+                data.put("options", options);
+            } catch (Exception e) {
+                call.reject("Failed to prepare TikTok refresh options", e);
+                return;
+            }
         }
 
         SocialProvider provider = this.socialProviderHashMap.get(providerStr);
