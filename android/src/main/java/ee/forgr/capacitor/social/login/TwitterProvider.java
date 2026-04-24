@@ -203,8 +203,14 @@ public class TwitterProvider implements SocialProvider {
         }
 
         if (resultCode != Activity.RESULT_OK) {
+            boolean userCancelled = data != null && data.getBooleanExtra(TwitterLoginActivity.EXTRA_USER_CANCELLED, false);
             String error = data != null ? data.getStringExtra("error") : "User cancelled";
-            pendingCall.reject(error != null ? error : "User cancelled", USER_CANCELLED_CODE);
+            String message = error != null ? error : "User cancelled";
+            if (userCancelled) {
+                pendingCall.reject(message, USER_CANCELLED_CODE);
+            } else {
+                pendingCall.reject(message);
+            }
             cleanupPending();
             return true;
         }
