@@ -99,6 +99,8 @@ export class FacebookSocialLogin extends BaseSocialLogin {
         (response) => {
           if (response.status === 'connected') {
             resolveWithProfile(response.authResponse);
+          } else if (response.status === 'not_authorized' || response.status === 'unknown') {
+            reject(new Error('Facebook login was cancelled.'));
           } else {
             waitForConnected();
           }
@@ -155,6 +157,12 @@ export class FacebookSocialLogin extends BaseSocialLogin {
           if (response.status === 'connected' && response.authResponse?.accessToken) {
             finished = true;
             resolve(response);
+            return;
+          }
+
+          if (response.status === 'not_authorized' || response.status === 'unknown') {
+            finished = true;
+            reject(new Error('Facebook login was cancelled.'));
             return;
           }
 
