@@ -64,6 +64,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private let twitter = TwitterProvider()
     private let oauth2 = OAuth2Provider()
+    private let telegram = TelegramProvider()
     private var openSecureWindowCall: CAPPluginCall?
 
     // Helper to get Facebook provider (returns nil if unavailable)
@@ -148,6 +149,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         case "twitter":
             // Check config first (for "fake disable")
             return isProviderEnabledInConfig("twitter")
+        case "telegram":
+            return isProviderEnabledInConfig("telegram")
         default:
             return false
         }
@@ -226,6 +229,19 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             let forceLogin = twitterSettings["forceLogin"] as? Bool ?? false
             let audience = twitterSettings["audience"] as? String
             twitter.initialize(clientId: clientId, redirectUri: redirectUrl, defaultScopes: defaultScopes, forceLogin: forceLogin, audience: audience)
+            initialized = true
+        }
+
+        if let telegramSettings = call.getObject("telegram") {
+            guard let botId = telegramSettings["botId"] as? String, !botId.isEmpty else {
+                call.reject("telegram.botId is required")
+                return
+            }
+            let requestAccess = telegramSettings["requestAccess"] as? String
+            let origin = telegramSettings["origin"] as? String
+            let redirectUrl = telegramSettings["redirectUrl"] as? String
+            let languageCode = telegramSettings["languageCode"] as? String
+            telegram.initialize(botId: botId, requestAccess: requestAccess, origin: origin, redirectUri: redirectUrl, languageCode: languageCode)
             initialized = true
         }
 
@@ -332,6 +348,16 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "telegram": do {
+            self.telegram.getAuthorizationCode { res in
+                switch res {
+                case .success:
+                    call.reject("getAuthorizationCode is not available for Telegram.")
+                case .failure(let error):
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         case "oauth2": do {
             guard let providerId = call.getString("providerId") else {
                 call.reject("providerId is required for oauth2 getAuthorizationCode")
@@ -414,6 +440,16 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+        case "telegram": do {
+            self.telegram.isLoggedIn { res in
+                switch res {
+                case .success(let status):
+                    call.resolve([ "isLoggedIn": status ])
+                case .failure(let error):
+                    call.reject(error.localizedDescription)
+                }
+            }
+        }
         case "oauth2": do {
             guard let providerId = call.getString("providerId") else {
                 call.reject("providerId is required for oauth2 isLoggedIn")
@@ -467,6 +503,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         case "twitter":
             twitter.login(payload: payload) { (result: Result<TwitterProfileResponse, Error>) in
+                self.handleLoginResult(result, call: call)
+            }
+        case "telegram":
+            telegram.login(payload: payload) { (result: Result<TelegramLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "oauth2":
@@ -563,6 +603,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             twitter.logout { result in
                 self.handleLogoutResult(result, call: call)
             }
+        case "telegram":
+            telegram.logout { result in
+                self.handleLogoutResult(result, call: call)
+            }
         case "oauth2":
             guard let providerId = call.getString("providerId") else {
                 call.reject("providerId is required for oauth2 logout")
@@ -609,6 +653,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
         case "twitter":
             twitter.refresh { result in
+                self.handleRefreshResult(result, call: call)
+            }
+        case "telegram":
+            telegram.refresh { result in
                 self.handleRefreshResult(result, call: call)
             }
         case "oauth2":
@@ -959,6 +1007,24 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve([
                     "provider": "twitter",
                     "result": twitterResult
+                ])
+            } else if let telegramResponse = response as? TelegramLoginResponse {
+                let profile: [String: Any] = [
+                    "id": telegramResponse.profile.id,
+                    "firstName": telegramResponse.profile.firstName,
+                    "lastName": telegramResponse.profile.lastName ?? NSNull(),
+                    "username": telegramResponse.profile.username ?? NSNull(),
+                    "photoUrl": telegramResponse.profile.photoUrl ?? NSNull()
+                ]
+                let telegramResult: [String: Any] = [
+                    "profile": profile,
+                    "authDate": telegramResponse.authDate,
+                    "hash": telegramResponse.hash,
+                    "requestAccess": telegramResponse.requestAccess
+                ]
+                call.resolve([
+                    "provider": "telegram",
+                    "result": telegramResult
                 ])
             } else if let oauth2Response = response as? OAuth2LoginResponse {
                 let accessToken: [String: Any] = [
