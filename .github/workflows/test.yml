@@ -41,7 +41,7 @@ jobs:
           java-version: '21'
       - name: Build
         id: build_code
-        run: npm run verify:android
+        run: bun run verify:android
   build_ios:
     timeout-minutes: 30
     runs-on: macOS-latest
