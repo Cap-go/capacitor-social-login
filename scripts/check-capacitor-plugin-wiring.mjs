@@ -11,8 +11,8 @@
  * - CocoaPods podspec s.name matches SwiftPM Package(name: ...) and .library(name: ...)
  *
  * Usage:
- *   node tools/check-capacitor-plugin-wiring.mjs            # checks current working dir
- *   node tools/check-capacitor-plugin-wiring.mjs --dir path # checks given plugin dir
+ *   node scripts/check-capacitor-plugin-wiring.mjs            # checks current working dir
+ *   node scripts/check-capacitor-plugin-wiring.mjs --dir path # checks given plugin dir
  */
 
 import fs from "node:fs";

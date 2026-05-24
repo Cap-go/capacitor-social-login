@@ -10,8 +10,8 @@ on:
 
 jobs:
   guard_swiftpm_version:
-    timeout-minutes: 30
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out
         uses: actions/checkout@v6
@@ -23,12 +23,16 @@ jobs:
             exit 1
           fi
   build_android:
-    timeout-minutes: 30
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out
         uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
       - name: Install dependencies
         id: install_code
         run: bun i
@@ -41,14 +45,21 @@ jobs:
           java-version: '21'
       - name: Build
         id: build_code
-        run: npm run verify:android
+        run: bun run verify:android
+      - name: Verify packed package in example app (Android)
+        shell: bash
+        run: bash ./.github/scripts/verify-packed-example.sh android
   build_ios:
-    timeout-minutes: 30
     runs-on: macOS-latest
+    timeout-minutes: 30
     steps:
       - name: Check out
         uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
       - name: Install dependencies
         id: install_code
         run: bun i
@@ -57,9 +68,12 @@ jobs:
       - name: Build
         id: build_code
         run: bun run verify:ios
+      - name: Verify packed package in example app (iOS)
+        shell: bash
+        run: bash ./.github/scripts/verify-packed-example.sh ios
   web:
-    timeout-minutes: 30
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: 'Build code and test'
     steps:
       - name: Check out
@@ -73,9 +87,9 @@ jobs:
       - name: Lint
         id: lint_code
         run: bun run lint
-      - name: Build
-        id: build_code
-        run: bun run build
+      - name: Verify packed package in example app (Web)
+        shell: bash
+        run: bash ./.github/scripts/verify-packed-example.sh web
       - name: Verify
         id: verify_code
         run: bun run verify:web

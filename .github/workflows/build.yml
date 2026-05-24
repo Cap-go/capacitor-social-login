@@ -12,8 +12,8 @@ on:
 jobs:
   # Tests already passed before tag was created, so just build and deploy
   deploy:
-    timeout-minutes: 30
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     name: "Build and publish to npm"
     permissions:
       contents: write
@@ -33,13 +33,49 @@ jobs:
       - name: Build
         id: build_code
         run: bun run build
+      - name: Detect previous tag
+        id: previous_tag
+        shell: bash
+        run: |
+          current_tag="${GITHUB_REF##*/}"
+          echo "current=$current_tag" >> "$GITHUB_OUTPUT"
+          if previous_tag=$(git describe --tags --abbrev=0 "${current_tag}^" 2>/dev/null); then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "value=$previous_tag" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Generate AI changelog
         id: changelog
+        if: ${{ steps.previous_tag.outputs.found == 'true' }}
         uses: mistricky/ccc@v0.2.6
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           model: claude-sonnet-4-5-20250929
+      - name: Prepare release notes
+        id: release_notes
+        shell: bash
+        env:
+          CURRENT_TAG: ${{ steps.previous_tag.outputs.current }}
+          PREVIOUS_TAG: ${{ steps.previous_tag.outputs.value }}
+          CHANGELOG_TEXT: ${{ steps.changelog.outputs.result }}
+        run: |
+          if [[ "${{ steps.previous_tag.outputs.found }}" == "true" ]]; then
+            {
+              printf '## 🆕 Changelog\n\n'
+              printf '%s\n\n' "$CHANGELOG_TEXT"
+              printf '%s\n\n' '---'
+              printf '🔗 **Full Changelog**: https://github.com/${{ github.repository }}/compare/%s...%s\n' "$PREVIOUS_TAG" "$CURRENT_TAG"
+            } > release-notes.md
+          else
+            {
+              printf '## 🆕 Changelog\n\n'
+              printf 'Initial release.\n\n'
+              printf '%s\n\n' '---'
+              printf '🔖 **Tag**: %s\n' "$CURRENT_TAG"
+            } > release-notes.md
+          fi
       - name: Setup Node.js for npm publish
         uses: actions/setup-node@v6
         with:
@@ -57,16 +93,9 @@ jobs:
         run: npm publish --tag next --provenance --access public
       - name: Create GitHub release
         id: create_release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
-          body: |
-            ## 🆕 Changelog
-            
-            ${{ steps.changelog.outputs.result }}
-            
-            ---
-
-            🔗 **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.changelog.outputs.from_tag }}...${{ steps.changelog.outputs.to_tag }}
+          body_path: release-notes.md
           make_latest: true
           token: '${{ secrets.PERSONAL_ACCESS_TOKEN }}'
           prerelease: ${{ contains(github.ref, '-alpha.') }}
