@@ -10,7 +10,8 @@ on:
 
 jobs:
   guard_swiftpm_version:
-    timeout-minutes: 30
+    # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js
@@ -27,7 +28,8 @@ jobs:
             exit 1
           fi
   build_android:
-    timeout-minutes: 30
+    # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js
@@ -54,7 +56,8 @@ jobs:
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh android
   build_ios:
-    timeout-minutes: 30
+    # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
+    timeout-minutes: 10
     runs-on: macOS-latest
     steps:
       - name: Setup Node.js
@@ -76,7 +79,8 @@ jobs:
         shell: bash
         run: bash ./.github/scripts/verify-packed-example.sh ios
   web:
-    timeout-minutes: 30
+    # Keep this job capped at 10 minutes; never raise it unless explicitly asked.
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     name: 'Build code and test'
     steps:
