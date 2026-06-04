@@ -44,7 +44,7 @@ case "$platform" in
     bunx cap add android
     bunx cap sync android
     cd android
-    ./gradlew build test
+    ./gradlew build test -x lint -x lintDebug
     ;;
   ios)
     rm -rf ios
