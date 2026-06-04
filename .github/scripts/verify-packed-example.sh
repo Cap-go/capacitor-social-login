@@ -34,6 +34,7 @@ fi
 plugin_name="$(bun -e 'console.log(require("./package.json").name)')"
 cp -R example-app/. "$test_app/"
 cd "$test_app"
+rm -f bun.lock bun.lockb package-lock.json yarn.lock pnpm-lock.yaml
 bun remove "$plugin_name"
 bun add "${packed_packages[0]}"
 bun run build
