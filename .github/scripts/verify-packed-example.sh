@@ -41,6 +41,8 @@ bun run build
 case "$platform" in
   android)
     rm -rf android
+    capacitor_version="$(bun -e 'console.log(require("@capacitor/core/package.json").version)')"
+    bun add "@capacitor/android@$capacitor_version"
     bunx cap add android
     bunx cap sync android
     cd android
@@ -48,6 +50,8 @@ case "$platform" in
     ;;
   ios)
     rm -rf ios
+    capacitor_version="$(bun -e 'console.log(require("@capacitor/core/package.json").version)')"
+    bun add "@capacitor/ios@$capacitor_version"
     bunx cap add ios
     bunx cap sync ios
     xcodebuild -project ios/App/App.xcodeproj -scheme App -destination generic/platform=iOS CODE_SIGNING_ALLOWED=NO
