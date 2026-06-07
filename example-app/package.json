@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "capgo:deploy": "cd .. && bun run example:capgo:deploy"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
@@ -20,7 +21,8 @@
     "firebase": "^12.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.6"
+    "react-router-dom": "^7.9.6",
+    "@capgo/capacitor-updater": "^8.45.11"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
