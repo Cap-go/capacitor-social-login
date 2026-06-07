@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SocialLogin } from '../../src';
+import { SocialLogin } from '@capgo/capacitor-social-login';
 import { supabase } from './supabase';
 import { authenticateWithGoogleSupabase, authenticateWithAppleSupabase, authenticateWithFacebookSupabase, authenticateWithTwitterSupabase } from './supabaseAuthUtils';
 import './App.css';
