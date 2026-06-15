@@ -10,7 +10,7 @@ import {
   type FacebookLoginResponse,
   type FacebookRequestTrackingResponse,
   type AuthorizationCode,
-} from '@capgo/capacitor-social-login';
+} from '../../src';
 import { Capacitor } from '@capacitor/core';
 import { PrivacyScreen } from '@capacitor/privacy-screen';
 import FirebasePage from './FirebasePage';
