@@ -6,12 +6,14 @@ const config: CapacitorConfig = {
   appName: 'a',
   webDir: 'dist',
   plugins: {
+    SplashScreen: {
+      launchAutoHide: false,
+    },
     CapacitorUpdater: {
       appId: 'app.capgo.plugin.SocialLogin',
       autoUpdate: true,
       autoSplashscreen: true,
       directUpdate: 'always',
-      defaultChannel: 'production',
       version: pkg.version,
     },
 

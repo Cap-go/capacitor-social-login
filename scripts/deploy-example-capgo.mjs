@@ -31,7 +31,7 @@ function readConfigString(key, fallback) {
 
 function runCapgo(args, allowFailure = false) {
   const token = process.env.CAPGO_TOKEN;
-  const fullArgs = ['@capgo/cli@8.0.2', ...args];
+  const fullArgs = ['@capgo/cli@8.5.3', ...args];
   if (token) {
     fullArgs.push('--apikey', token);
   }
@@ -90,6 +90,12 @@ if (setStatus !== 0) {
 }
 
 console.log(`Deploying ${appId} to Capgo channel "${channel}"`);
+const channelArgs = ['channel', 'add', channel, appId];
+if (channel === 'production') {
+  channelArgs.push('--default');
+}
+runCapgo(channelArgs, true);
+
 
 runCapgo([
   'bundle',

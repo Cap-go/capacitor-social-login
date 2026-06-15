@@ -10,6 +10,7 @@
         "@capacitor/core": "^8.0.0",
         "@capacitor/ios": "^8.0.0",
         "@capacitor/privacy-screen": "^1.1.1",
+        "@capacitor/splash-screen": "^8.0.0",
         "@capgo/capacitor-social-login": "file:../",
         "@capgo/capacitor-updater": "^8.45.11",
         "@supabase/supabase-js": "^2.86.0",
@@ -85,6 +86,8 @@
     "@capacitor/ios": ["@capacitor/ios@8.0.0", "", { "peerDependencies": { "@capacitor/core": "^8.0.0" } }, "sha512-gwSn6X4uHYNHlM8zZmVmM1zjEhexxbHpPSSnH1DZkp8o3zdK/RmH8tmDma+3zPZrhhTSrMC7sT24dKTOvV8www=="],
 
     "@capacitor/privacy-screen": ["@capacitor/privacy-screen@1.1.1", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-UbNtrhhj3fLqnCERYhS3sEOwO22C4bQmyidjdh6bT7Z8hz8kAdNnmCUSb+toAnNVjSD5M+727AwrWysuktRypA=="],
+
+    "@capacitor/splash-screen": ["@capacitor/splash-screen@8.0.1", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-c/ew/Z3eA7z8l06WoRAtzVF16VwYYrExmHmfGq1Cg675pVzaC/yuucB8/1xG1vhEfnW4fZ1KhSf/kzR1RiVYgg=="],
 
     "@capgo/capacitor-social-login": ["@capgo/capacitor-social-login@file:..", { "devDependencies": { "@capacitor/android": "^7.0.0", "@capacitor/ios": "^7.0.0", "@types/node": "^22.10.1", "eslint": "^8.57.0", "prettier": "^3.4.2", "rimraf": "^6.0.1", "rollup": "^4.34.0", "typescript": "5.9.3" }, "peerDependencies": { "@capacitor/core": ">=7.0.0" } }],
 
