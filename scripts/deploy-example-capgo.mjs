@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-env node */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,13 +29,8 @@ function readConfigString(key, fallback) {
   const match = configText.match(new RegExp(`['"]?${key}['"]?\\s*[:=]\\s*['"]([^'"]+)['"]`));
   return match?.[1] ?? fallback;
 }
-
 function runCapgo(args, allowFailure = false) {
-  const token = process.env.CAPGO_TOKEN;
   const fullArgs = ['@capgo/cli@8.5.3', ...args];
-  if (token) {
-    fullArgs.push('--apikey', token);
-  }
   const result = spawnSync('bunx', fullArgs, {
     cwd: appDir,
     stdio: 'inherit',
@@ -44,6 +40,7 @@ function runCapgo(args, allowFailure = false) {
     process.exit(result.status ?? 1);
   }
   return result.status ?? 1;
+}
 }
 
 const appId = process.env.CAPGO_APP_ID || readConfigString('appId');
@@ -99,6 +96,8 @@ runCapgo(channelArgs, true);
 
 runCapgo([
   'bundle',
+// The example app uploads unsigned bundles and skips checksum validation because
+// it is not a production deployment template.
   'upload',
   appId,
   '--bundle',

@@ -10,7 +10,6 @@ const config: CapacitorConfig = {
       launchAutoHide: false,
     },
     CapacitorUpdater: {
-      appId: 'app.capgo.plugin.SocialLogin',
       autoUpdate: true,
       autoSplashscreen: true,
       directUpdate: 'always',

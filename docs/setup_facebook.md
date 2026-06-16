@@ -1,1 +1,3 @@
+# Facebook Login Setup
+
 Documentation for this plugin moved to: https://capgo.app/docs/plugins/social-login/

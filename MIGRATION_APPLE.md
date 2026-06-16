@@ -127,7 +127,7 @@ The new plugin provides Android support out of the box, but requires additional 
 2. Configure a web authentication endpoint
 3. Set up your Android app to handle the OAuth flow
 
-For detailed Android setup instructions, please refer to the [Android Setup Guide](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_apple.md#apple-login-on-android).
+For detailed Android setup instructions, please refer to the [Android Setup Guide](https://capgo.app/docs/plugins/social-login/).
 
 ## Additional Features
 
@@ -147,4 +147,4 @@ The new plugin offers several advantages:
 4. Token refresh handling is different
 5. Error handling and error types have changed
 
-For more detailed setup instructions, please refer to the [official documentation](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_apple.md). 
+For more detailed setup instructions, please refer to the [official documentation](https://capgo.app/docs/plugins/social-login/).
