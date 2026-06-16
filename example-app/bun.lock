@@ -10,7 +10,9 @@
         "@capacitor/core": "^8.0.0",
         "@capacitor/ios": "^8.0.0",
         "@capacitor/privacy-screen": "^1.1.1",
+        "@capacitor/splash-screen": "^8.0.0",
         "@capgo/capacitor-social-login": "file:../",
+        "@capgo/capacitor-updater": "^8.45.11",
         "@supabase/supabase-js": "^2.86.0",
         "firebase": "^12.6.0",
         "react": "^19.1.1",
@@ -85,7 +87,11 @@
 
     "@capacitor/privacy-screen": ["@capacitor/privacy-screen@1.1.1", "", { "peerDependencies": { "@capacitor/core": ">=7.0.0" } }, "sha512-UbNtrhhj3fLqnCERYhS3sEOwO22C4bQmyidjdh6bT7Z8hz8kAdNnmCUSb+toAnNVjSD5M+727AwrWysuktRypA=="],
 
+    "@capacitor/splash-screen": ["@capacitor/splash-screen@8.0.1", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-c/ew/Z3eA7z8l06WoRAtzVF16VwYYrExmHmfGq1Cg675pVzaC/yuucB8/1xG1vhEfnW4fZ1KhSf/kzR1RiVYgg=="],
+
     "@capgo/capacitor-social-login": ["@capgo/capacitor-social-login@file:..", { "devDependencies": { "@capacitor/android": "^7.0.0", "@capacitor/ios": "^7.0.0", "@types/node": "^22.10.1", "eslint": "^8.57.0", "prettier": "^3.4.2", "rimraf": "^6.0.1", "rollup": "^4.34.0", "typescript": "5.9.3" }, "peerDependencies": { "@capacitor/core": ">=7.0.0" } }],
+
+    "@capgo/capacitor-updater": ["@capgo/capacitor-updater@8.47.10", "", { "peerDependencies": { "@capacitor/core": "^8.0.0" } }, "sha512-T/x2Lu9WXknYzCGLKNv1tVaV+UDqBONFI5I2iXg9I5IOSm7Q60DtHuAWckT1BHzszEZ/XqkMqh89cXhhEesViA=="],
 
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 

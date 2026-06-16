@@ -5,7 +5,7 @@ import {
   type AuthConnectProviderId,
   type OAuth2LoginResponse,
   type AuthorizationCode,
-} from '../../src';
+} from '@capgo/capacitor-social-login';
 import './App.css';
 
 type Provider = AuthConnectProviderId;

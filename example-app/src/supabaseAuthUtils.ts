@@ -1,4 +1,4 @@
-import { SocialLogin, type GoogleLoginOptions, type GoogleLoginResponseOnline, type AppleProviderResponse } from '../../src';
+import { SocialLogin, type GoogleLoginOptions, type GoogleLoginResponseOnline, type AppleProviderResponse } from '@capgo/capacitor-social-login';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from './supabase';
 

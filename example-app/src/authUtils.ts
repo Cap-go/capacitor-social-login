@@ -1,5 +1,5 @@
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
-import { SocialLogin, type GoogleLoginOptions, type GoogleLoginResponseOnline } from '../../src';
+import { SocialLogin, type GoogleLoginOptions, type GoogleLoginResponseOnline } from '@capgo/capacitor-social-login';
 import { Capacitor } from '@capacitor/core';
 import { auth } from './firebase';
 
