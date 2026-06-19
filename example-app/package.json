@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "capgo:deploy": "cd .. && bun run example:capgo:deploy"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
