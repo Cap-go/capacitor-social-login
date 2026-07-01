@@ -926,9 +926,10 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 ])
             } else if let facebookResponse = response as? FacebookLoginResponse {
                 let facebookResult: [String: Any] = [
-                    "accessToken": facebookResponse.accessToken,
+                    "accessToken": facebookResponse.accessToken ?? NSNull(),
                     "profile": facebookResponse.profile,
-                    "idToken": facebookResponse.idToken ?? ""
+                    "idToken": facebookResponse.idToken ?? "",
+                    "isLimitedLogin": facebookResponse.isLimitedLogin
                 ]
                 call.resolve([
                     "provider": "facebook",

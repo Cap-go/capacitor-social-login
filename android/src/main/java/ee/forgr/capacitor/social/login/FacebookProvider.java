@@ -92,13 +92,21 @@ public class FacebookProvider implements SocialProvider {
                     public void onSuccess(LoginResult loginResult) {
                         Log.d(LOG_TAG, "LoginManager.onSuccess");
                         AccessToken accessToken = loginResult.getAccessToken();
+                        boolean isLimitedLogin = loginResult.getAuthenticationToken() != null
+                            && loginResult.getAuthenticationToken().getToken() != null
+                            && !loginResult.getAuthenticationToken().getToken().isEmpty();
                         JSObject result = new JSObject();
-                        result.put("accessToken", createAccessTokenObject(accessToken));
+                        if (isLimitedLogin) {
+                            result.put("accessToken", null);
+                        } else {
+                            result.put("accessToken", createAccessTokenObject(accessToken));
+                        }
                         result.put("profile", createProfileObject(accessToken));
                         result.put(
                             "idToken",
                             loginResult.getAuthenticationToken() != null ? loginResult.getAuthenticationToken().getToken() : null
                         );
+                        result.put("isLimitedLogin", isLimitedLogin);
 
                         JSObject response = new JSObject();
                         response.put("provider", "facebook");
