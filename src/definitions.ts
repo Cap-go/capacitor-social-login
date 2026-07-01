@@ -732,6 +732,13 @@ export interface AccessToken {
 
 export interface FacebookLoginResponse {
   accessToken: AccessToken | null;
+  /**
+   * Whether Facebook Limited Login was used for this session.
+   * When `true`, `accessToken` is not valid for Graph API calls (Facebook error 190).
+   * Validate `idToken` on your backend instead, or call `facebook#requestTracking` and log in again after ATT is granted.
+   * @since 8.4.0
+   */
+  isLimitedLogin?: boolean;
   idToken: string | null;
   profile: {
     userID: string;

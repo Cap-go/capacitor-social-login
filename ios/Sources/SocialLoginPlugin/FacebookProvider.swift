@@ -10,9 +10,10 @@ import AppTrackingTransparency
 #endif
 
 struct FacebookLoginResponse {
-    let accessToken: [String: Any]
+    let accessToken: [String: Any]?
     let profile: [String: Any]
     let idToken: String?
+    let isLimitedLogin: Bool
 }
 
 #if canImport(FBSDKLoginKit)
@@ -83,14 +84,6 @@ class FacebookProvider {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            // Check if a user is already logged in
-            if AccessToken.current != nil {
-                // User is already logged in, return current session info
-                let response = self.createLoginResponse()
-                completion(.success(response))
-                return
-            }
-
             self.loginManager.logIn(configuration: configuration) { result in
                 switch result {
                 case .success:
@@ -105,20 +98,31 @@ class FacebookProvider {
         }
     }
 
+    private func isLimitedLoginSession() -> Bool {
+        guard let authToken = AuthenticationToken.current else {
+            return false
+        }
+        return !authToken.tokenString.isEmpty
+    }
+
     private func createLoginResponse() -> FacebookLoginResponse {
         let profile = Profile.current
         let authToken = AuthenticationToken.current
+        let isLimitedLogin = isLimitedLoginSession()
 
-        let accessToken: [String: Any] = [
-            "applicationID": AccessToken.current?.appID ?? "",
-            "declinedPermissions": AccessToken.current?.declinedPermissions.map { $0.name } ?? [],
-            "expirationDate": AccessToken.current?.expirationDate ?? Date(),
-            "isExpired": AccessToken.current?.isExpired ?? false,
-            "refreshDate": AccessToken.current?.refreshDate ?? Date(),
-            "permissions": AccessToken.current?.permissions.map { $0.name } ?? [],
-            "token": AccessToken.current?.tokenString ?? "",
-            "userID": AccessToken.current?.userID ?? ""
-        ]
+        var accessToken: [String: Any]?
+        if !isLimitedLogin, let token = AccessToken.current {
+            accessToken = [
+                "applicationID": token.appID,
+                "declinedPermissions": token.declinedPermissions.map { $0.name },
+                "expirationDate": dateToJS(token.expirationDate),
+                "isExpired": token.isExpired,
+                "refreshDate": dateToJS(token.refreshDate),
+                "permissions": token.permissions.map { $0.name },
+                "token": token.tokenString,
+                "userID": token.userID
+            ]
+        }
 
         let profileData: [String: Any] = [
             "userID": profile?.userID ?? "",
@@ -137,7 +141,8 @@ class FacebookProvider {
         return FacebookLoginResponse(
             accessToken: accessToken,
             profile: profileData,
-            idToken: authToken?.tokenString
+            idToken: authToken?.tokenString,
+            isLimitedLogin: isLimitedLogin
         )
     }
 
@@ -213,15 +218,11 @@ class FacebookProvider {
     }
 
     func getAuthorizationCode(completion: @escaping (Result<(accessToken: String?, jwt: String?), Error>) -> Void) {
-        // First check if access token exists and is not expired
-        if let accessToken = AccessToken.current, !accessToken.isExpired {
-            // User is connected with access token, return it
-            completion(.success((accessToken: accessToken.tokenString, jwt: nil)))
-        } else if let authToken = AuthenticationToken.current, !authToken.tokenString.isEmpty {
-            // Access token not found but idToken (JWT) is available, return JWT
+        if let authToken = AuthenticationToken.current, !authToken.tokenString.isEmpty {
             completion(.success((accessToken: nil, jwt: authToken.tokenString)))
+        } else if let accessToken = AccessToken.current, !accessToken.isExpired {
+            completion(.success((accessToken: accessToken.tokenString, jwt: nil)))
         } else {
-            // Neither access token nor idToken available
             completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No Facebook authorization code available"])))
         }
     }
