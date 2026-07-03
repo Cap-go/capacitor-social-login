@@ -581,8 +581,22 @@ export interface GoogleLoginOptions {
 
 export interface GoogleLoginResponseOnline {
   accessToken: AccessToken | null;
+  /**
+   * OpenID Connect ID token (JWT).
+   *
+   * Includes an `email_verified` claim when the `email` scope is granted. Use
+   * `SocialLogin.decodeIdToken({ idToken })` to read claims on the client, but
+   * always verify the token signature, `iss`, `aud`, and `exp` on your backend
+   * before trusting `email_verified` for account linking.
+   *
+   * @see https://developers.google.com/identity/gsi/web/guides/verify-google-id-token
+   */
   idToken: string | null;
   profile: {
+    /**
+     * Email from the ID token payload. Does not include a separate verification flag;
+     * check `idToken` claims (`email_verified`) for whether Google attests the address.
+     */
     email: string | null;
     familyName: string | null;
     givenName: string | null;
@@ -638,13 +652,17 @@ export interface AppleProviderResponse {
   accessToken: AccessToken | null;
 
   /**
-   * Identity token (JWT) from Apple
-   * @description Always contains the JWT with user identity information including:
-   * - User ID (sub claim)
-   * - Email (if user granted permission)
-   * - Name components (if user granted permission)
-   * - Email verification status
-   * This is the primary token for user authentication and should be verified on your backend.
+   * Identity token (JWT) from Apple.
+   *
+   * Includes standard OIDC claims such as `sub`, `email` (when granted), and
+   * `email_verified` (boolean). Apple sets `email_verified` to `true` when it
+   * attests the user controls the email (including Hide My Email relay addresses).
+   *
+   * Use `SocialLogin.decodeIdToken({ idToken })` to read claims on the client, but
+   * verify the token signature, `iss`, `aud`, and `exp` on your backend before
+   * trusting `email_verified` for account linking.
+   *
+   * @see https://developer.apple.com/documentation/signinwithapple/authenticating-users-with-sign-in-with-apple
    */
   idToken: string | null;
 
@@ -739,9 +757,33 @@ export interface FacebookLoginResponse {
    * @since 8.4.0
    */
   isLimitedLogin?: boolean;
+  /**
+   * OpenID Connect ID token (JWT) from Meta Limited Login (iOS native, when available).
+   *
+   * **Not equivalent to Google/Apple `email_verified`:** Meta's OIDC token may include
+   * an `email` claim (when the `email` permission is granted) but does **not** publish an
+   * `email_verified` claim like Google or Apple. Meta documents the value as the user's
+   * primary account email, not as an OIDC-verified email assertion.
+   *
+   * On Android and Web this is usually `null` (Graph API access token flow instead).
+   * Validate signature, `iss` (`https://www.facebook.com` or `https://limited.facebook.com`),
+   * `aud`, `exp`, and nonce on your backend. Do not infer `email_verified: true` from the
+   * presence of `email` alone when linking accounts across providers.
+   *
+   * @see https://developers.facebook.com/docs/facebook-login/limited-login/token/validating/
+   */
   idToken: string | null;
   profile: {
     userID: string;
+    /**
+     * Primary email from the Meta profile / Graph API (`/me?fields=email`).
+     *
+     * **Not equivalent to Google/Apple `email_verified`:** this field has no verification
+     * flag. Meta returns the account's primary email when the `email` permission is
+     * granted; it does not expose an `email_verified` boolean comparable to Google or
+     * Apple ID tokens. Treat this as an identifier hint only—verify ownership yourself
+     * (e.g. magic link) before linking Meta sign-in to Google/Apple accounts by email.
+     */
     email: string | null;
     friendIDs: string[];
     birthday: string | null;
@@ -1021,6 +1063,16 @@ export interface SocialLoginPlugin {
    * Notes:
    * - Accepts both `idToken` and `token` to match common naming (Capawesome uses `token`).
    * - This does not validate the signature or issuer/audience. It only base64url-decodes the payload.
+   *
+   * **`email_verified` semantics by provider (for account linking):**
+   * - **Google** — ID token includes `email_verified` (boolean). When `true`, Google attests
+   *   the user controls that email. Verify the JWT on your backend before trusting it.
+   * - **Apple** — ID token includes `email_verified` (boolean). When `true`, Apple attests
+   *   the user controls that email (including private relay). Verify the JWT on your backend.
+   * - **Meta (Facebook)** — Limited Login OIDC tokens may include `email` but **do not**
+   *   include `email_verified`. The presence of `email` is not the same guarantee as
+   *   `email_verified: true` from Google or Apple. Do not link accounts by email across
+   *   providers using Meta claims alone; perform your own email verification if needed.
    */
   decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }>;
 
