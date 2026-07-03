@@ -1,3 +1,16 @@
+/* Capacitor example app defaults */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 :root {
   --app-surface: rgba(24, 24, 24, 0.92);
   --app-border: rgba(255, 255, 255, 0.08);
