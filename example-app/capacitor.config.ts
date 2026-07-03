@@ -3,7 +3,7 @@ import pkg from './package.json';
 
 const config: CapacitorConfig = {
   appId: 'app.capgo.plugin.SocialLogin',
-  appName: 'a',
+  appName: '@capgo/capacitor-social-login',
   webDir: 'dist',
   plugins: {
     SplashScreen: {
