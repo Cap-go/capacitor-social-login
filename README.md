@@ -420,26 +420,80 @@ const res = await SocialLogin.login({
 });
 ```
 
-#### Android troubleshooting (SHA-1 and Firebase)
+#### Android troubleshooting (Credential Manager, SHA-1, and Firebase)
 
-Many Android "auth 10/16" or blank-response issues come from a mismatched SHA-1 fingerprint. Use the exact build you install on the device to register the SHA-1 in Google Cloud/Firebase:
+On Android this plugin uses **Google Credential Manager** (`androidx.credentials` + Sign in with Google), not the legacy `GoogleSignInClient` API. Logcat errors such as `GetCredentialCustomException: [28444] Developer console is not set up correctly` come from that stack.
 
-1. Build a signed APK from Android Studio (`Build` → `Generate Signed App Bundle / APK`, pick APK) using your release keystore.
-2. Extract the SHA-1 from that final APK:
-   ```bash
-   keytool -printcert -jarfile android/app/release/app-release.apk
-   ```
-3. Add that SHA-1 to your Android OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (package name + SHA-1).
-4. Reinstall the same signed APK on device for testing:
-   ```bash
-   adb install android/app/release/app-release.apk
-   ```
-5. When consuming the plugin result, read tokens from `result.result`:
-   ```ts
-   const login = await SocialLogin.login({ provider: 'google' });
-   const idToken = login.result?.idToken; // not login.idToken
-   ```
-   For Firebase Auth, create credentials with that `idToken` (and use the Web Client ID as `webClientId` in `initialize`).
+Filter Logcat with `GoogleProvider` or `CapgoSocialLogin` after a failed login. The plugin logs your **package name**, **signing SHA-1**, and a masked **webClientId** to help compare against Google Cloud Console.
+
+##### Required Google Cloud setup (all in the same project)
+
+You need **two kinds** of OAuth 2.0 client IDs:
+
+| Client type | Used for | Where it goes |
+|-------------|----------|---------------|
+| **Web application** | Server / ID token audience | `webClientId` in `SocialLogin.initialize()` |
+| **Android** (one per signing key) | Proves your APK is allowed to call Google | Google Cloud Console only — **do not** pass this ID to `webClientId` |
+
+Common mistake: using the **Android** client ID as `webClientId`. Credential Manager requires the **Web** client ID there. The Android client only needs the correct **package name + SHA-1** registered in the console.
+
+Create one Android OAuth client for **each** certificate that signs builds you test:
+
+- **Debug** — from `./gradlew signingReport` (debug variant)
+- **Release** — from the APK/AAB you actually install (see below)
+- **Play App Signing** — from Play Console → **App integrity** → **App signing key certificate** (required for Play Store builds even if your upload key SHA-1 is already registered)
+
+The `applicationId` in `android/app/build.gradle` must match the Android OAuth client package name exactly (including any `.debug` suffix if you use one).
+
+If the OAuth consent screen is in **Testing** mode, add every Google account you test with under **Audience → Test users**. Publishing the app to Production is **not** required for `email` / `profile` scopes. **Digital Asset Links** (`assetlinks.json`) are **not** required for Sign in with Google via Credential Manager.
+
+Google Cloud changes can take **up to a few hours** to propagate; a device restart alone may not be enough.
+
+##### Error `[28444] Developer console is not set up correctly`
+
+This almost always means Google rejected the combination of **installed APK signing certificate**, **package name**, and **webClientId`. Work through this checklist:
+
+1. Confirm `webClientId` is the **Web application** client ID (ends with `.apps.googleusercontent.com`).
+2. Run the app, reproduce the failure, and read Logcat (`GoogleProvider`) for `signingSha1=` and `package=`.
+3. In [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), open your **Android** OAuth client and verify that **exact** package name and SHA-1 are listed.
+4. If testing a **release** build, register the SHA-1 from that build — not only the debug keystore.
+5. If the app is distributed via **Play Store**, also register the **Play App Signing** SHA-1.
+6. Ensure Web and Android clients live in the **same** Google Cloud project.
+7. If consent screen is in Testing, confirm the Google account is a **test user**.
+8. Wait and retry after console changes.
+
+`USER_CANCELLED` after picking an account on a misconfigured debug build can still be a SHA-1 / client-ID mismatch — fix the console setup above first.
+
+##### Extract SHA-1 from the build you install
+
+Debug / local builds:
+
+```bash
+cd android && ./gradlew signingReport
+```
+
+Signed release APK:
+
+```bash
+keytool -printcert -jarfile android/app/release/app-release.apk
+```
+
+Then add that SHA-1 to an Android OAuth client (package name + SHA-1) in Google Cloud Console, reinstall the **same** signed APK, and test again:
+
+```bash
+adb install android/app/release/app-release.apk
+```
+
+##### Reading the login result (Firebase and backends)
+
+Tokens are nested under `result`:
+
+```ts
+const login = await SocialLogin.login({ provider: 'google' });
+const idToken = login.result?.idToken; // not login.idToken
+```
+
+For Firebase Auth, create credentials with that `idToken` and use the **Web** Client ID as `webClientId` in `initialize`.
 
 ### iOS configuration
 
@@ -689,6 +743,12 @@ const config: CapacitorConfig = {
 ```
 
 Then run `npx cap sync`. The plugin uses stub classes instead of the real Facebook SDK, so no Facebook dependencies or permissions are included in your build.
+
+### Google Sign-In `[28444] Developer console is not set up correctly` (Android)
+
+On Android, this error comes from **Google Credential Manager** when the installed APK's signing certificate, package name, or `webClientId` does not match Google Cloud Console.
+
+See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. After a failed login, filter Logcat for `GoogleProvider` — the plugin prints `package`, `signingSha1`, and `webClientId` to compare with your OAuth clients.
 
 ### Google Sign-In with Family Link Supervised Accounts
 
@@ -1362,7 +1422,9 @@ Configuration for a single OAuth2 provider instance
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### ProviderResponseMap

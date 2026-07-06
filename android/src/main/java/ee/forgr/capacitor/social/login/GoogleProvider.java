@@ -5,6 +5,10 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -32,6 +36,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.common.util.concurrent.ListenableFuture;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -83,6 +89,75 @@ public class GoogleProvider implements SocialProvider {
     private GoogleProviderLoginType mode = GoogleProviderLoginType.ONLINE;
     private String hostedDomain = null;
 
+    private static String maskClientId(String clientId) {
+        if (clientId == null || clientId.isEmpty()) {
+            return "(not set)";
+        }
+        if (clientId.length() <= 16) {
+            return clientId;
+        }
+        return "..." + clientId.substring(clientId.length() - 20);
+    }
+
+    private static String getSigningCertificateSha1(Context context) {
+        try {
+            PackageManager pm = context.getPackageManager();
+            String packageName = context.getPackageName();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                PackageInfo info = pm.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES);
+                if (info.signingInfo != null) {
+                    Signature[] signatures = info.signingInfo.getApkContentsSigners();
+                    if (signatures != null && signatures.length > 0) {
+                        return sha1Fingerprint(signatures[0]);
+                    }
+                }
+            } else {
+                @SuppressWarnings("deprecation")
+                PackageInfo info = pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES);
+                @SuppressWarnings("deprecation")
+                Signature[] signatures = info.signatures;
+                if (signatures != null && signatures.length > 0) {
+                    return sha1Fingerprint(signatures[0]);
+                }
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(LOG_TAG, "Could not read app signing certificate", e);
+        }
+        return null;
+    }
+
+    private static String sha1Fingerprint(Signature signature) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            byte[] digest = md.digest(signature.toByteArray());
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < digest.length; i++) {
+                if (i > 0) {
+                    sb.append(':');
+                }
+                sb.append(String.format("%02X", digest[i]));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
+    private void logGoogleCloudDiagnostics(String phase) {
+        String sha1 = getSigningCertificateSha1(context);
+        Log.i(
+            LOG_TAG,
+            String.format(
+                "Google %s: package=%s signingSha1=%s webClientId=%s mode=%s",
+                phase,
+                context.getPackageName(),
+                sha1 != null ? sha1 : "unknown",
+                maskClientId(clientId),
+                mode != null ? mode.name() : "unknown"
+            )
+        );
+    }
+
     public enum GoogleProviderLoginType {
         ONLINE,
         OFFLINE
@@ -102,6 +177,7 @@ public class GoogleProvider implements SocialProvider {
         this.clientId = clientId;
         this.mode = mode;
         this.hostedDomain = hostedDomain;
+        logGoogleCloudDiagnostics("initialize");
 
         String data = context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE).getString(GOOGLE_DATA_PREFERENCE, null);
 
@@ -301,6 +377,8 @@ public class GoogleProvider implements SocialProvider {
             return;
         }
 
+        logGoogleCloudDiagnostics("login");
+
         String nonce = config.optString("nonce");
         JSONObject options = call.getObject("options", new JSObject());
         boolean bottomUi = false;
@@ -346,8 +424,19 @@ public class GoogleProvider implements SocialProvider {
         // Build credential request
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
+        Log.i(
+            LOG_TAG,
+            String.format(
+                "Google login request: ui=%s filterByAuthorizedAccounts=%s autoSelectEnabled=%s forcePrompt=%s nonceSet=%s",
+                bottomUi ? "bottom" : "standard",
+                filterByAuthorizedAccounts,
+                autoSelectEnabled,
+                forcePrompt,
+                !nonce.isEmpty()
+            )
+        );
+
         if (bottomUi) {
-            Log.e(LOG_TAG, "use bottomUi");
             GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder().setServerClientId(this.clientId);
             // Handle bottom UI specific options
             if (forcePrompt) {
@@ -642,8 +731,43 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    private boolean isDeveloperConsoleMisconfiguration(String message) {
+        return message.contains("Developer console") || message.contains("28444") || message.contains("10:");
+    }
+
+    private void logDeveloperConsoleMisconfigurationHelp(String errorMessage) {
+        String sha1 = getSigningCertificateSha1(context);
+        Log.e(
+            LOG_TAG,
+            String.format(
+                "Google Credential Manager rejected this app (%s). package=%s signingSha1=%s webClientId=%s. " +
+                    "Checklist: (1) webClientId must be a Web OAuth client ID, not Android; " +
+                    "(2) create an Android OAuth client with this exact package + SHA-1 in the same GCP project; " +
+                    "(3) add Play App Signing SHA-1 for Play Store builds; " +
+                    "(4) add test users if OAuth consent screen is in Testing; " +
+                    "(5) allow several hours for console changes to propagate.",
+                errorMessage,
+                context.getPackageName(),
+                sha1 != null ? sha1 : "unknown",
+                maskClientId(clientId)
+            )
+        );
+    }
+
     private void handleSignInError(GetCredentialException e, PluginCall call, JSONObject config) {
-        Log.e(LOG_TAG, "Google Sign-In failed", e);
+        String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+        Log.e(LOG_TAG, "Google Sign-In failed: " + errorMessage, e);
+
+        if (isDeveloperConsoleMisconfiguration(errorMessage)) {
+            logDeveloperConsoleMisconfigurationHelp(errorMessage);
+            call.reject(
+                "Google Sign-In failed: Google Cloud OAuth is not configured for this installed build (" +
+                    errorMessage +
+                    "). Check Logcat tag GoogleProvider for package, signingSha1, and webClientId, then see the Android troubleshooting section in the plugin README."
+            );
+            return;
+        }
+
         boolean isBottomUi = false;
         JSONObject options = call.getObject("options", new JSObject());
         if (options.has("style")) {
