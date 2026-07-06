@@ -9,8 +9,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.os.Build;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -38,6 +36,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.common.util.concurrent.ListenableFuture;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -88,7 +88,6 @@ public class GoogleProvider implements SocialProvider {
     private String accessToken = null;
     private GoogleProviderLoginType mode = GoogleProviderLoginType.ONLINE;
     private String hostedDomain = null;
-
 
     private static String maskClientId(String clientId) {
         if (clientId == null || clientId.isEmpty()) {
