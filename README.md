@@ -31,6 +31,7 @@ Use the Auth Connect preset wrapper (`SocialLoginAuthConnect`) to log in with `a
 
 - Compatibility guide: https://github.com/Cap-go/capacitor-social-login/blob/main/docs/auth_connect_compatibility.md
 - Migration guide: https://github.com/Cap-go/capacitor-social-login/blob/main/MIGRATION_AUTH_CONNECT.md
+- Keycloak setup: https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_keycloak.md
 
 ## Documentation
 
@@ -538,7 +539,9 @@ On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
 
 ## OAuth2 (Generic)
 
-The plugin supports generic OAuth2 authentication, allowing you to integrate with any OAuth2-compliant provider (GitHub, Azure AD, Auth0, Okta, custom servers, etc.). You can configure multiple OAuth2 providers simultaneously.
+The plugin supports generic OAuth2 authentication, allowing you to integrate with any OAuth2-compliant provider (GitHub, Azure AD, Auth0, Okta, Keycloak, custom servers, etc.). You can configure multiple OAuth2 providers simultaneously.
+
+For Keycloak, use the generic OAuth2 provider with your realm issuer URL. See the [Keycloak setup guide](./docs/setup_keycloak.md).
 
 ### Multi-Provider Configuration
 
@@ -677,8 +680,9 @@ await SocialLogin.refresh({
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `appId` | string | Yes | OAuth2 Client ID |
-| `authorizationBaseUrl` | string | Yes | Authorization endpoint URL |
-| `accessTokenEndpoint` | string | No* | Token endpoint URL (*Required for code flow) |
+| `issuerUrl` | string | No* | OpenID Connect issuer URL for discovery (*Use this or an authorization endpoint) |
+| `authorizationBaseUrl` / `authorizationEndpoint` | string | No* | Authorization endpoint URL aliases for the same setting (*Use one alias or `issuerUrl`) |
+| `accessTokenEndpoint` / `tokenEndpoint` | string | No* | Token endpoint URL aliases for the same setting (*Required for code flow without `issuerUrl`) |
 | `redirectUrl` | string | Yes | Callback URL for OAuth redirect |
 | `responseType` | 'code' \| 'token' | No | OAuth flow type (default: 'code') |
 | `pkceEnabled` | boolean | No | Enable PKCE (default: true) |
