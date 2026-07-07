@@ -46,6 +46,37 @@ await SocialLoginAuthConnect.logout({ provider: 'auth0' });
 
 These provider IDs are mapped to the existing OAuth2 provider internally.
 
+## Keycloak
+
+Keycloak is not one of the Auth Connect preset provider IDs. Use the generic `oauth2` provider with a stable `providerId`, such as `keycloak`.
+
+```typescript
+import { SocialLoginAuthConnect } from '@capgo/capacitor-social-login';
+
+const keycloakIssuer = 'https://keycloak.example.com/realms/my-realm';
+
+await SocialLoginAuthConnect.initialize({
+  oauth2: {
+    keycloak: {
+      appId: 'your-keycloak-client-id',
+      issuerUrl: keycloakIssuer,
+      redirectUrl: 'myapp://oauth/keycloak',
+      scope: 'openid profile email',
+      pkceEnabled: true,
+    },
+  },
+});
+
+const result = await SocialLoginAuthConnect.login({
+  provider: 'oauth2',
+  options: {
+    providerId: 'keycloak',
+  },
+});
+```
+
+See the full Keycloak guide in `docs/setup_keycloak.md`.
+
 ## Overriding endpoints and defaults
 
 Each preset builds a default OAuth2 configuration based on `domain` or `issuer`. If your tenant uses custom endpoints,
