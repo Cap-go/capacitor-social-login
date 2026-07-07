@@ -680,9 +680,9 @@ await SocialLogin.refresh({
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `appId` | string | Yes | OAuth2 Client ID |
-| `issuerUrl` | string | No* | OpenID Connect issuer URL for discovery (*Use this or `authorizationBaseUrl`) |
-| `authorizationBaseUrl` | string | No* | Authorization endpoint URL (*Use this or `issuerUrl`) |
-| `accessTokenEndpoint` | string | No* | Token endpoint URL (*Required for code flow without `issuerUrl`) |
+| `issuerUrl` | string | No* | OpenID Connect issuer URL for discovery (*Use this or an authorization endpoint) |
+| `authorizationBaseUrl` / `authorizationEndpoint` | string | No* | Authorization endpoint URL aliases for the same setting (*Use one alias or `issuerUrl`) |
+| `accessTokenEndpoint` / `tokenEndpoint` | string | No* | Token endpoint URL aliases for the same setting (*Required for code flow without `issuerUrl`) |
 | `redirectUrl` | string | Yes | Callback URL for OAuth redirect |
 | `responseType` | 'code' \| 'token' | No | OAuth flow type (default: 'code') |
 | `pkceEnabled` | boolean | No | Enable PKCE (default: true) |
