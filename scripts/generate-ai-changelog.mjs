@@ -26,9 +26,7 @@ function git(args) {
 function resolveTags({ fromTag, toTag }) {
   const currentTag =
     toTag ??
-    (process.env.GITHUB_REF?.startsWith('refs/tags/')
-      ? process.env.GITHUB_REF.replace('refs/tags/', '')
-      : null);
+    (process.env.GITHUB_REF?.startsWith('refs/tags/') ? process.env.GITHUB_REF.replace('refs/tags/', '') : null);
 
   if (!currentTag) {
     throw new Error('Missing target tag. Set GITHUB_REF to refs/tags/<tag> or pass --to-tag.');
