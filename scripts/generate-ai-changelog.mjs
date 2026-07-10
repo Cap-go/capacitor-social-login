@@ -20,7 +20,7 @@ function parseArgs(argv) {
 }
 
 function git(args) {
-  return execFileSync('git', args, { encoding: 'utf8' }).trim();
+  return execFileSync('/usr/bin/git', args, { encoding: 'utf8' }).trim();
 }
 
 function resolveTags({ fromTag, toTag }) {
