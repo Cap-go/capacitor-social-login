@@ -8,7 +8,8 @@
   "unpkg": "dist/plugin.js",
   "files": [
     "android/src/main/",
-    "android/src/facebookStubs/",
+    "android/src/facebookEnabled/",
+    "android/src/facebookDisabled/",
     "android/build.gradle",
     "dist/",
     "ios/Sources",
