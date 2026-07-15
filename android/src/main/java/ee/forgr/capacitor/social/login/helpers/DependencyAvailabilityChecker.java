@@ -83,6 +83,8 @@ public class DependencyAvailabilityChecker {
                 return isAppleAvailable();
             case "twitter":
                 return isTwitterAvailable();
+            case "telegram":
+                return isProviderEnabledInConfig("telegram");
             default:
                 Log.w(LOG_TAG, "Unknown provider: " + providerName);
                 return false;
