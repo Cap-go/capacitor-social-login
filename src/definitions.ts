@@ -543,7 +543,7 @@ export interface GoogleLoginOptions {
    * @description Only show accounts that have previously been used to sign in to the app.
    * This option is only available for the 'bottom' style.
    * Note: For Family Link supervised accounts, this should be set to false.
-   * @default true
+   * @default false
    */
   filterByAuthorizedAccounts?: boolean;
   /**
