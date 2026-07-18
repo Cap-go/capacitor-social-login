@@ -470,7 +470,7 @@ This almost always means Google rejected the combination of **installed APK sign
 
 This error comes from Google Credential Manager when re-authenticating a cached Google account fails. It often affects **only some users** on the same build while others sign in normally.
 
-**Automatic recovery:** On the first `[16]` failure, the plugin clears stale Credential Manager state and retries once with the standard sign-in UI (`filterByAuthorizedAccounts: false`, account picker forced). No app code change is required for this retry.
+**Automatic recovery:** On the first `[16]` failure, the plugin clears Credential Manager credential-selection state and retries once with the standard sign-in UI (`filterByAuthorizedAccounts: false`). No app code change is required for this retry.
 
 If the retry still fails for specific users, check:
 
@@ -776,7 +776,7 @@ See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android
 
 Credential Manager returns this when re-authenticating a previously used Google account fails. It can affect a **subset of users** on the same app version.
 
-The plugin automatically clears cached credentials and retries once with the standard account picker. If login still fails for specific accounts, see the `[16] Account reauth failed` subsection under [Android troubleshooting](#android-troubleshooting-credential-manager-sha-1-and-firebase) (OAuth consent External vs Internal, test users, Family Link, Sign in with Google account setting).
+The plugin automatically clears Credential Manager credential-selection state and retries once with the standard account picker. If login still fails for specific accounts, see the `[16] Account reauth failed` subsection under [Android troubleshooting](#android-troubleshooting-credential-manager-sha-1-and-firebase) (OAuth consent External vs Internal, test users, Family Link, Sign in with Google account setting).
 
 ### Google Sign-In with Family Link Supervised Accounts
 
@@ -805,14 +805,14 @@ await SocialLogin.login({
   provider: 'google',
   options: {
     style: 'bottom', // or 'standard'
-    filterByAuthorizedAccounts: false, // Important for Family Link (default is true)
+    filterByAuthorizedAccounts: false, // Important for Family Link (default is false; set explicitly when using bottom UI)
     scopes: ['profile', 'email']
   }
 });
 ```
 
 **Key Points**:
-- Set `filterByAuthorizedAccounts` to `false` to ensure Family Link accounts are visible (default is `true`)
+- Do not set `filterByAuthorizedAccounts` to `true` when supporting Family Link accounts (default is `false`)
 - The plugin will automatically retry with 'standard' style if 'bottom' style fails with NoCredentialException
 - These options only affect Android; iOS handles Family Link accounts normally
 - The error message will suggest disabling `filterByAuthorizedAccounts` if login fails
@@ -1347,7 +1347,7 @@ Configuration for a single OAuth2 provider instance
 | **`forceRefreshToken`**          | <code>boolean</code>                                                                                         | Force refresh token (only for Android)                                                               | <code>false</code>      |        |
 | **`forcePrompt`**                | <code>boolean</code>                                                                                         | Force account selection prompt (iOS)                                                                 | <code>false</code>      |        |
 | **`style`**                      | <code>'bottom' \| 'standard'</code>                                                                          | Style                                                                                                | <code>'standard'</code> |        |
-| **`filterByAuthorizedAccounts`** | <code>boolean</code>                                                                                         | Filter by authorized accounts (Android only)                                                         | <code>true</code>       |        |
+| **`filterByAuthorizedAccounts`** | <code>boolean</code>                                                                                         | Filter by authorized accounts (Android only)                                                         | <code>false</code>      |        |
 | **`autoSelectEnabled`**          | <code>boolean</code>                                                                                         | Auto select enabled (Android only)                                                                   | <code>false</code>      |        |
 | **`prompt`**                     | <code>'none' \| 'consent' \| 'select_account' \| 'consent select_account' \| 'select_account consent'</code> | Prompt parameter for Google OAuth (Web only)                                                         |                         | 7.12.0 |
 
