@@ -21,4 +21,8 @@ After `SocialLogin.initialize()` and on failed login, filter Logcat for `GoogleP
 
 See the **Android troubleshooting** section in [README.md](../README.md#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. In short: wrong `webClientId` type, missing SHA-1 for the installed APK, package name mismatch, missing Play App Signing SHA-1, or OAuth consent screen test users.
 
+### `[16] Account reauth failed`
+
+See [README.md](../README.md#google-sign-in-16-account-reauth-failed-android). The plugin clears stale Credential Manager credentials and retries once automatically. Persistent failures for specific users are usually OAuth consent (External vs Internal, test users), Family Link accounts, or the user disabling Sign in with Google for your app.
+
 Config changes in Google Cloud can take several hours to take effect.

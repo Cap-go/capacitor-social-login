@@ -466,6 +466,23 @@ This almost always means Google rejected the combination of **installed APK sign
 
 `USER_CANCELLED` after picking an account on a misconfigured debug build can still be a SHA-1 / client-ID mismatch — fix the console setup above first.
 
+##### Error `[16] Account reauth failed`
+
+This error comes from Google Credential Manager when re-authenticating a cached Google account fails. It often affects **only some users** on the same build while others sign in normally.
+
+**Automatic recovery:** On the first `[16]` failure, the plugin clears stale Credential Manager state and retries once with the standard sign-in UI (`filterByAuthorizedAccounts: false`, account picker forced). No app code change is required for this retry.
+
+If the retry still fails for specific users, check:
+
+1. **OAuth consent screen** — must be **External** (Internal / Workspace-only blocks consumer `@gmail.com` accounts).
+2. **Testing mode** — every failing Google account must be listed under **Audience → Test users**.
+3. **Sign in with Google setting** — the user may have disabled your app under Google Account → **Sign in with Google**.
+4. **Family Link / supervised accounts** — pass `filterByAuthorizedAccounts: false` in login options (see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
+5. **Play App Signing SHA-1** — still required for Play Store builds even when most users succeed (some device/account paths are stricter).
+6. **Proactive option** — you can pass `filterByAuthorizedAccounts: false` on every login to reduce reauth failures for edge-case accounts.
+
+After a failure, filter Logcat for `GoogleProvider` — the plugin logs `package`, `signingSha1`, and `webClientId`.
+
 ##### Extract SHA-1 from the build you install
 
 Debug / local builds:
@@ -755,11 +772,21 @@ On Android, this error comes from **Google Credential Manager** when the install
 
 See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. After a failed login, filter Logcat for `GoogleProvider` — the plugin prints `package`, `signingSha1`, and `webClientId` to compare with your OAuth clients.
 
+### Google Sign-In `[16] Account reauth failed` (Android)
+
+Credential Manager returns this when re-authenticating a previously used Google account fails. It can affect a **subset of users** on the same app version.
+
+The plugin automatically clears cached credentials and retries once with the standard account picker. If login still fails for specific accounts, see the `[16] Account reauth failed` subsection under [Android troubleshooting](#android-troubleshooting-credential-manager-sha-1-and-firebase) (OAuth consent External vs Internal, test users, Family Link, Sign in with Google account setting).
+
 ### Google Sign-In with Family Link Supervised Accounts
 
 **Problem**: When users try to sign in with Google accounts supervised by Family Link, login fails with:
 ```
 NoCredentialException: No credentials available
+```
+or, in some cases:
+```
+[16] Account reauth failed
 ```
 
 **Root Cause**: Family Link supervised accounts have different authentication requirements and may not work properly with certain Google Sign-In configurations.

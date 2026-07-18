@@ -62,6 +62,7 @@ public class GoogleProvider implements SocialProvider {
 
     private static final String LOG_TAG = "GoogleProvider";
     private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
+    private static final String REAUTH_RETRY_FLAG = "_googleReauthRetry";
     private static final String SHARED_PREFERENCE_NAME = "GOOGLE_LOGIN_F13oz0I_SHARED_PERF";
     private static final String GOOGLE_DATA_PREFERENCE = "GOOGLE_LOGIN_GOOGLE_DATA_9158025e-947d-4211-ba51-40451630cc47";
     private static final Integer FUTURE_LIST_LENGTH = 128;
@@ -735,6 +736,88 @@ public class GoogleProvider implements SocialProvider {
         return message.contains("Developer console") || message.contains("28444") || message.contains("10:");
     }
 
+    private boolean isAccountReauthFailed(String message) {
+        return message != null && (message.contains("[16]") || message.contains("Account reauth failed"));
+    }
+
+    private boolean isReauthRetry(PluginCall call) {
+        return call.getData().optBoolean(REAUTH_RETRY_FLAG, false);
+    }
+
+    private void markReauthRetry(PluginCall call) {
+        try {
+            call.getData().put(REAUTH_RETRY_FLAG, true);
+        } catch (JSONException ex) {
+            Log.e(LOG_TAG, "Failed to mark Google reauth retry", ex);
+        }
+    }
+
+    private void logAccountReauthFailedHelp(String errorMessage) {
+        String sha1 = getSigningCertificateSha1(context);
+        Log.e(
+            LOG_TAG,
+            String.format(
+                "Google account reauth failed (%s). package=%s signingSha1=%s webClientId=%s. " +
+                    "If only some users fail consistently: (1) OAuth consent screen must be External (not Internal/Workspace-only); " +
+                    "(2) in Testing mode, each failing account must be a test user; " +
+                    "(3) user may have disabled Sign in with Google for this app in Google Account settings; " +
+                    "(4) Family Link / supervised accounts need filterByAuthorizedAccounts: false; " +
+                    "(5) stale Credential Manager state — plugin already retried after clearing credentials; " +
+                    "(6) verify Play App Signing SHA-1 for Play Store builds.",
+                errorMessage,
+                context.getPackageName(),
+                sha1 != null ? sha1 : "unknown",
+                maskClientId(clientId)
+            )
+        );
+    }
+
+    private void retryLoginAfterReauthFailure(PluginCall call, JSONObject config, JSONObject options) {
+        try {
+            options.put("style", "standard");
+            options.put("filterByAuthorizedAccounts", false);
+            options.put("forcePrompt", true);
+            call.getData().put("options", options);
+        } catch (JSONException ex) {
+            call.reject("Google Sign-In failed: " + ex.getMessage());
+            return;
+        }
+        login(call, config);
+    }
+
+    private void handleAccountReauthFailed(GetCredentialException e, PluginCall call, JSONObject config, JSONObject options) {
+        String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+
+        if (isReauthRetry(call)) {
+            logAccountReauthFailedHelp(errorMessage);
+            call.reject(
+                "Google Sign-In failed: [16] Account reauth failed. The plugin cleared cached credentials and retried once. " +
+                    "If this affects only some users, check OAuth consent screen (External vs Internal, test users in Testing mode), " +
+                    "Family Link accounts (use filterByAuthorizedAccounts: false), and whether the user disabled Sign in with Google for your app. " +
+                    "See Logcat tag GoogleProvider for package, signingSha1, and webClientId."
+            );
+            return;
+        }
+
+        Log.w(LOG_TAG, "Account reauth failed; clearing stale Credential Manager state and retrying with standard sign-in flow.");
+        markReauthRetry(call);
+
+        rawLogout(
+            new CredentialManagerCallback<Void, Exception>() {
+                @Override
+                public void onResult(Void unused) {
+                    retryLoginAfterReauthFailure(call, config, options);
+                }
+
+                @Override
+                public void onError(@NonNull Exception clearError) {
+                    Log.w(LOG_TAG, "Failed to clear credentials before reauth retry; retrying sign-in anyway.", clearError);
+                    retryLoginAfterReauthFailure(call, config, options);
+                }
+            }
+        );
+    }
+
     private void logDeveloperConsoleMisconfigurationHelp(String errorMessage) {
         String sha1 = getSigningCertificateSha1(context);
         Log.e(
@@ -776,6 +859,10 @@ public class GoogleProvider implements SocialProvider {
             } catch (JSONException ex) {
                 // do nothing
             }
+        }
+        if (isAccountReauthFailed(errorMessage)) {
+            handleAccountReauthFailed(e, call, config, options);
+            return;
         }
         if (e instanceof GetCredentialCancellationException) {
             call.reject("Google Sign-In cancelled by user", USER_CANCELLED_CODE, e);
