@@ -745,11 +745,7 @@ public class GoogleProvider implements SocialProvider {
     }
 
     private void markReauthRetry(PluginCall call) {
-        try {
-            call.getData().put(REAUTH_RETRY_FLAG, true);
-        } catch (JSONException ex) {
-            Log.e(LOG_TAG, "Failed to mark Google reauth retry", ex);
-        }
+        call.getData().put(REAUTH_RETRY_FLAG, true);
     }
 
     private void logAccountReauthFailedHelp(String errorMessage) {
