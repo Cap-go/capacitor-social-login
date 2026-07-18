@@ -477,9 +477,9 @@ If the retry still fails for specific users, check:
 1. **OAuth consent screen** — must be **External** (Internal / Workspace-only blocks consumer `@gmail.com` accounts).
 2. **Testing mode** — every failing Google account must be listed under **Audience → Test users**.
 3. **Sign in with Google setting** — the user may have disabled your app under Google Account → **Sign in with Google**.
-4. **Family Link / supervised accounts** — pass `filterByAuthorizedAccounts: false` in login options (see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
+4. **Family Link / supervised accounts** — ensure `filterByAuthorizedAccounts` is not explicitly set to `true` (the default is `false`; see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
 5. **Play App Signing SHA-1** — still required for Play Store builds even when most users succeed (some device/account paths are stricter).
-6. **Proactive option** — you can pass `filterByAuthorizedAccounts: false` on every login to reduce reauth failures for edge-case accounts.
+6. **Explicit override** — if your app sets `filterByAuthorizedAccounts: true`, set it back to `false` for affected users; the default already skips authorized-account filtering.
 
 After a failure, filter Logcat for `GoogleProvider` — the plugin logs `package`, `signingSha1`, and `webClientId`.
 
@@ -781,11 +781,14 @@ The plugin automatically clears cached credentials and retries once with the sta
 ### Google Sign-In with Family Link Supervised Accounts
 
 **Problem**: When users try to sign in with Google accounts supervised by Family Link, login fails with:
-```
+
+```text
 NoCredentialException: No credentials available
 ```
+
 or, in some cases:
-```
+
+```text
 [16] Account reauth failed
 ```
 
