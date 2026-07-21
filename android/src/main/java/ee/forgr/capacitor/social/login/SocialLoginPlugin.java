@@ -48,12 +48,6 @@ public class SocialLoginPlugin extends Plugin {
                 return;
             }
 
-            String androidAppleRedirect = apple.getString("redirectUrl");
-            if (androidAppleRedirect == null || androidAppleRedirect.isEmpty()) {
-                call.reject("apple.android.redirectUrl is null or empty");
-                return;
-            }
-
             String androidAppleClientId = apple.getString("clientId");
             if (androidAppleClientId == null || androidAppleClientId.isEmpty()) {
                 call.reject("apple.android.clientId is null or empty");
@@ -62,6 +56,11 @@ public class SocialLoginPlugin extends Plugin {
 
             boolean useProperTokenExchange = apple.has("useProperTokenExchange") ? apple.getBool("useProperTokenExchange") : false;
             boolean useBroadcastChannel = apple.has("useBroadcastChannel") ? apple.getBool("useBroadcastChannel") : false;
+            String androidAppleRedirect = apple.getString("redirectUrl");
+            if (shouldRejectMissingAppleRedirectUrl(androidAppleRedirect, useBroadcastChannel)) {
+                call.reject("apple.android.redirectUrl is null or empty");
+                return;
+            }
 
             AppleProvider appleProvider = new AppleProvider(
                 androidAppleRedirect,
@@ -190,6 +189,10 @@ public class SocialLoginPlugin extends Plugin {
         }
 
         call.resolve();
+    }
+
+    static boolean shouldRejectMissingAppleRedirectUrl(String redirectUrl, boolean useBroadcastChannel) {
+        return !useBroadcastChannel && (redirectUrl == null || redirectUrl.isEmpty());
     }
 
     @PluginMethod

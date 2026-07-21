@@ -151,18 +151,18 @@ public class AppleProvider implements SocialProvider {
             return;
         }
 
-        // Save the call reference immediately so it's always available
+        boolean useBroadcastChannel = config.optBoolean("useBroadcastChannel", this.useBroadcastChannel);
+        if (SocialLoginPlugin.shouldRejectMissingAppleRedirectUrl(this.redirectUrl, useBroadcastChannel)) {
+            call.reject("apple.android.redirectUrl is null or empty");
+            return;
+        }
+
         this.lastcall = call;
         call.setKeepAlive(true);
 
-        // Check if Broadcast Channel is enabled
-        boolean useBroadcastChannel = config.optBoolean("useBroadcastChannel", this.useBroadcastChannel);
-
         if (useBroadcastChannel) {
-            // Use Broadcast Channel approach - simplified flow
             loginWithBroadcastChannel(call, config);
         } else {
-            // Use traditional URL redirect approach
             loginWithRedirect(call, config);
         }
     }
