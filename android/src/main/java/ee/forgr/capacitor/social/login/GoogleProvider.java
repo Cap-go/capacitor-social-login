@@ -189,7 +189,8 @@ public class GoogleProvider implements SocialProvider {
         try {
             JSONObject object = new JSONObject(data);
             GoogleProvider.this.idToken = object.optString("idToken", null);
-            GoogleProvider.this.accessToken = object.optString("accessToken", null);
+            String restoredAccessToken = object.optString("accessToken", null);
+            GoogleProvider.this.accessToken = restoredAccessToken != null && !restoredAccessToken.isEmpty() ? restoredAccessToken : null;
             JSONArray storedScopes = object.optJSONArray("scopes");
             if (storedScopes != null && storedScopes.length() > 0) {
                 List<String> scopesList = new ArrayList<>(storedScopes.length());
@@ -204,9 +205,71 @@ public class GoogleProvider implements SocialProvider {
                 }
             }
 
-            Log.i(SocialLoginPlugin.LOG_TAG, String.format("Google restoreState: %s", object));
+            Log.i(
+                SocialLoginPlugin.LOG_TAG,
+                String.format(
+                    "Google restoreState: restored idToken=%s accessToken=%s scopes=%d",
+                    GoogleProvider.this.idToken != null && !GoogleProvider.this.idToken.isEmpty(),
+                    GoogleProvider.this.accessToken != null && !GoogleProvider.this.accessToken.isEmpty(),
+                    GoogleProvider.this.scopes != null ? GoogleProvider.this.scopes.length : 0
+                )
+            );
         } catch (JSONException e) {
             Log.e(SocialLoginPlugin.LOG_TAG, "Google restoreState: Failed to parse JSON", e);
+        }
+    }
+
+    /**
+     * Authentication-only (OIDC) scopes that Credential Manager already covers via the ID token.
+     * AuthorizationClient is only needed when requesting additional Google API scopes.
+     */
+    private static boolean isAuthenticationOnlyScopes(String[] scopes) {
+        if (scopes == null || scopes.length == 0) {
+            return true;
+        }
+        for (String scope : scopes) {
+            if (scope == null || scope.isEmpty()) {
+                continue;
+            }
+            boolean isDefault =
+                scope.equals("openid") ||
+                scope.equals("https://www.googleapis.com/auth/userinfo.email") ||
+                scope.equals("https://www.googleapis.com/auth/userinfo.profile") ||
+                scope.equals("email") ||
+                scope.equals("profile");
+            if (!isDefault) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void resolveOnlineLogin(
+        PluginCall call,
+        JSObject response,
+        JSObject resultObj,
+        JSObject profile,
+        String idToken,
+        String accessToken
+    ) {
+        try {
+            if (accessToken != null && !accessToken.isEmpty()) {
+                JSObject accessTokenObj = new JSObject();
+                accessTokenObj.put("token", accessToken);
+                resultObj.put("accessToken", accessTokenObj);
+            } else {
+                // GoogleLoginResponseOnline.accessToken is nullable: ID-token auth can succeed without an access token.
+                resultObj.put("accessToken", JSONObject.NULL);
+                Log.i(LOG_TAG, "AuthorizationClient returned no access token; resolving online login with idToken and profile only");
+            }
+            resultObj.put("profile", profile);
+            resultObj.put("idToken", idToken);
+            resultObj.put("responseType", "online");
+            response.put("result", resultObj);
+            persistState(idToken, accessToken);
+            call.resolve(response);
+        } catch (Exception e) {
+            call.reject("Error resolving Google login: " + e.getMessage());
         }
     }
 
@@ -502,7 +565,7 @@ public class GoogleProvider implements SocialProvider {
     private void persistState(String idToken, String accessToken, String[] scopes) throws JSONException {
         JSONObject object = new JSONObject();
         object.put("idToken", idToken);
-        object.put("accessToken", accessToken);
+        object.put("accessToken", accessToken != null ? accessToken : JSONObject.NULL);
         if (scopes != null && scopes.length > 0) {
             JSONArray scopesArray = new JSONArray();
             for (String scope : scopes) {
@@ -601,18 +664,16 @@ public class GoogleProvider implements SocialProvider {
                             completer.setException(e);
                         }
                     } else {
-                        // Access already granted, continue with user action
-                        //saveToDriveAppFolder(authorizationResult);
-                        if (this.mode == GoogleProviderLoginType.ONLINE) {
-                            if (authorizationResult.getAccessToken() == null) {
-                                completer.setException(new RuntimeException("getAccessToken() is null"));
-                                return;
-                            }
-                        } else if (this.mode == GoogleProviderLoginType.OFFLINE) {
+                        // Access already granted, continue with user action.
+                        // Online mode: a null access token is allowed (ID-token auth still succeeds).
+                        // Offline mode still requires serverAuthCode.
+                        if (this.mode == GoogleProviderLoginType.OFFLINE) {
                             if (authorizationResult.getServerAuthCode() == null) {
-                                completer.setException(new RuntimeException("getAccessToken() is null"));
+                                completer.setException(new RuntimeException("getServerAuthCode() is null"));
                                 return;
                             }
+                        } else if (this.mode == GoogleProviderLoginType.ONLINE && authorizationResult.getAccessToken() == null) {
+                            Log.i(LOG_TAG, "AuthorizationResult.getAccessToken() is null; continuing with ID token authentication");
                         }
 
                         completer.set(authorizationResult);
@@ -648,6 +709,8 @@ public class GoogleProvider implements SocialProvider {
                     }
 
                     GoogleIdTokenCredential googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.getData());
+                    String idToken = googleIdTokenCredential.getIdToken();
+
                     ListenableFuture<AuthorizationResult> future = getAuthorizationResult(forceRefreshToken);
 
                     // Use ExecutorService to retrieve the access token
@@ -658,27 +721,14 @@ public class GoogleProvider implements SocialProvider {
                             @Override
                             public void run() {
                                 try {
-                                    AuthorizationResult result = future.get();
+                                    AuthorizationResult authResult = future.get();
                                     if (GoogleProvider.this.mode == GoogleProviderLoginType.ONLINE) {
-                                        if (result.getAccessToken() != null) {
-                                            JSObject accessTokenObj = new JSObject();
-                                            accessTokenObj.put("token", result.getAccessToken());
-                                            // accessTokenObj.put("userId", accessToken.userId);
-
-                                            resultObj.put("accessToken", accessTokenObj);
-                                            resultObj.put("profile", user);
-                                            resultObj.put("idToken", googleIdTokenCredential.getIdToken());
-                                            resultObj.put("responseType", "online");
-                                            response.put("result", resultObj);
-                                            persistState(googleIdTokenCredential.getIdToken(), result.getAccessToken());
-                                            call.resolve(response);
-                                        } else {
-                                            call.reject("Failed to get access token");
-                                        }
+                                        // accessToken may be null: Credential Manager auth still succeeded.
+                                        resolveOnlineLogin(call, response, resultObj, user, idToken, authResult.getAccessToken());
                                     } else {
-                                        if (result.getServerAuthCode() != null) {
+                                        if (authResult.getServerAuthCode() != null) {
                                             resultObj.put("responseType", "offline");
-                                            resultObj.put("serverAuthCode", result.getServerAuthCode());
+                                            resultObj.put("serverAuthCode", authResult.getServerAuthCode());
                                             response.put("result", resultObj);
                                             call.resolve(response);
                                         } else {
@@ -686,7 +736,22 @@ public class GoogleProvider implements SocialProvider {
                                         }
                                     }
                                 } catch (Exception e) {
-                                    call.reject("Error retrieving access token: " + e.getMessage());
+                                    // AuthorizationClient failed after Credential Manager returned a valid ID token.
+                                    // For authentication-only online scopes, resolve with idToken + profile.
+                                    if (
+                                        GoogleProvider.this.mode == GoogleProviderLoginType.ONLINE &&
+                                        idToken != null &&
+                                        isAuthenticationOnlyScopes(GoogleProvider.this.scopes)
+                                    ) {
+                                        Log.w(
+                                            LOG_TAG,
+                                            "AuthorizationClient failed after successful Credential Manager auth; resolving with idToken only",
+                                            e
+                                        );
+                                        resolveOnlineLogin(call, response, resultObj, user, idToken, null);
+                                    } else {
+                                        call.reject("Error retrieving access token: " + e.getMessage());
+                                    }
                                 } finally {
                                     executor.shutdown();
                                 }
@@ -1023,40 +1088,51 @@ public class GoogleProvider implements SocialProvider {
             call.reject("getAuthorizationCode is not implemented when using offline mode");
             return;
         }
-        if (GoogleProvider.this.idToken != null && GoogleProvider.this.accessToken != null) {
-            try {
-                // Check if access token is valid
+        if (GoogleProvider.this.idToken == null || GoogleProvider.this.idToken.isEmpty()) {
+            call.reject("User is not logged in");
+            return;
+        }
+        try {
+            boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
+            if (!isValidIdToken) {
+                rawLogout(
+                    new CredentialManagerCallback<>() {
+                        @Override
+                        public void onResult(Void unused) {
+                            call.reject("User is not logged in");
+                        }
+
+                        @Override
+                        public void onError(@NonNull Exception e) {
+                            Log.e(LOG_TAG, "Saved id token isn't valid, but logout failed", e);
+                            call.reject("User is not logged in");
+                        }
+                    }
+                );
+                return;
+            }
+
+            // Access token may be null for authentication-only sessions.
+            if (GoogleProvider.this.accessToken != null && !GoogleProvider.this.accessToken.isEmpty()) {
                 ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
                 boolean isValidAccessToken = accessTokenValidFuture.get(7, TimeUnit.SECONDS);
-                boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
-
-                if (!isValidAccessToken || !isValidIdToken) {
-                    rawLogout(
-                        new CredentialManagerCallback<>() {
-                            @Override
-                            public void onResult(Void unused) {
-                                call.reject("User is not logged in");
-                            }
-
-                            @Override
-                            public void onError(@NonNull Exception e) {
-                                // This is a non-fatal error. Let's log it
-                                Log.e(LOG_TAG, "Saved access token isn't valid, but logout failed", e);
-                                call.reject("User is not logged in");
-                            }
-                        }
-                    );
-                } else {
-                    call.resolve(
-                        new JSObject().put("accessToken", GoogleProvider.this.accessToken).put("jwt", GoogleProvider.this.idToken)
-                    );
+                if (!isValidAccessToken) {
+                    // Keep the valid ID token session; clear only the stale access token.
+                    GoogleProvider.this.accessToken = null;
+                    persistState(GoogleProvider.this.idToken, null, GoogleProvider.this.scopes);
                 }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Error validating tokens", e);
-                call.reject("Error validating tokens: " + e.getMessage());
             }
-        } else {
-            call.reject("User is not logged in");
+
+            JSObject result = new JSObject().put("jwt", GoogleProvider.this.idToken);
+            if (GoogleProvider.this.accessToken != null && !GoogleProvider.this.accessToken.isEmpty()) {
+                result.put("accessToken", GoogleProvider.this.accessToken);
+            } else {
+                result.put("accessToken", JSONObject.NULL);
+            }
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error validating tokens", e);
+            call.reject("Error validating tokens: " + e.getMessage());
         }
     }
 
@@ -1066,38 +1142,43 @@ public class GoogleProvider implements SocialProvider {
             call.reject("isLoggedIn is not implemented when using offline mode");
             return;
         }
-        if (GoogleProvider.this.idToken != null && GoogleProvider.this.accessToken != null) {
-            try {
-                // Check if access token is valid
+        if (GoogleProvider.this.idToken == null || GoogleProvider.this.idToken.isEmpty()) {
+            call.resolve(new JSObject().put("isLoggedIn", false));
+            return;
+        }
+        try {
+            boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
+            if (!isValidIdToken) {
+                rawLogout(
+                    new CredentialManagerCallback<>() {
+                        @Override
+                        public void onResult(Void unused) {
+                            call.resolve(new JSObject().put("isLoggedIn", false));
+                        }
+
+                        @Override
+                        public void onError(@NonNull Exception e) {
+                            Log.e(LOG_TAG, "Saved id token isn't valid, but logout failed", e);
+                            call.resolve(new JSObject().put("isLoggedIn", false));
+                        }
+                    }
+                );
+                return;
+            }
+
+            // Valid ID token is enough for authentication-only sessions.
+            if (GoogleProvider.this.accessToken != null && !GoogleProvider.this.accessToken.isEmpty()) {
                 ListenableFuture<Boolean> accessTokenValidFuture = accessTokenIsValid(GoogleProvider.this.accessToken);
                 boolean isValidAccessToken = accessTokenValidFuture.get(7, TimeUnit.SECONDS);
-                boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
-
-                if (!isValidAccessToken || !isValidIdToken) {
-                    rawLogout(
-                        new CredentialManagerCallback<>() {
-                            @Override
-                            public void onResult(Void unused) {
-                                call.resolve(new JSObject().put("isLoggedIn", false));
-                            }
-
-                            @Override
-                            public void onError(@NonNull Exception e) {
-                                // This is a non-fatal error. Let's log it
-                                Log.e(LOG_TAG, "Saved access token isn't valid, but logout failed", e);
-                                call.resolve(new JSObject().put("isLoggedIn", false));
-                            }
-                        }
-                    );
-                } else {
-                    call.resolve(new JSObject().put("isLoggedIn", true));
+                if (!isValidAccessToken) {
+                    GoogleProvider.this.accessToken = null;
+                    persistState(GoogleProvider.this.idToken, null, GoogleProvider.this.scopes);
                 }
-            } catch (Exception e) {
-                Log.e(LOG_TAG, "Error validating tokens", e);
-                call.reject("Error validating tokens: " + e.getMessage());
             }
-        } else {
-            call.resolve(new JSObject().put("isLoggedIn", false));
+            call.resolve(new JSObject().put("isLoggedIn", true));
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error validating tokens", e);
+            call.reject("Error validating tokens: " + e.getMessage());
         }
     }
 
@@ -1116,12 +1197,15 @@ public class GoogleProvider implements SocialProvider {
             this.credentialManager = CredentialManager.create(activity);
         }
 
-        // If both tokens are still valid, do nothing (mirrors iOS refreshTokensIfNeeded behavior).
+        // If tokens needed for the current session type are still valid, do nothing.
         try {
-            if (GoogleProvider.this.idToken != null && GoogleProvider.this.accessToken != null) {
+            if (GoogleProvider.this.idToken != null) {
                 boolean isValidIdToken = idTokenValid(GoogleProvider.this.idToken);
-                boolean isValidAccessToken = accessTokenIsValid(GoogleProvider.this.accessToken).get(7, TimeUnit.SECONDS);
-                if (isValidIdToken && isValidAccessToken) {
+                boolean accessOk = true;
+                if (GoogleProvider.this.accessToken != null && !GoogleProvider.this.accessToken.isEmpty()) {
+                    accessOk = accessTokenIsValid(GoogleProvider.this.accessToken).get(7, TimeUnit.SECONDS);
+                }
+                if (isValidIdToken && accessOk) {
                     call.resolve();
                     return;
                 }
@@ -1137,7 +1221,7 @@ public class GoogleProvider implements SocialProvider {
         }
 
         // 1) Retrieve a fresh ID token via Credential Manager (may be silent or may require user interaction).
-        // 2) Retrieve a fresh access token via the Authorization API.
+        // 2) Retrieve a fresh access token via the Authorization API (may be null for auth-only sessions).
         GetCredentialRequest request = new GetCredentialRequest.Builder()
             .addCredentialOption(
                 new GetGoogleIdOption.Builder()
@@ -1184,15 +1268,25 @@ public class GoogleProvider implements SocialProvider {
                                     try {
                                         AuthorizationResult authResult = future.get(60, TimeUnit.SECONDS);
                                         String newAccessToken = authResult.getAccessToken();
-                                        if (newAccessToken == null || newAccessToken.isEmpty()) {
-                                            call.reject("Failed to refresh tokens: access token is null");
-                                            return;
-                                        }
-
-                                        persistState(newIdToken, newAccessToken, GoogleProvider.this.scopes);
+                                        // Persist ID token even when access token is unavailable.
+                                        persistState(
+                                            newIdToken,
+                                            newAccessToken != null && !newAccessToken.isEmpty() ? newAccessToken : null,
+                                            GoogleProvider.this.scopes
+                                        );
                                         call.resolve();
                                     } catch (Exception e) {
-                                        call.reject("Failed to refresh tokens: " + e.getMessage());
+                                        if (isAuthenticationOnlyScopes(GoogleProvider.this.scopes)) {
+                                            try {
+                                                // Authorization failed; still keep the refreshed ID token.
+                                                persistState(newIdToken, null, GoogleProvider.this.scopes);
+                                                call.resolve();
+                                            } catch (JSONException persistError) {
+                                                call.reject("Failed to refresh tokens: " + e.getMessage());
+                                            }
+                                        } else {
+                                            call.reject("Failed to refresh tokens: " + e.getMessage());
+                                        }
                                     } finally {
                                         authExecutor.shutdown();
                                     }
