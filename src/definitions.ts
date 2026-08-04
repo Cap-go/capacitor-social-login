@@ -580,6 +580,14 @@ export interface GoogleLoginOptions {
 }
 
 export interface GoogleLoginResponseOnline {
+  /**
+   * OAuth access token for Google APIs.
+   *
+   * May be `null` on Android when Credential Manager authentication succeeds but
+   * AuthorizationClient does not return an access token (authentication-only /
+   * ID-token login with default OIDC scopes). Use `idToken` for user authentication;
+   * request additional Google API scopes when an access token is required.
+   */
   accessToken: AccessToken | null;
   /**
    * OpenID Connect ID token (JWT).
