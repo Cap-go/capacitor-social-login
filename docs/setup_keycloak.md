@@ -30,6 +30,8 @@ await SocialLogin.initialize({
       redirectUrl: 'myapp://oauth/keycloak',
       scope: 'openid profile email',
       pkceEnabled: true,
+      // Recommended on Android when brokering to Entra/Google or using passkeys
+      androidUseCustomTabs: true,
       resourceUrl: `${keycloakIssuer}/protocol/openid-connect/userinfo`,
     },
   },
@@ -46,6 +48,13 @@ console.log(result.result.idToken);
 console.log(result.result.accessToken?.token);
 console.log(result.result.resourceData);
 ```
+
+### Android Custom Tabs notes
+
+When `androidUseCustomTabs: true`:
+
+1. Add an intent filter for your redirect scheme on the main activity (same pattern as Apple Sign-In / `openSecureWindow`).
+2. Use `android:launchMode="singleTask"` (or `singleTop`) on the main activity so the OAuth redirect is delivered via `onNewIntent` instead of recreating the activity.
 
 For refresh tokens, request `offline_access` only if your Keycloak realm and client allow refresh tokens for this app:
 

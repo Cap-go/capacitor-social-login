@@ -31,6 +31,7 @@ public class SocialLoginPlugin extends Plugin {
 
     private PluginCall openSecureWindowSavedCall;
     private String openSecureWindowRedirectUri;
+    private Uri pendingOAuth2RedirectUri;
 
     @PluginMethod
     public void initialize(PluginCall call) {
@@ -183,6 +184,19 @@ public class SocialLoginPlugin extends Plugin {
                         Log.e(LOG_TAG, "OAuth2 activityLauncher fired but pendingCall is null, cannot route result");
                     }
                 });
+                // Replay a redirect that arrived before initialize (cold start / process death)
+                boolean handledRedirect = false;
+                if (pendingOAuth2RedirectUri != null) {
+                    Uri buffered = pendingOAuth2RedirectUri;
+                    pendingOAuth2RedirectUri = null;
+                    handledRedirect = oauth2Provider.handleRedirectUri(buffered);
+                }
+                // If handleOnResume ran before initialize, persisted Custom Tabs state may still be
+                // present with no buffered redirect — restore then cancel/clear the orphaned session
+                // (or complete via activity.getIntent() if the redirect is attached there).
+                if (!handledRedirect && oauth2Provider.restorePersistedCustomTabsState()) {
+                    oauth2Provider.handleUserReturnedWithoutCallback();
+                }
             } catch (JSONException e) {
                 call.reject("Failed to initialize OAuth2 provider: " + e.getMessage());
                 return;
@@ -597,6 +611,11 @@ public class SocialLoginPlugin extends Plugin {
     protected void handleOnResume() {
         super.handleOnResume();
 
+        SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
+        if (oauth2Provider instanceof OAuth2Provider) {
+            ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
+        }
+
         // If we have a saved call and user returned without callback, reject
         if (openSecureWindowSavedCall != null) {
             openSecureWindowSavedCall.reject("OAuth cancelled or no callback received");
@@ -615,6 +634,16 @@ public class SocialLoginPlugin extends Plugin {
         Uri uri = intent.getData();
         if (uri == null) {
             return;
+        }
+
+        SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
+        if (oauth2Provider instanceof OAuth2Provider) {
+            if (((OAuth2Provider) oauth2Provider).handleRedirectUri(uri)) {
+                return;
+            }
+        } else {
+            // Buffer until SocialLogin.initialize() registers the oauth2 provider
+            pendingOAuth2RedirectUri = uri;
         }
 
         if (openSecureWindowRedirectUri == null) {
