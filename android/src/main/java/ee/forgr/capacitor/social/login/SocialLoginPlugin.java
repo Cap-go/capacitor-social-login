@@ -597,6 +597,11 @@ public class SocialLoginPlugin extends Plugin {
     protected void handleOnResume() {
         super.handleOnResume();
 
+        SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
+        if (oauth2Provider instanceof OAuth2Provider) {
+            ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
+        }
+
         // If we have a saved call and user returned without callback, reject
         if (openSecureWindowSavedCall != null) {
             openSecureWindowSavedCall.reject("OAuth cancelled or no callback received");
@@ -615,6 +620,13 @@ public class SocialLoginPlugin extends Plugin {
         Uri uri = intent.getData();
         if (uri == null) {
             return;
+        }
+
+        SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
+        if (oauth2Provider instanceof OAuth2Provider) {
+            if (((OAuth2Provider) oauth2Provider).handleRedirectUri(uri)) {
+                return;
+            }
         }
 
         if (openSecureWindowRedirectUri == null) {

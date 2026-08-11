@@ -142,6 +142,23 @@ export interface OAuth2ProviderConfig {
    */
   iosPrefersEphemeralSession?: boolean;
   /**
+   * Android-only: Use Chrome Custom Tabs (system browser) instead of an embedded WebView
+   * for the authorization request.
+   *
+   * Custom Tabs follow RFC 8252 (OAuth 2.0 for Native Apps) and fix issues with brokered
+   * IdPs (Microsoft Entra Conditional Access / Authenticator, passkeys/WebAuthn, Google
+   * `disallowed_useragent`, SSO cookie sharing, password managers).
+   *
+   * Requires a custom-scheme or App Link `redirectUrl` with a matching intent filter in
+   * your app's `AndroidManifest.xml` (same setup as `openSecureWindow()` / Apple on Android).
+   *
+   * Defaults to `false` to preserve the historical WebView flow.
+   *
+   * @default false
+   * @example true
+   */
+  androidUseCustomTabs?: boolean;
+  /**
    * Enable debug logging
    * @default false
    */

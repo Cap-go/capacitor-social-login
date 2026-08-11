@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.util.Base64;
 import android.util.Log;
+import androidx.browser.customtabs.CustomTabsIntent;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
@@ -56,6 +57,7 @@ public class OAuth2Provider implements SocialProvider {
 
     private PluginCall pendingCall;
     private OAuth2PendingState pendingState;
+    private boolean pendingUseCustomTabs;
     private ActivityLauncher activityLauncher;
 
     public void setActivityLauncher(ActivityLauncher launcher) {
@@ -90,6 +92,7 @@ public class OAuth2Provider implements SocialProvider {
         final String logoutUrl;
         final String postLogoutRedirectUrl;
         final Map<String, String> additionalLogoutParameters;
+        final boolean androidUseCustomTabs;
         final boolean logsEnabled;
 
         OAuth2ProviderConfig(
@@ -111,6 +114,7 @@ public class OAuth2Provider implements SocialProvider {
             String logoutUrl,
             String postLogoutRedirectUrl,
             Map<String, String> additionalLogoutParameters,
+            boolean androidUseCustomTabs,
             boolean logsEnabled
         ) {
             this.appId = appId;
@@ -131,6 +135,7 @@ public class OAuth2Provider implements SocialProvider {
             this.logoutUrl = logoutUrl;
             this.postLogoutRedirectUrl = postLogoutRedirectUrl;
             this.additionalLogoutParameters = additionalLogoutParameters;
+            this.androidUseCustomTabs = androidUseCustomTabs;
             this.logsEnabled = logsEnabled;
         }
     }
@@ -241,6 +246,7 @@ public class OAuth2Provider implements SocialProvider {
                                 (config.logoutUrl != null && !config.logoutUrl.isEmpty()) ? config.logoutUrl : endSession,
                                 config.postLogoutRedirectUrl,
                                 config.additionalLogoutParameters,
+                                config.androidUseCustomTabs,
                                 config.logsEnabled
                             );
                             providers.put(providerId, resolved);
@@ -334,6 +340,7 @@ public class OAuth2Provider implements SocialProvider {
                 config.has("logoutUrl") ? config.optString("logoutUrl", null) : config.optString("endSessionEndpoint", null),
                 config.optString("postLogoutRedirectUrl", null),
                 additionalLogoutParameters,
+                config.optBoolean("androidUseCustomTabs", false),
                 config.optBoolean("logsEnabled", false)
             );
 
@@ -484,6 +491,15 @@ public class OAuth2Provider implements SocialProvider {
 
                     if (resolved.logsEnabled) {
                         Log.d(LOG_TAG, "Opening authorization URL: " + builder.build().toString());
+                    }
+
+                    pendingUseCustomTabs = resolved.androidUseCustomTabs;
+                    if (resolved.androidUseCustomTabs) {
+                        if (resolved.logsEnabled) {
+                            Log.d(LOG_TAG, "Using Custom Tabs for OAuth2 authorization");
+                        }
+                        activity.runOnUiThread(() -> launchCustomTabs(builder.build().toString()));
+                        return;
                     }
 
                     Intent intent = new Intent(activity, OAuth2LoginActivity.class);
@@ -684,7 +700,62 @@ public class OAuth2Provider implements SocialProvider {
             return true;
         }
 
-        String returnedState = data.getStringExtra("state");
+        return processCallbackData(data);
+    }
+
+    /**
+     * Handle OAuth redirect delivered via deep link / App Link after a Custom Tabs auth session.
+     * @return true if this URI was consumed as an OAuth2 Custom Tabs callback
+     */
+    public boolean handleRedirectUri(Uri uri) {
+        if (!pendingUseCustomTabs || pendingCall == null || pendingState == null || uri == null) {
+            return false;
+        }
+        String redirectUrl = pendingState.redirectUri;
+        if (redirectUrl == null || redirectUrl.isEmpty() || !uri.toString().startsWith(redirectUrl)) {
+            return false;
+        }
+
+        Intent data = new Intent();
+        data.putExtra("code", uri.getQueryParameter("code"));
+        data.putExtra("state", uri.getQueryParameter("state"));
+        data.putExtra("error", uri.getQueryParameter("error"));
+        data.putExtra("error_description", uri.getQueryParameter("error_description"));
+
+        String fragment = uri.getFragment();
+        if (fragment != null && !fragment.isEmpty()) {
+            String[] pairs = fragment.split("&");
+            for (String pair : pairs) {
+                String[] keyValue = pair.split("=", 2);
+                if (keyValue.length == 2) {
+                    data.putExtra(keyValue[0], Uri.decode(keyValue[1]));
+                }
+            }
+        }
+
+        // Prevent handleOnResume from treating the return as cancellation while token exchange runs
+        pendingUseCustomTabs = false;
+        return processCallbackData(data);
+    }
+
+    /**
+     * Called when the host activity resumes after Custom Tabs without receiving a redirect.
+     * Treat as user cancellation (same pattern as {@code openSecureWindow}).
+     */
+    public void handleUserReturnedWithoutCallback() {
+        if (!pendingUseCustomTabs || pendingCall == null) {
+            return;
+        }
+        pendingCall.reject("User cancelled", USER_CANCELLED_CODE);
+        cleanupPending();
+    }
+
+    private boolean processCallbackData(Intent data) {
+        if (pendingCall == null || pendingState == null) {
+            return true;
+        }
+
+        String returnedState = data != null ? data.getStringExtra("state") : null;
         if (returnedState == null || !returnedState.equals(pendingState.state)) {
             pendingCall.reject("State mismatch during OAuth2 login");
             cleanupPending();
@@ -721,6 +792,14 @@ public class OAuth2Provider implements SocialProvider {
         pendingCall.reject("No authorization code or access token in callback");
         cleanupPending();
         return true;
+    }
+
+    private void launchCustomTabs(String url) {
+        CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+        CustomTabsIntent customTabsIntent = builder.build();
+        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        customTabsIntent.launchUrl(activity, Uri.parse(url));
     }
 
     private boolean isUserDeniedRedirect(String error, String description) {
@@ -1248,6 +1327,7 @@ public class OAuth2Provider implements SocialProvider {
     private void cleanupPending() {
         pendingCall = null;
         pendingState = null;
+        pendingUseCustomTabs = false;
     }
 
     private static Map<String, String> jsonObjectToMap(JSONObject json) throws JSONException {
