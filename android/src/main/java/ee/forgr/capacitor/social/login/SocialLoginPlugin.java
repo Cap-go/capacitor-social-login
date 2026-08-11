@@ -31,6 +31,7 @@ public class SocialLoginPlugin extends Plugin {
 
     private PluginCall openSecureWindowSavedCall;
     private String openSecureWindowRedirectUri;
+    private Uri pendingOAuth2RedirectUri;
 
     @PluginMethod
     public void initialize(PluginCall call) {
@@ -183,6 +184,12 @@ public class SocialLoginPlugin extends Plugin {
                         Log.e(LOG_TAG, "OAuth2 activityLauncher fired but pendingCall is null, cannot route result");
                     }
                 });
+                // Replay a redirect that arrived before initialize (cold start / process death)
+                if (pendingOAuth2RedirectUri != null) {
+                    Uri buffered = pendingOAuth2RedirectUri;
+                    pendingOAuth2RedirectUri = null;
+                    oauth2Provider.handleRedirectUri(buffered);
+                }
             } catch (JSONException e) {
                 call.reject("Failed to initialize OAuth2 provider: " + e.getMessage());
                 return;
@@ -627,6 +634,9 @@ public class SocialLoginPlugin extends Plugin {
             if (((OAuth2Provider) oauth2Provider).handleRedirectUri(uri)) {
                 return;
             }
+        } else {
+            // Buffer until SocialLogin.initialize() registers the oauth2 provider
+            pendingOAuth2RedirectUri = uri;
         }
 
         if (openSecureWindowRedirectUri == null) {

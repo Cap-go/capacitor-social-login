@@ -43,6 +43,12 @@ public class OAuth2Provider implements SocialProvider {
     private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
     private static final String PREFS_NAME = "CapgoOAuth2ProviderPrefs";
     private static final String PREFS_KEY_PREFIX = "OAuth2Tokens_";
+    private static final String CUSTOM_TABS_PENDING_IN_PROGRESS = "OAuth2CustomTabsInProgress";
+    private static final String CUSTOM_TABS_PENDING_PROVIDER_ID = "OAuth2CustomTabsProviderId";
+    private static final String CUSTOM_TABS_PENDING_STATE = "OAuth2CustomTabsState";
+    private static final String CUSTOM_TABS_PENDING_CODE_VERIFIER = "OAuth2CustomTabsCodeVerifier";
+    private static final String CUSTOM_TABS_PENDING_REDIRECT = "OAuth2CustomTabsRedirect";
+    private static final String CUSTOM_TABS_PENDING_SCOPE = "OAuth2CustomTabsScope";
 
     public interface ActivityLauncher {
         void launchForResult(Intent intent, int requestCode);
@@ -498,26 +504,19 @@ public class OAuth2Provider implements SocialProvider {
                         if (resolved.logsEnabled) {
                             Log.d(LOG_TAG, "Using Custom Tabs for OAuth2 authorization");
                         }
-                        activity.runOnUiThread(() -> launchCustomTabs(builder.build().toString()));
+                        final String authUrl = builder.build().toString();
+                        activity.runOnUiThread(() -> {
+                            if (!launchCustomTabs(authUrl)) {
+                                // No Custom Tabs browser — fall back to embedded WebView
+                                pendingUseCustomTabs = false;
+                                clearPersistedCustomTabsState();
+                                launchWebViewActivity(authUrl, finalRedirect);
+                            }
+                        });
                         return;
                     }
 
-                    Intent intent = new Intent(activity, OAuth2LoginActivity.class);
-                    intent.putExtra(OAuth2LoginActivity.EXTRA_AUTH_URL, builder.build().toString());
-                    intent.putExtra(OAuth2LoginActivity.EXTRA_REDIRECT_URL, finalRedirect);
-
-                    activity.runOnUiThread(() -> {
-                        if (activityLauncher != null) {
-                            activityLauncher.launchForResult(intent, REQUEST_CODE);
-                        } else {
-                            Log.w(
-                                LOG_TAG,
-                                "activityLauncher is null — falling back to raw startActivityForResult. " +
-                                    "Activity result routing through Capacitor will not work."
-                            );
-                            activity.startActivityForResult(intent, REQUEST_CODE);
-                        }
-                    });
+                    activity.runOnUiThread(() -> launchWebViewActivity(builder.build().toString(), finalRedirect));
                 }
 
                 @Override
@@ -708,33 +707,28 @@ public class OAuth2Provider implements SocialProvider {
      * @return true if this URI was consumed as an OAuth2 Custom Tabs callback
      */
     public boolean handleRedirectUri(Uri uri) {
-        if (!pendingUseCustomTabs || pendingCall == null || pendingState == null || uri == null) {
-            return false;
-        }
-        String redirectUrl = pendingState.redirectUri;
-        if (redirectUrl == null || redirectUrl.isEmpty() || !uri.toString().startsWith(redirectUrl)) {
+        if (uri == null) {
             return false;
         }
 
-        Intent data = new Intent();
-        data.putExtra("code", uri.getQueryParameter("code"));
-        data.putExtra("state", uri.getQueryParameter("state"));
-        data.putExtra("error", uri.getQueryParameter("error"));
-        data.putExtra("error_description", uri.getQueryParameter("error_description"));
-
-        String fragment = uri.getFragment();
-        if (fragment != null && !fragment.isEmpty()) {
-            String[] pairs = fragment.split("&");
-            for (String pair : pairs) {
-                String[] keyValue = pair.split("=", 2);
-                if (keyValue.length == 2) {
-                    data.putExtra(keyValue[0], Uri.decode(keyValue[1]));
-                }
-            }
+        // After process death, restore PKCE/state so we can still complete the exchange.
+        if (pendingState == null) {
+            restorePersistedCustomTabsState();
         }
+
+        if (pendingState == null || !pendingUseCustomTabs) {
+            return false;
+        }
+
+        if (!matchesRedirectUri(pendingState.redirectUri, uri)) {
+            return false;
+        }
+
+        Intent data = callbackUriToIntent(uri);
 
         // Prevent handleOnResume from treating the return as cancellation while token exchange runs
         pendingUseCustomTabs = false;
+        clearPersistedCustomTabsState();
         return processCallbackData(data);
     }
 
@@ -743,63 +737,217 @@ public class OAuth2Provider implements SocialProvider {
      * Treat as user cancellation (same pattern as {@code openSecureWindow}).
      */
     public void handleUserReturnedWithoutCallback() {
-        if (!pendingUseCustomTabs || pendingCall == null) {
+        if (!pendingUseCustomTabs) {
+            return;
+        }
+
+        // Prefer consuming a redirect already attached to the activity intent (cold start / recreate)
+        Intent current = activity != null ? activity.getIntent() : null;
+        if (current != null && Intent.ACTION_VIEW.equals(current.getAction()) && current.getData() != null) {
+            if (handleRedirectUri(current.getData())) {
+                return;
+            }
+        }
+
+        if (pendingCall == null) {
+            clearPersistedCustomTabsState();
+            pendingUseCustomTabs = false;
+            pendingState = null;
             return;
         }
         pendingCall.reject("User cancelled", USER_CANCELLED_CODE);
         cleanupPending();
     }
 
+    /**
+     * Restore any persisted Custom Tabs login state (e.g. after process death) and return whether
+     * a Custom Tabs session was in progress.
+     */
+    public boolean restorePersistedCustomTabsState() {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String providerId = prefs.getString(CUSTOM_TABS_PENDING_PROVIDER_ID, null);
+        String state = prefs.getString(CUSTOM_TABS_PENDING_STATE, null);
+        String codeVerifier = prefs.getString(CUSTOM_TABS_PENDING_CODE_VERIFIER, null);
+        String redirectUri = prefs.getString(CUSTOM_TABS_PENDING_REDIRECT, null);
+        String scope = prefs.getString(CUSTOM_TABS_PENDING_SCOPE, null);
+        boolean inProgress = prefs.getBoolean(CUSTOM_TABS_PENDING_IN_PROGRESS, false);
+        if (!inProgress || providerId == null || state == null || redirectUri == null) {
+            return false;
+        }
+        pendingState = new OAuth2PendingState(providerId, state, codeVerifier, redirectUri, scope != null ? scope : "");
+        pendingUseCustomTabs = true;
+        return true;
+    }
+
     private boolean processCallbackData(Intent data) {
-        if (pendingCall == null || pendingState == null) {
+        if (pendingState == null) {
             return true;
         }
 
         String returnedState = data != null ? data.getStringExtra("state") : null;
         if (returnedState == null || !returnedState.equals(pendingState.state)) {
-            pendingCall.reject("State mismatch during OAuth2 login");
+            if (pendingCall != null) {
+                pendingCall.reject("State mismatch during OAuth2 login");
+            }
             cleanupPending();
             return true;
         }
 
-        String error = data.getStringExtra("error");
+        String error = data != null ? data.getStringExtra("error") : null;
         if (error != null) {
             String description = data.getStringExtra("error_description");
             String message = description != null ? description : error;
-            if (isUserDeniedRedirect(error, description)) {
-                pendingCall.reject(message, USER_CANCELLED_CODE);
-            } else {
-                pendingCall.reject(message);
+            if (pendingCall != null) {
+                if (isUserDeniedRedirect(error, description)) {
+                    pendingCall.reject(message, USER_CANCELLED_CODE);
+                } else {
+                    pendingCall.reject(message);
+                }
             }
             cleanupPending();
             return true;
         }
 
         // Check for code (authorization code flow)
-        String code = data.getStringExtra("code");
+        String code = data != null ? data.getStringExtra("code") : null;
         if (code != null) {
+            if (pendingCall == null) {
+                // Process death: original JS call is gone — still exchange & store tokens.
+                Log.w(LOG_TAG, "Completing OAuth2 Custom Tabs callback without pending PluginCall (process death?)");
+            }
             exchangeAuthorizationCode(code);
             return true;
         }
 
         // Check for access_token (implicit flow)
-        String accessToken = data.getStringExtra("access_token");
+        String accessToken = data != null ? data.getStringExtra("access_token") : null;
         if (accessToken != null) {
+            if (pendingCall == null) {
+                Log.w(LOG_TAG, "Completing OAuth2 Custom Tabs implicit callback without pending PluginCall (process death?)");
+            }
             handleImplicitFlowResponse(data);
             return true;
         }
 
-        pendingCall.reject("No authorization code or access token in callback");
+        if (pendingCall != null) {
+            pendingCall.reject("No authorization code or access token in callback");
+        }
         cleanupPending();
         return true;
     }
 
-    private void launchCustomTabs(String url) {
-        CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
-        CustomTabsIntent customTabsIntent = builder.build();
-        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        customTabsIntent.launchUrl(activity, Uri.parse(url));
+    private void launchWebViewActivity(String authUrl, String redirectUrl) {
+        Intent intent = new Intent(activity, OAuth2LoginActivity.class);
+        intent.putExtra(OAuth2LoginActivity.EXTRA_AUTH_URL, authUrl);
+        intent.putExtra(OAuth2LoginActivity.EXTRA_REDIRECT_URL, redirectUrl);
+
+        if (activityLauncher != null) {
+            activityLauncher.launchForResult(intent, REQUEST_CODE);
+        } else {
+            Log.w(
+                LOG_TAG,
+                "activityLauncher is null — falling back to raw startActivityForResult. " +
+                    "Activity result routing through Capacitor will not work."
+            );
+            activity.startActivityForResult(intent, REQUEST_CODE);
+        }
+    }
+
+    /**
+     * @return true if Custom Tabs launched successfully
+     */
+    private boolean launchCustomTabs(String url) {
+        try {
+            persistCustomTabsState();
+            CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
+            CustomTabsIntent customTabsIntent = builder.build();
+            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            customTabsIntent.launchUrl(activity, Uri.parse(url));
+            return true;
+        } catch (android.content.ActivityNotFoundException e) {
+            Log.w(LOG_TAG, "Custom Tabs unavailable, falling back to WebView", e);
+            clearPersistedCustomTabsState();
+            return false;
+        }
+    }
+
+    private void persistCustomTabsState() {
+        if (pendingState == null) {
+            return;
+        }
+        context
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(CUSTOM_TABS_PENDING_IN_PROGRESS, true)
+            .putString(CUSTOM_TABS_PENDING_PROVIDER_ID, pendingState.providerId)
+            .putString(CUSTOM_TABS_PENDING_STATE, pendingState.state)
+            .putString(CUSTOM_TABS_PENDING_CODE_VERIFIER, pendingState.codeVerifier)
+            .putString(CUSTOM_TABS_PENDING_REDIRECT, pendingState.redirectUri)
+            .putString(CUSTOM_TABS_PENDING_SCOPE, pendingState.scope)
+            .apply();
+    }
+
+    private void clearPersistedCustomTabsState() {
+        context
+            .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .remove(CUSTOM_TABS_PENDING_IN_PROGRESS)
+            .remove(CUSTOM_TABS_PENDING_PROVIDER_ID)
+            .remove(CUSTOM_TABS_PENDING_STATE)
+            .remove(CUSTOM_TABS_PENDING_CODE_VERIFIER)
+            .remove(CUSTOM_TABS_PENDING_REDIRECT)
+            .remove(CUSTOM_TABS_PENDING_SCOPE)
+            .apply();
+    }
+
+    static boolean matchesRedirectUri(String expectedRedirect, Uri actual) {
+        if (expectedRedirect == null || expectedRedirect.isEmpty() || actual == null) {
+            return false;
+        }
+        Uri expected = Uri.parse(expectedRedirect);
+        if (expected.getScheme() == null || actual.getScheme() == null) {
+            return false;
+        }
+        if (!expected.getScheme().equalsIgnoreCase(actual.getScheme())) {
+            return false;
+        }
+        String expectedAuthority = expected.getAuthority();
+        String actualAuthority = actual.getAuthority();
+        if (expectedAuthority == null ? actualAuthority != null : !expectedAuthority.equalsIgnoreCase(actualAuthority)) {
+            return false;
+        }
+        String expectedPath = normalizePath(expected.getPath());
+        String actualPath = normalizePath(actual.getPath());
+        return expectedPath.equals(actualPath);
+    }
+
+    private static String normalizePath(String path) {
+        if (path == null || path.isEmpty()) {
+            return "";
+        }
+        if (path.length() > 1 && path.endsWith("/")) {
+            return path.substring(0, path.length() - 1);
+        }
+        return path;
+    }
+
+    static Intent callbackUriToIntent(Uri uri) {
+        Intent data = new Intent();
+        data.putExtra("code", uri.getQueryParameter("code"));
+        data.putExtra("state", uri.getQueryParameter("state"));
+        data.putExtra("error", uri.getQueryParameter("error"));
+        data.putExtra("error_description", uri.getQueryParameter("error_description"));
+
+        // Use encoded fragment so values containing encoded '&' (%26) are not split incorrectly
+        String encodedFragment = uri.getEncodedFragment();
+        if (encodedFragment != null && !encodedFragment.isEmpty()) {
+            Uri fragmentUri = Uri.parse("https://callback.invalid/?" + encodedFragment);
+            for (String key : fragmentUri.getQueryParameterNames()) {
+                data.putExtra(key, fragmentUri.getQueryParameter(key));
+            }
+        }
+        return data;
     }
 
     private boolean isUserDeniedRedirect(String error, String description) {
@@ -874,7 +1022,9 @@ public class OAuth2Provider implements SocialProvider {
         OAuth2ProviderConfig config = getProvider(providerId);
 
         if (config == null) {
-            pendingCall.reject("OAuth2 provider '" + providerId + "' not found");
+            if (pendingCall != null) {
+                pendingCall.reject("OAuth2 provider '" + providerId + "' not found");
+            }
             cleanupPending();
             return;
         }
@@ -888,7 +1038,9 @@ public class OAuth2Provider implements SocialProvider {
                     @Override
                     public void onSuccess(OAuth2ProviderConfig resolved) {
                         if (resolved.accessTokenEndpoint == null || resolved.accessTokenEndpoint.isEmpty()) {
-                            pendingCall.reject("No accessTokenEndpoint configured for code exchange");
+                            if (pendingCall != null) {
+                                pendingCall.reject("No accessTokenEndpoint configured for code exchange");
+                            }
                             cleanupPending();
                             return;
                         }
@@ -897,7 +1049,9 @@ public class OAuth2Provider implements SocialProvider {
 
                     @Override
                     public void onError(String message) {
-                        pendingCall.reject(message);
+                        if (pendingCall != null) {
+                            pendingCall.reject(message);
+                        }
                         cleanupPending();
                     }
                 }
@@ -909,7 +1063,7 @@ public class OAuth2Provider implements SocialProvider {
     }
 
     private void exchangeAuthorizationCodeWithConfig(String code, OAuth2ProviderConfig config) {
-        if (pendingState == null || pendingCall == null) {
+        if (pendingState == null) {
             cleanupPending();
             return;
         }
@@ -1080,10 +1234,6 @@ public class OAuth2Provider implements SocialProvider {
         String fallbackRefreshToken,
         boolean wrapResponse
     ) throws JSONException {
-        if (call == null) {
-            return;
-        }
-
         final String accessToken = tokenPayload.getString("access_token");
         final String tokenType = tokenPayload.optString("token_type", "bearer");
         final int expiresIn = tokenPayload.optInt("expires_in", 3600);
@@ -1196,11 +1346,11 @@ public class OAuth2Provider implements SocialProvider {
         PluginCall call,
         boolean wrapResponse
     ) {
+        persistTokens(providerId, accessToken, refreshToken, idToken, tokenType, expiresAt, scopes);
+
         if (call == null) {
             return;
         }
-
-        persistTokens(providerId, accessToken, refreshToken, idToken, tokenType, expiresAt, scopes);
 
         JSObject accessTokenObject = new JSObject();
         accessTokenObject.put("token", accessToken);
@@ -1328,6 +1478,7 @@ public class OAuth2Provider implements SocialProvider {
         pendingCall = null;
         pendingState = null;
         pendingUseCustomTabs = false;
+        clearPersistedCustomTabsState();
     }
 
     private static Map<String, String> jsonObjectToMap(JSONObject json) throws JSONException {

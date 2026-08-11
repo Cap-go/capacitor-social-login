@@ -10,7 +10,6 @@ In your Keycloak realm, create or open the client used by your Capacitor app:
 2. Keep PKCE enabled in the app config.
 3. Register every redirect URI that your app uses, for example `myapp://oauth/keycloak` for mobile and an HTTPS callback URL for production web.
 4. Use scopes such as `openid profile email`. Add `offline_access` only when your realm/client is configured to issue refresh tokens.
-5. On Android, if you set `androidUseCustomTabs: true`, add an intent filter for that redirect scheme on your main activity (same pattern as Apple Sign-In / `openSecureWindow`).
 
 The exact issuer URL is deployment-specific. Current Keycloak deployments commonly publish realm metadata at `https://keycloak.example.com/realms/my-realm/.well-known/openid-configuration`, but some deployments include an extra base path. Use the issuer URL shown by your realm's OpenID Endpoint Configuration instead of guessing.
 
@@ -49,6 +48,13 @@ console.log(result.result.idToken);
 console.log(result.result.accessToken?.token);
 console.log(result.result.resourceData);
 ```
+
+### Android Custom Tabs notes
+
+When `androidUseCustomTabs: true`:
+
+1. Add an intent filter for your redirect scheme on the main activity (same pattern as Apple Sign-In / `openSecureWindow`).
+2. Use `android:launchMode="singleTask"` (or `singleTop`) on the main activity so the OAuth redirect is delivered via `onNewIntent` instead of recreating the activity.
 
 For refresh tokens, request `offline_access` only if your Keycloak realm and client allow refresh tokens for this app:
 

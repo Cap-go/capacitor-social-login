@@ -717,7 +717,7 @@ await SocialLogin.refresh({
 
 **iOS**: Uses `ASWebAuthenticationSession` for secure authentication.
 
-**Android**: Uses an embedded WebView by default. Set `androidUseCustomTabs: true` to use Chrome Custom Tabs instead (RFC 8252 / system browser). Custom Tabs require a custom-scheme or App Link `redirectUrl` with a matching intent filter in your app's `AndroidManifest.xml`.
+**Android**: Uses an embedded WebView by default. Set `androidUseCustomTabs: true` to use Chrome Custom Tabs instead (RFC 8252 / system browser). Custom Tabs require a custom-scheme or App Link `redirectUrl` with a matching intent filter in your app's `AndroidManifest.xml`, and `android:launchMode="singleTask"` (or `singleTop`) on the main activity so redirects arrive via `onNewIntent`.
 
 **Web**: Opens a popup window for OAuth flow.
 
