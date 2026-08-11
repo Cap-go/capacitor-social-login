@@ -23,16 +23,24 @@ import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
 import { OAuth2SocialLogin } from './oauth2-provider';
+import { TelegramSocialLogin } from './telegram-provider';
 import { TwitterSocialLogin } from './twitter-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
-  private static readonly POPUP_WINDOW_NAMES = new Set(['OAuth2Login', 'XLogin', 'Google Sign In', 'Authorization']);
+  private static readonly POPUP_WINDOW_NAMES = new Set([
+    'OAuth2Login',
+    'XLogin',
+    'Google Sign In',
+    'Authorization',
+    'TelegramLogin',
+  ]);
 
   private googleProvider: GoogleSocialLogin;
   private appleProvider: AppleSocialLogin;
   private facebookProvider: FacebookSocialLogin;
   private twitterProvider: TwitterSocialLogin;
+  private telegramProvider: TelegramSocialLogin;
   private oauth2Provider: OAuth2SocialLogin;
 
   constructor() {
@@ -42,6 +50,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     this.appleProvider = new AppleSocialLogin();
     this.facebookProvider = new FacebookSocialLogin();
     this.twitterProvider = new TwitterSocialLogin();
+    this.telegramProvider = new TelegramSocialLogin();
     this.oauth2Provider = new OAuth2SocialLogin();
 
     // Auto-finish OAuth redirects only when running inside a popup window.
@@ -88,6 +97,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     switch (provider) {
       case 'twitter':
         result = await this.twitterProvider.handleOAuthRedirect(url, state);
+        break;
+      case 'telegram':
+        result = await this.telegramProvider.handleOAuthRedirect(url, state);
         break;
       case 'oauth2':
         result = await this.oauth2Provider.handleOAuthRedirect(url, state);
@@ -144,6 +156,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         channelName = `oauth2_${parsed.state}`;
       } else if (parsed.provider === 'twitter' && parsed.state) {
         channelName = `twitter_oauth_${parsed.state}`;
+      } else if (parsed.provider === 'telegram' && parsed.state) {
+        channelName = `telegram_oauth_${parsed.state}`;
       } else if (parsed.provider === 'google' && parsed.nonce) {
         channelName = `google_oauth_${parsed.nonce}`;
       }
@@ -201,6 +215,16 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       );
     }
 
+    if (options.telegram?.botId) {
+      this.telegramProvider.initialize(
+        options.telegram.botId,
+        options.telegram.requestAccess,
+        options.telegram.redirectUrl,
+        options.telegram.origin,
+        options.telegram.languageCode,
+      );
+    }
+
     if (options.oauth2 && Object.keys(options.oauth2).length > 0) {
       initPromises.push(this.oauth2Provider.initializeProviders(options.oauth2));
     }
@@ -232,6 +256,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           provider: T;
           result: ProviderResponseMap[T];
         }>;
+      case 'telegram':
+        return this.telegramProvider.login(options.options as any) as Promise<{
+          provider: T;
+          result: ProviderResponseMap[T];
+        }>;
       case 'oauth2':
         return this.oauth2Provider.login(options.options as OAuth2LoginOptions) as Promise<{
           provider: T;
@@ -243,7 +272,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
     switch (options.provider) {
@@ -255,6 +284,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.logout();
       case 'twitter':
         return this.twitterProvider.logout();
+      case 'telegram':
+        return this.telegramProvider.logout();
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 logout');
@@ -275,6 +306,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.isLoggedIn();
       case 'twitter':
         return this.twitterProvider.isLoggedIn();
+      case 'telegram':
+        return this.telegramProvider.isLoggedIn();
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 isLoggedIn');
@@ -295,6 +328,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.getAuthorizationCode();
       case 'twitter':
         return this.twitterProvider.getAuthorizationCode();
+      case 'telegram':
+        return this.telegramProvider.getAuthorizationCode();
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 getAuthorizationCode');
@@ -315,6 +350,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.refresh(options.options as FacebookLoginOptions);
       case 'twitter':
         return this.twitterProvider.refresh();
+      case 'telegram':
+        return this.telegramProvider.refresh();
       case 'oauth2': {
         const oauth2Options = options.options as OAuth2LoginOptions;
         if (!oauth2Options?.providerId) {

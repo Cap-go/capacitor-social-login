@@ -70,11 +70,17 @@ public class OAuth2LoginActivity extends Activity {
             Uri uri = Uri.parse(url);
             Intent data = new Intent();
 
+            data.putExtra("redirectUrl", url);
+
             // Handle authorization code flow (query parameters)
             data.putExtra("code", uri.getQueryParameter("code"));
             data.putExtra("state", uri.getQueryParameter("state"));
             data.putExtra("error", uri.getQueryParameter("error"));
             data.putExtra("error_description", uri.getQueryParameter("error_description"));
+
+            for (String name : uri.getQueryParameterNames()) {
+                data.putExtra(name, uri.getQueryParameter(name));
+            }
 
             // Handle implicit flow (fragment parameters)
             String fragment = uri.getFragment();
