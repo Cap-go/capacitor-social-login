@@ -185,10 +185,17 @@ public class SocialLoginPlugin extends Plugin {
                     }
                 });
                 // Replay a redirect that arrived before initialize (cold start / process death)
+                boolean handledRedirect = false;
                 if (pendingOAuth2RedirectUri != null) {
                     Uri buffered = pendingOAuth2RedirectUri;
                     pendingOAuth2RedirectUri = null;
-                    oauth2Provider.handleRedirectUri(buffered);
+                    handledRedirect = oauth2Provider.handleRedirectUri(buffered);
+                }
+                // If handleOnResume ran before initialize, persisted Custom Tabs state may still be
+                // present with no buffered redirect — restore then cancel/clear the orphaned session
+                // (or complete via activity.getIntent() if the redirect is attached there).
+                if (!handledRedirect && oauth2Provider.restorePersistedCustomTabsState()) {
+                    oauth2Provider.handleUserReturnedWithoutCallback();
                 }
             } catch (JSONException e) {
                 call.reject("Failed to initialize OAuth2 provider: " + e.getMessage());
