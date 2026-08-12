@@ -277,10 +277,12 @@ function applyDependencyReplacements(
 }
 
 function getPodspecReplacements(providerConfig: ProviderConfig): DependencyReplacement[] {
+  const podspecTrailingComment = '([ \\t]*#[^\\r\\n]*)?';
+
   return [
     {
       // Google SignIn - handle both active and commented (including existing disabled comments)
-      old: /(#\s*)?s\.dependency\s+'GoogleSignIn',\s*'~>\s*9\.0\.0'(\s*#.*)?/,
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'GoogleSignIn',\\s*'~>\\s*9\\.0\\.0'${podspecTrailingComment}`),
       new:
         providerConfig.google === 'implementation'
           ? `s.dependency 'GoogleSignIn', '~> 9.0.0'`
@@ -288,7 +290,7 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
     },
     {
       // Facebook Core - handle both active and commented (including existing disabled comments)
-      old: /(#\s*)?s\.dependency\s+'FBSDKCoreKit',\s*'~>\s*18\.0'(\s*#.*)?/,
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'FBSDKCoreKit',\\s*'~>\\s*18\\.0'${podspecTrailingComment}`),
       new:
         providerConfig.facebook === 'implementation'
           ? `s.dependency 'FBSDKCoreKit', '~> 18.0'`
@@ -296,7 +298,7 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
     },
     {
       // Facebook Login - handle both active and commented (including existing disabled comments)
-      old: /(#\s*)?s\.dependency\s+'FBSDKLoginKit',\s*'~>\s*18\.0'(\s*#.*)?/,
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'FBSDKLoginKit',\\s*'~>\\s*18\\.0'${podspecTrailingComment}`),
       new:
         providerConfig.facebook === 'implementation'
           ? `s.dependency 'FBSDKLoginKit', '~> 18.0'`
@@ -304,7 +306,7 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
     },
     {
       // Alamofire (for Apple) - handle both active and commented (including existing disabled comments)
-      old: /(#\s*)?s\.dependency\s+'Alamofire',\s*'~>\s*5\.10\.2'(\s*#.*)?/,
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'Alamofire',\\s*'~>\\s*5\\.10\\.2'${podspecTrailingComment}`),
       new:
         providerConfig.apple === 'implementation'
           ? `s.dependency 'Alamofire', '~> 5.10.2'`
@@ -314,8 +316,8 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
 }
 
 function getPackageSwiftReplacements(providerConfig: ProviderConfig): DependencyReplacement[] {
-  const swiftCommentPrefix = '(?:\\/\\/\\s*)*';
-  const swiftTrailingComment = '(?:\\s*\\/\\/.*)?';
+  const swiftCommentPrefix = '(?:\\/\\/[ \\t]*)*';
+  const swiftTrailingComment = '(?:[ \\t]*\\/\\/[^\\r\\n]*)?';
 
   return [
     {
@@ -387,8 +389,9 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
 /**
  * Modify Podspec and Package.swift for iOS conditional dependencies
  */
-function configureIOS(providerConfig: ProviderConfig): void {
+function configureIOS(providerConfig: ProviderConfig): boolean {
   logInfo('Configuring iOS dependencies...');
+  let success = true;
 
   try {
     const podspecResult = applyDependencyReplacements(
@@ -404,14 +407,15 @@ function configureIOS(providerConfig: ProviderConfig): void {
     }
   } catch (error) {
     logError(`Error modifying podspec: ${(error as Error).message}`);
+    success = false;
+  }
+
+  if (!fs.existsSync(packageSwiftPath)) {
+    logError('Package.swift not found; Swift Package Manager configuration is required');
+    return false;
   }
 
   try {
-    if (!fs.existsSync(packageSwiftPath)) {
-      logWarning('Package.swift not found, skipping Swift Package Manager configuration');
-      return;
-    }
-
     const packageSwiftResult = applyDependencyReplacements(
       fs.readFileSync(packageSwiftPath, 'utf8'),
       getPackageSwiftReplacements(providerConfig),
@@ -425,7 +429,10 @@ function configureIOS(providerConfig: ProviderConfig): void {
     }
   } catch (error) {
     logError(`Error modifying Package.swift: ${(error as Error).message}`);
+    success = false;
   }
+
+  return success;
 }
 
 // ============================================================================
@@ -448,6 +455,8 @@ function configureWeb(): void {
  * Main execution
  */
 function main(): void {
+  let configurationSucceeded = true;
+
   // Route to platform-specific configuration
   switch (PLATFORM) {
     case 'android':
@@ -456,7 +465,6 @@ function main(): void {
       logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(androidConfig);
       configureAndroid(androidConfig);
-      logSuccess('Configuration complete\n');
       break;
 
     case 'ios':
@@ -464,8 +472,7 @@ function main(): void {
       const iosConfig = getProviderConfig();
       logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(iosConfig);
-      configureIOS(iosConfig);
-      logSuccess('Configuration complete\n');
+      configurationSucceeded = configureIOS(iosConfig);
       break;
 
     case 'web':
@@ -481,10 +488,16 @@ function main(): void {
       logProviderConfig(defaultConfig);
       logWarning(`Unknown platform: ${PLATFORM || 'undefined'}, configuring all platforms`);
       configureAndroid(defaultConfig);
-      configureIOS(defaultConfig);
-      logSuccess('Configuration complete\n');
+      configurationSucceeded = configureIOS(defaultConfig);
       break;
   }
+
+  if (!configurationSucceeded) {
+    logError('Configuration failed\n');
+    process.exit(1);
+  }
+
+  logSuccess('Configuration complete\n');
 }
 
 // Run if executed directly
