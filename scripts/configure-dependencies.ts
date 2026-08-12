@@ -28,6 +28,7 @@ const PLATFORM = process.env.CAPACITOR_PLATFORM_NAME;
 // const androidGradlePath = path.join(PLUGIN_ROOT, 'android', 'build.gradle');
 const gradlePropertiesPath = path.join(PLUGIN_ROOT, 'android', 'gradle.properties');
 const podspecPath = path.join(PLUGIN_ROOT, 'CapgoCapacitorSocialLogin.podspec');
+const packageSwiftPath = path.join(PLUGIN_ROOT, 'Package.swift');
 
 // Default provider configuration (backward compatible)
 const defaultProviders: Record<string, string | boolean> = {
@@ -247,75 +248,191 @@ function configureAndroid(providerConfig: ProviderConfig): void {
 }
 
 // ============================================================================
-// iOS: Podspec Configuration
+// iOS: Podspec and Swift Package Manager Configuration
 // ============================================================================
 
-/**
- * Modify Podspec for iOS conditional dependencies
- */
-function configureIOS(providerConfig: ProviderConfig): void {
-  logInfo('Configuring iOS dependencies...');
+type DependencyReplacement = { old: RegExp; new: string };
 
-  try {
-    let podspecContent = fs.readFileSync(podspecPath, 'utf8');
+function applyDependencyReplacements(
+  content: string,
+  replacements: DependencyReplacement[],
+): {
+  content: string;
+  modified: boolean;
+} {
+  let updatedContent = content;
+  let modified = false;
 
-    // Replace dependency declarations with conditional ones
-    // Handle both active and commented-out dependencies (including existing disabled comments)
-    const replacements: { old: RegExp; new: string }[] = [
-      {
-        // Google SignIn - handle both active and commented (including existing disabled comments)
-        old: /(#\s*)?s\.dependency\s+'GoogleSignIn',\s*'~>\s*9\.0\.0'(\s*#.*)?/,
-        new:
-          providerConfig.google === 'implementation'
-            ? `s.dependency 'GoogleSignIn', '~> 9.0.0'`
-            : `# s.dependency 'GoogleSignIn', '~> 9.0.0'  # Disabled via config (compileOnly)`,
-      },
-      {
-        // Facebook Core - handle both active and commented (including existing disabled comments)
-        old: /(#\s*)?s\.dependency\s+'FBSDKCoreKit',\s*'~>\s*18\.0'(\s*#.*)?/,
-        new:
-          providerConfig.facebook === 'implementation'
-            ? `s.dependency 'FBSDKCoreKit', '~> 18.0'`
-            : `# s.dependency 'FBSDKCoreKit', '~> 18.0'  # Disabled via config (compileOnly)`,
-      },
-      {
-        // Facebook Login - handle both active and commented (including existing disabled comments)
-        old: /(#\s*)?s\.dependency\s+'FBSDKLoginKit',\s*'~>\s*18\.0'(\s*#.*)?/,
-        new:
-          providerConfig.facebook === 'implementation'
-            ? `s.dependency 'FBSDKLoginKit', '~> 18.0'`
-            : `# s.dependency 'FBSDKLoginKit', '~> 18.0'  # Disabled via config (compileOnly)`,
-      },
-      {
-        // Alamofire (for Apple) - handle both active and commented (including existing disabled comments)
-        old: /(#\s*)?s\.dependency\s+'Alamofire',\s*'~>\s*5\.10\.2'(\s*#.*)?/,
-        new:
-          providerConfig.apple === 'implementation'
-            ? `s.dependency 'Alamofire', '~> 5.10.2'`
-            : `# s.dependency 'Alamofire', '~> 5.10.2'  # Disabled via config (compileOnly)`,
-      },
-    ];
-
-    let modified = false;
-    for (const replacement of replacements) {
-      if (replacement.old.test(podspecContent)) {
-        const before = podspecContent;
-        podspecContent = podspecContent.replace(replacement.old, replacement.new);
-        if (before !== podspecContent) {
-          modified = true;
-        }
+  for (const replacement of replacements) {
+    if (replacement.old.test(updatedContent)) {
+      const before = updatedContent;
+      updatedContent = updatedContent.replace(replacement.old, replacement.new);
+      if (before !== updatedContent) {
+        modified = true;
       }
     }
+  }
 
-    if (modified) {
-      fs.writeFileSync(podspecPath, podspecContent, 'utf8');
+  return { content: updatedContent, modified };
+}
+
+function getPodspecReplacements(providerConfig: ProviderConfig): DependencyReplacement[] {
+  const podspecTrailingComment = '([ \\t]*#[^\\r\\n]*)?';
+
+  return [
+    {
+      // Google SignIn - handle both active and commented (including existing disabled comments)
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'GoogleSignIn',\\s*'~>\\s*9\\.0\\.0'${podspecTrailingComment}`),
+      new:
+        providerConfig.google === 'implementation'
+          ? `s.dependency 'GoogleSignIn', '~> 9.0.0'`
+          : `# s.dependency 'GoogleSignIn', '~> 9.0.0'  # Disabled via config (compileOnly)`,
+    },
+    {
+      // Facebook Core - handle both active and commented (including existing disabled comments)
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'FBSDKCoreKit',\\s*'~>\\s*18\\.0'${podspecTrailingComment}`),
+      new:
+        providerConfig.facebook === 'implementation'
+          ? `s.dependency 'FBSDKCoreKit', '~> 18.0'`
+          : `# s.dependency 'FBSDKCoreKit', '~> 18.0'  # Disabled via config (compileOnly)`,
+    },
+    {
+      // Facebook Login - handle both active and commented (including existing disabled comments)
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'FBSDKLoginKit',\\s*'~>\\s*18\\.0'${podspecTrailingComment}`),
+      new:
+        providerConfig.facebook === 'implementation'
+          ? `s.dependency 'FBSDKLoginKit', '~> 18.0'`
+          : `# s.dependency 'FBSDKLoginKit', '~> 18.0'  # Disabled via config (compileOnly)`,
+    },
+    {
+      // Alamofire (for Apple) - handle both active and commented (including existing disabled comments)
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'Alamofire',\\s*'~>\\s*5\\.10\\.2'${podspecTrailingComment}`),
+      new:
+        providerConfig.apple === 'implementation'
+          ? `s.dependency 'Alamofire', '~> 5.10.2'`
+          : `# s.dependency 'Alamofire', '~> 5.10.2'  # Disabled via config (compileOnly)`,
+    },
+  ];
+}
+
+function getPackageSwiftReplacements(providerConfig: ProviderConfig): DependencyReplacement[] {
+  const swiftCommentPrefix = '(?:\\/\\/[ \\t]*)*';
+  const swiftTrailingComment = '(?:[ \\t]*\\/\\/[^\\r\\n]*)?';
+
+  return [
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/facebook\\/facebook-ios-sdk\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\),${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.facebook === 'implementation'
+          ? `.package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "18.0.3")),`
+          : `// .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "18.0.3")),  // Disabled via config (compileOnly)`,
+    },
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/google\\/GoogleSignIn-iOS\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\),${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.google === 'implementation'
+          ? `.package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0")),`
+          : `// .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0")),  // Disabled via config (compileOnly)`,
+    },
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/Alamofire\\/Alamofire\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\)${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.apple === 'implementation'
+          ? `.package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))`
+          : `// .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))  // Disabled via config (compileOnly)`,
+    },
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.product\\(name:\\s*"FacebookCore",\\s*package:\\s*"facebook-ios-sdk"\\),${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.facebook === 'implementation'
+          ? `.product(name: "FacebookCore", package: "facebook-ios-sdk"),`
+          : `// .product(name: "FacebookCore", package: "facebook-ios-sdk"),  // Disabled via config (compileOnly)`,
+    },
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.product\\(name:\\s*"FacebookLogin",\\s*package:\\s*"facebook-ios-sdk"\\),${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.facebook === 'implementation'
+          ? `.product(name: "FacebookLogin", package: "facebook-ios-sdk"),`
+          : `// .product(name: "FacebookLogin", package: "facebook-ios-sdk"),  // Disabled via config (compileOnly)`,
+    },
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.product\\(name:\\s*"GoogleSignIn",\\s*package:\\s*"GoogleSignIn-iOS"\\),${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.google === 'implementation'
+          ? `.product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),`
+          : `// .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),  // Disabled via config (compileOnly)`,
+    },
+    {
+      old: new RegExp(
+        `${swiftCommentPrefix}\\.product\\(name:\\s*"Alamofire",\\s*package:\\s*"Alamofire"\\)${swiftTrailingComment}`,
+      ),
+      new:
+        providerConfig.apple === 'implementation'
+          ? `.product(name: "Alamofire", package: "Alamofire")`
+          : `// .product(name: "Alamofire", package: "Alamofire")  // Disabled via config (compileOnly)`,
+    },
+  ];
+}
+
+/**
+ * Modify Podspec and Package.swift for iOS conditional dependencies
+ */
+function configureIOS(providerConfig: ProviderConfig): boolean {
+  logInfo('Configuring iOS dependencies...');
+  let success = true;
+
+  try {
+    const podspecResult = applyDependencyReplacements(
+      fs.readFileSync(podspecPath, 'utf8'),
+      getPodspecReplacements(providerConfig),
+    );
+
+    if (podspecResult.modified) {
+      fs.writeFileSync(podspecPath, podspecResult.content, 'utf8');
       logSuccess('Modified podspec');
     } else {
       logInfo('Podspec already up to date');
     }
   } catch (error) {
     logError(`Error modifying podspec: ${(error as Error).message}`);
+    success = false;
   }
+
+  if (!fs.existsSync(packageSwiftPath)) {
+    logError('Package.swift not found; Swift Package Manager configuration is required');
+    return false;
+  }
+
+  try {
+    const packageSwiftResult = applyDependencyReplacements(
+      fs.readFileSync(packageSwiftPath, 'utf8'),
+      getPackageSwiftReplacements(providerConfig),
+    );
+
+    if (packageSwiftResult.modified) {
+      fs.writeFileSync(packageSwiftPath, packageSwiftResult.content, 'utf8');
+      logSuccess('Modified Package.swift');
+    } else {
+      logInfo('Package.swift already up to date');
+    }
+  } catch (error) {
+    logError(`Error modifying Package.swift: ${(error as Error).message}`);
+    success = false;
+  }
+
+  return success;
 }
 
 // ============================================================================
@@ -338,6 +455,8 @@ function configureWeb(): void {
  * Main execution
  */
 function main(): void {
+  let configurationSucceeded = true;
+
   // Route to platform-specific configuration
   switch (PLATFORM) {
     case 'android':
@@ -346,7 +465,6 @@ function main(): void {
       logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(androidConfig);
       configureAndroid(androidConfig);
-      logSuccess('Configuration complete\n');
       break;
 
     case 'ios':
@@ -354,8 +472,7 @@ function main(): void {
       const iosConfig = getProviderConfig();
       logInfo('Configuring dynamic provider dependencies for SocialLogin');
       logProviderConfig(iosConfig);
-      configureIOS(iosConfig);
-      logSuccess('Configuration complete\n');
+      configurationSucceeded = configureIOS(iosConfig);
       break;
 
     case 'web':
@@ -371,10 +488,16 @@ function main(): void {
       logProviderConfig(defaultConfig);
       logWarning(`Unknown platform: ${PLATFORM || 'undefined'}, configuring all platforms`);
       configureAndroid(defaultConfig);
-      configureIOS(defaultConfig);
-      logSuccess('Configuration complete\n');
+      configurationSucceeded = configureIOS(defaultConfig);
       break;
   }
+
+  if (!configurationSucceeded) {
+    logError('Configuration failed\n');
+    process.exit(1);
+  }
+
+  logSuccess('Configuration complete\n');
 }
 
 // Run if executed directly
