@@ -115,7 +115,7 @@ export default config;
 - This configuration only affects iOS and Android platforms; it does not affect the web platform.
 - **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
 - **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package — no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
-- **Apple (iOS)**: Basic Sign in with Apple always works via AuthenticationServices (no external SDK). Alamofire is only required when using `redirectUrl` / backend token exchange. CocoaPods toggles Alamofire via `apple: true|false`; SPM always resolves Alamofire from `Package.swift` when the plugin is linked.
+- **Apple (iOS)**: Basic Sign in with Apple always works via AuthenticationServices (no external SDK). Alamofire is only required when using `redirectUrl` / backend token exchange. Both CocoaPods and Swift Package Manager toggle Alamofire via `apple: true|false`.
 - Apple Sign-In on Android uses OAuth flow without external SDK dependencies
 - Twitter uses standard OAuth 2.0 flow without external SDK dependencies
 
