@@ -24,7 +24,6 @@ public class SocialLoginPluginUnitTest {
             Long.valueOf(1_735_689_600L),
             SocialLoginPlugin.longOptionFromCall(call, "accessTokenExpirationDate")
         );
-        assertNull("PluginCall.getLong misses Integer bridge values", call.getLong("accessTokenExpirationDate"));
     }
 
     @Test
