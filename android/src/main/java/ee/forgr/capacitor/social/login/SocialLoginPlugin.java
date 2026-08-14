@@ -532,9 +532,22 @@ public class SocialLoginPlugin extends Plugin {
         }
     }
 
+    // Capacitor's PluginCall.getLong() only reads Java Long values. JS numbers that
+    // fit in 32 bits cross the bridge as Integer, so Number coercion is required.
+    static Long longOptionFromCall(PluginCall call, String key) {
+        if (!call.getData().has(key)) {
+            return null;
+        }
+        Object value = call.getData().opt(key);
+        if (value == null || !(value instanceof Number)) {
+            return null;
+        }
+        return ((Number) value).longValue();
+    }
+
     @PluginMethod
     public void getAccessTokenExpirationDate(final PluginCall call) {
-        Long expiresAt = call.getLong("accessTokenExpirationDate");
+        Long expiresAt = longOptionFromCall(call, "accessTokenExpirationDate");
         if (expiresAt == null) {
             call.reject("accessTokenExpirationDate is required");
             return;
@@ -552,7 +565,7 @@ public class SocialLoginPlugin extends Plugin {
 
     @PluginMethod
     public void isAccessTokenExpired(final PluginCall call) {
-        Long expiresAt = call.getLong("accessTokenExpirationDate");
+        Long expiresAt = longOptionFromCall(call, "accessTokenExpirationDate");
         if (expiresAt == null) {
             call.reject("accessTokenExpirationDate is required");
             return;
