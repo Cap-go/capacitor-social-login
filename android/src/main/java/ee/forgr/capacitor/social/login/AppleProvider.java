@@ -57,6 +57,8 @@ public class AppleProvider implements SocialProvider {
     private static final String DEFAULT_SCOPE = "name%20email";
     private static final String AUTHURL = "https://appleid.apple.com/auth/authorize";
     private static final String TOKENURL = "https://appleid.apple.com/auth/token";
+    private static final String BROADCAST_REDIRECT_URL = "https://capacitor-social-login.firebaseapp.com/__/auth/handler";
+    private static final String BROADCAST_REDIRECT_HOST = "capacitor-social-login.firebaseapp.com";
     private static final String SHARED_PREFERENCE_NAME = "APPLE_LOGIN_Q16ob0k_SHARED_PERF";
     private static final String APPLE_DATA_PREFERENCE = "APPLE_LOGIN_APPLE_DATA_83b2d6db-17fe-49c9-8c33-e3f5d02f9f84";
 
@@ -193,7 +195,7 @@ public class AppleProvider implements SocialProvider {
         }
 
         // For Broadcast Channel, we use a special redirect URI that handles the channel communication
-        String broadcastRedirectUri = "https://capacitor-social-login.firebaseapp.com/__/auth/handler";
+        String broadcastRedirectUri = BROADCAST_REDIRECT_URL;
 
         this.appleAuthURLFull =
             AUTHURL +
@@ -348,24 +350,47 @@ public class AppleProvider implements SocialProvider {
                     this.lastcall.reject("Cannot persist state", e);
                 }
             } else {
+                // No access token present, handle legacy or broadcast-channel flow
                 // We only have authorization code, need to exchange it
                 String appleAuthCode = uri.getQueryParameter("code");
                 String appleClientSecret = uri.getQueryParameter("client_secret");
 
-                if (useProperTokenExchange) {
-                    // In proper token exchange mode, we should have received proper tokens
-                    // from the backend. If we only got an auth code, reject the call.
-                    this.lastcall.reject("Expected proper tokens from backend but received authorization code only");
+                if (useBroadcastChannel) {
+                    // In broadcast channel mode we cannot exchange the code on-device because the redirect URI differs.
+                    // Expect the backend to perform the exchange and return tokens; otherwise pass the code back.
+                    if (appleAuthCode != null) {
+                        JSObject result = new JSObject();
+                        result.put("authorizationCode", appleAuthCode);
+                        result.put("idToken", uri.getQueryParameter("id_token"));
+
+                        JSObject response = new JSObject();
+                        response.put("provider", "apple");
+                        response.put("result", result);
+
+                        this.lastcall.resolve(response);
+                    } else {
+                        this.lastcall.reject("Expected tokens or authorization code in broadcast channel flow but none were provided");
+                    }
                 } else {
-                    // Legacy mode: exchange the authorization code for tokens
-                    requestForAccessToken(appleAuthCode, appleClientSecret);
-                    return; // Don't clear lastcall here, it will be cleared in the callback
+                    if (useProperTokenExchange) {
+                        // In proper token exchange mode, we should have received proper tokens
+                        // from the backend. If we only got an auth code, reject the call.
+                        this.lastcall.reject("Expected proper tokens from backend but received authorization code only");
+                    } else {
+                        // Legacy mode: exchange the authorization code for tokens
+                        requestForAccessToken(appleAuthCode, appleClientSecret);
+                        return; // Don't clear lastcall here, it will be cleared in the callback
+                    }
                 }
             }
         } else {
             this.lastcall.reject("We couldn't get the Auth Code");
         }
         this.lastcall = null;
+    }
+
+    private boolean isBroadcastRedirect(String url) {
+        return url != null && url.contains(BROADCAST_REDIRECT_HOST);
     }
 
     private void requestForAccessToken(String code, String clientSecret) {
@@ -500,92 +525,6 @@ public class AppleProvider implements SocialProvider {
         webView.addJavascriptInterface(new BroadcastChannelInterface(call), "AndroidBridge");
 
         // Set up WebViewClient to handle redirects
-        webView.setWebViewClient(
-            new WebViewClient() {
-                @Override
-                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                    String url = request.getUrl().toString();
-
-                    // Check if this is the Broadcast Channel redirect
-                    if (url.contains("capacitor-social-login.firebaseapp.com")) {
-                        // Extract authorization code from URL parameters
-                        Uri uri = Uri.parse(url);
-                        String success = uri.getQueryParameter("success");
-
-                        if (lastcall == null) {
-                            Log.e(SocialLoginPlugin.LOG_TAG, "setupBroadcastChannelWebview: lastcall is null");
-                            dialog.dismiss();
-                            return true;
-                        }
-
-                        if ("true".equals(success)) {
-                            String accessToken = uri.getQueryParameter("access_token");
-                            if (accessToken != null) {
-                                // We have proper tokens from the backend
-                                String refreshToken = uri.getQueryParameter("refresh_token");
-                                String idToken = uri.getQueryParameter("id_token");
-                                try {
-                                    persistState(idToken, refreshToken, accessToken);
-                                    JSObject result = new JSObject();
-                                    result.put("accessToken", createAccessTokenObject(accessToken));
-                                    result.put("profile", createProfileObject(idToken));
-                                    result.put("idToken", idToken);
-
-                                    JSObject response = new JSObject();
-                                    response.put("provider", "apple");
-                                    response.put("result", result);
-
-                                    lastcall.resolve(response);
-                                } catch (JSONException e) {
-                                    Log.e(SocialLoginPlugin.LOG_TAG, "Cannot persist state", e);
-                                    lastcall.reject("Cannot persist state", e);
-                                }
-                            } else {
-                                // We only have authorization code, need to handle it
-                                String appleAuthCode = uri.getQueryParameter("code");
-                                String appleClientSecret = uri.getQueryParameter("client_secret");
-
-                                if (useProperTokenExchange) {
-                                    // For Broadcast Channel, we can handle the token exchange directly
-                                    // or pass the authorization code back to the client
-                                    JSObject result = new JSObject();
-                                    result.put("authorizationCode", appleAuthCode);
-                                    result.put("idToken", ""); // Will be filled by client-side token exchange
-
-                                    JSObject response = new JSObject();
-                                    response.put("provider", "apple");
-                                    response.put("result", result);
-
-                                    lastcall.resolve(response);
-                                } else {
-                                    // Legacy mode: use authorization code as access token
-                                    JSObject result = new JSObject();
-                                    result.put("accessToken", createAccessTokenObject(appleAuthCode));
-                                    result.put("profile", createProfileObject(""));
-                                    result.put("idToken", "");
-
-                                    JSObject response = new JSObject();
-                                    response.put("provider", "apple");
-                                    response.put("result", result);
-
-                                    lastcall.resolve(response);
-                                }
-                            }
-                        } else {
-                            lastcall.reject("Authentication failed");
-                        }
-
-                        dialog.dismiss();
-                        lastcall = null;
-                        return true;
-                    }
-
-                    return super.shouldOverrideUrlLoading(view, request);
-                }
-            }
-        );
-
-        // Inject Broadcast Channel polyfill and setup
         webView.setWebChromeClient(
             new WebChromeClient() {
                 @Override
@@ -596,24 +535,30 @@ public class AppleProvider implements SocialProvider {
             }
         );
 
-        dialog.setContentView(webView);
-
-        // Set dialog to fullscreen
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
-        lp.copyFrom(dialog.getWindow().getAttributes());
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
-        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
-        dialog.getWindow().setAttributes(lp);
-
-        // Load the Apple authentication URL
-        webView.loadUrl(url);
-
-        // Inject Broadcast Channel setup after page loads
         webView.setWebViewClient(
             new WebViewClient() {
                 @Override
-                public void onPageFinished(WebView view, String url) {
-                    super.onPageFinished(view, url);
+                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                    String loadingUrl = request.getUrl().toString();
+
+                    if (isBroadcastRedirect(loadingUrl)) {
+                        handleUrl(loadingUrl);
+                        dialog.dismiss();
+                        return true;
+                    }
+
+                    return super.shouldOverrideUrlLoading(view, request);
+                }
+
+                @Override
+                public void onPageFinished(WebView view, String finishedUrl) {
+                    super.onPageFinished(view, finishedUrl);
+
+                    if (isBroadcastRedirect(finishedUrl) && lastcall != null) {
+                        handleUrl(finishedUrl);
+                        dialog.dismiss();
+                        return;
+                    }
 
                     // Inject Broadcast Channel setup
                     String broadcastChannelScript =
@@ -640,6 +585,18 @@ public class AppleProvider implements SocialProvider {
                 }
             }
         );
+
+        dialog.setContentView(webView);
+
+        // Set dialog to fullscreen
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams();
+        lp.copyFrom(dialog.getWindow().getAttributes());
+        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        lp.height = WindowManager.LayoutParams.MATCH_PARENT;
+        dialog.getWindow().setAttributes(lp);
+
+        // Load the Apple authentication URL
+        webView.loadUrl(url);
 
         dialog.show();
     }
@@ -719,6 +676,9 @@ public class AppleProvider implements SocialProvider {
 
     private JSObject createProfileObject(String idToken) {
         JSObject profileObject = new JSObject();
+        if (idToken == null || idToken.isEmpty()) {
+            return profileObject;
+        }
         // Parse the ID token to extract user information
         // This is a simplified example. In practice, you should properly decode and verify the JWT.
         String[] parts = idToken.split("\\.");
