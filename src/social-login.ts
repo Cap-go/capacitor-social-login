@@ -1,5 +1,8 @@
 import { registerPlugin } from '@capacitor/core';
 
+// Eagerly finish OAuth popup redirects before plugin lazy-load (COOP-safe)
+import './oauth-popup-redirect';
+
 import type {
   AuthorizationCode,
   AuthorizationCodeOptions,
