@@ -1,6 +1,7 @@
 import { BaseSocialLogin } from './base';
 import type { AuthorizationCode, GoogleLoginOptions, LoginResult, ProviderResponseMap } from './definitions';
 import { createUserCancelledError, inferUserCancelledError } from './errors';
+import { listenForOAuthResult, markOAuthPopup } from './oauth-popup-bridge';
 
 const GOOGLE_OFFLINE_REFRESH_MESSAGE =
   "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh.";
@@ -162,7 +163,6 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     }
 
     const hash = url.hash.substring(1);
-    console.log('handleOAuthRedirect', url.hash);
 
     if (!hash) return null;
 
@@ -175,8 +175,6 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       const errorDescription = params.get('error_description') || error;
       return { error: errorDescription };
     }
-
-    console.log('handleOAuthRedirect ok');
 
     const accessToken = params.get('access_token');
     const idToken = params.get('id_token');
@@ -340,7 +338,10 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     hostedDomain,
     nonce,
     prompt,
-  }: GoogleLoginOptions & { hostedDomain?: string }): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+  }: GoogleLoginOptions & { hostedDomain?: string; nonce: string }): Promise<{
+    provider: T;
+    result: ProviderResponseMap[T];
+  }> {
     const uniqueScopes = [...new Set([...(scopes || []), 'openid'])];
 
     const params = new URLSearchParams({
@@ -368,20 +369,12 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       BaseSocialLogin.OAUTH_STATE_KEY,
       JSON.stringify({ provider: 'google', loginType: this.loginType, nonce }),
     );
+    markOAuthPopup(nonce);
     const popup = window.open(url, 'Google Sign In', `width=${width},height=${height},left=${left},top=${top},popup=1`);
 
     let popupClosedInterval: number;
     let timeoutHandle: number;
-
-    // Use BroadcastChannel for cross-origin communication (works when postMessage doesn't)
-    const channelName = `google_oauth_${nonce || Date.now()}`;
-    let broadcastChannel: BroadcastChannel | null = null;
-
-    try {
-      broadcastChannel = new BroadcastChannel(channelName);
-    } catch {
-      // BroadcastChannel not supported, fall back to postMessage only
-    }
+    let removeOAuthListener: (() => void) | null = null;
 
     // This may never return...
     return new Promise((resolve, reject) => {
@@ -390,12 +383,15 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         return;
       }
 
+      let settled = false;
+      let coopErrorDetected = false;
+
       const cleanup = (shouldClose = false) => {
-        window.removeEventListener('message', handleMessage);
         clearInterval(popupClosedInterval);
         clearTimeout(timeoutHandle);
-        if (broadcastChannel) {
-          broadcastChannel.close();
+        if (removeOAuthListener) {
+          removeOAuthListener();
+          removeOAuthListener = null;
         }
         if (shouldClose) {
           try {
@@ -406,100 +402,93 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         }
       };
 
+      const settle = (shouldClose: boolean, action: () => void) => {
+        if (settled) return;
+        settled = true;
+        cleanup(shouldClose);
+        action();
+      };
+
       const processOAuthResponse = (data: Record<string, unknown>) => {
         if (this.loginType === 'online') {
           const { accessToken, idToken } = data as { accessToken?: { token: string }; idToken?: string };
           if (accessToken && idToken) {
             const profile = this.parseJwt(idToken);
             this.persistStateGoogle(accessToken.token, idToken);
-            resolve({
-              provider: 'google' as T,
-              result: {
-                accessToken: {
-                  token: accessToken.token,
+            settle(true, () => {
+              resolve({
+                provider: 'google' as T,
+                result: {
+                  accessToken: {
+                    token: accessToken.token,
+                  },
+                  idToken,
+                  profile: {
+                    email: profile.email || null,
+                    familyName: profile.family_name || null,
+                    givenName: profile.given_name || null,
+                    id: profile.sub || null,
+                    name: profile.name || null,
+                    imageUrl: profile.picture || null,
+                  },
+                  responseType: 'online',
                 },
-                idToken,
-                profile: {
-                  email: profile.email || null,
-                  familyName: profile.family_name || null,
-                  givenName: profile.given_name || null,
-                  id: profile.sub || null,
-                  name: profile.name || null,
-                  imageUrl: profile.picture || null,
-                },
-                responseType: 'online',
-              },
+              });
             });
           } else {
-            reject(new Error('Invalid OAuth response: missing accessToken or idToken'));
+            settle(true, () => {
+              reject(new Error('Invalid OAuth response: missing accessToken or idToken'));
+            });
           }
         } else {
           const { serverAuthCode } = data as { serverAuthCode: string };
           if (!serverAuthCode) {
-            reject(new Error('Invalid OAuth response: missing serverAuthCode'));
+            settle(true, () => {
+              reject(new Error('Invalid OAuth response: missing serverAuthCode'));
+            });
             return;
           }
-          resolve({
-            provider: 'google' as T,
-            result: {
-              responseType: 'offline',
-              serverAuthCode,
-            },
+          settle(true, () => {
+            resolve({
+              provider: 'google' as T,
+              result: {
+                responseType: 'offline',
+                serverAuthCode,
+              },
+            });
           });
         }
       };
 
-      const handleMessage = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin || event.data?.source?.startsWith('angular')) return;
-
-        if (event.data?.type === 'oauth-response') {
-          cleanup(true);
-          processOAuthResponse(event.data);
-        } else if (event.data?.type === 'oauth-error') {
-          cleanup(true);
-          const errorMessage = event.data.error || 'User cancelled the OAuth flow';
-          reject(inferUserCancelledError(errorMessage));
-        }
-        // Don't reject for non-OAuth messages, just ignore them
-      };
-
-      // Listen for BroadcastChannel messages
-      if (broadcastChannel) {
-        broadcastChannel.onmessage = (event: MessageEvent) => {
-          const data = event.data;
-          if (data?.source?.toString().startsWith('angular')) return;
-
-          if (data?.type === 'oauth-response') {
-            cleanup(true);
-            processOAuthResponse(data);
-          } else if (data?.type === 'oauth-error') {
-            cleanup(true);
-            const errorMessage = (data.error as string) || 'User cancelled the OAuth flow';
+      // COOP-safe listener: postMessage + BroadcastChannel + localStorage storage events
+      removeOAuthListener = listenForOAuthResult('google', nonce, {
+        onResponse: processOAuthResponse,
+        onError: (errorMessage) => {
+          settle(true, () => {
             reject(inferUserCancelledError(errorMessage));
-          }
-        };
-      }
-
-      window.addEventListener('message', handleMessage);
+          });
+        },
+      });
 
       // Timeout after 5 minutes
       timeoutHandle = setTimeout(() => {
-        cleanup(true);
-        reject(new Error('OAuth timeout'));
+        settle(true, () => {
+          reject(new Error('OAuth timeout'));
+        });
       }, 300000);
 
       popupClosedInterval = setInterval(() => {
+        if (coopErrorDetected) return;
+
         try {
-          // Check if popup is closed - this may throw cross-origin errors for some providers
           if (popup.closed) {
-            cleanup();
-            reject(createUserCancelledError('Popup closed'));
+            settle(false, () => {
+              reject(createUserCancelledError('Popup closed'));
+            });
           }
         } catch {
-          // Cross-origin error when checking popup.closed - this happens when the popup
-          // navigates to a third-party OAuth provider with strict security settings.
-          // We can't detect if the window was closed, so we rely on timeout and message handlers.
-          clearInterval(popupClosedInterval);
+          // COOP blocks popup.closed while on third-party origin — stop polling, rely on bridge
+          coopErrorDetected = true;
         }
       }, 1000);
     });

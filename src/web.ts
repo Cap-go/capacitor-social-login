@@ -22,12 +22,18 @@ import type {
 import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
+import {
+  clearOAuthPopupMarker,
+  deliverOAuthResult,
+  OAUTH_STATE_KEY,
+  shouldAutoFinishOAuthRedirect,
+  type OAuthBridgeMessage,
+} from './oauth-popup-bridge';
 import { OAuth2SocialLogin } from './oauth2-provider';
 import { TwitterSocialLogin } from './twitter-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
-  private static readonly OAUTH_STATE_KEY = 'social_login_oauth_pending';
-  private static readonly POPUP_WINDOW_NAMES = new Set(['OAuth2Login', 'XLogin', 'Google Sign In', 'Authorization']);
+  private static readonly OAUTH_STATE_KEY = OAUTH_STATE_KEY;
 
   private googleProvider: GoogleSocialLogin;
   private appleProvider: AppleSocialLogin;
@@ -46,9 +52,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
     // Auto-finish OAuth redirects only when running inside a popup window.
     // For redirect-based flows (full page navigation), the app should call `handleRedirectCallback()` explicitly.
-    const hasPending = !!localStorage.getItem(SocialLoginWeb.OAUTH_STATE_KEY);
-    const isPopup = !!window.opener || SocialLoginWeb.POPUP_WINDOW_NAMES.has(window.name);
-    if (hasPending && isPopup) {
+    // Note: oauth-popup-redirect.ts also handles this eagerly on package import for COOP-safe popup completion.
+    if (shouldAutoFinishOAuthRedirect()) {
       this.finishOAuthRedirectInPopup().catch((error) => {
         console.error('Failed to finish OAuth redirect', error);
         try {
@@ -103,14 +108,18 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   private async finishOAuthRedirectInPopup(): Promise<void> {
     const parsed = await this.parseRedirectResult();
-    const result = parsed.result;
-    if (!result) return;
+    const nonceOrState = parsed.nonce ?? parsed.state;
+    let message: OAuthBridgeMessage;
 
-    // Build the message to send
-    let message: Record<string, unknown>;
-    if ('error' in result) {
+    if (!parsed.result) {
+      message = {
+        type: 'oauth-error',
+        provider: parsed.provider,
+        error: 'OAuth redirect did not contain expected parameters.',
+      };
+    } else if ('error' in parsed.result) {
       const resolvedProvider = parsed.provider ?? null;
-      const error = inferUserCancelledError(result.error);
+      const error = inferUserCancelledError(parsed.result.error);
       message = {
         type: 'oauth-error',
         provider: resolvedProvider,
@@ -120,45 +129,19 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     } else {
       message = {
         type: 'oauth-response',
-        provider: result.provider,
-        ...result.result,
+        provider: parsed.result.provider,
+        ...parsed.result.result,
       };
     }
 
-    // Try postMessage first (works when window.opener is accessible)
+    deliverOAuthResult(parsed.provider ?? 'google', nonceOrState, message);
+    clearOAuthPopupMarker();
+
     try {
-      if (window.opener) {
-        window.opener.postMessage(message, window.location.origin);
-      }
+      window.close();
     } catch {
-      // Cross-origin error - window.opener may not be accessible
-      console.log('postMessage to opener failed, using BroadcastChannel');
+      // Popup may not be allowed to close itself in some contexts
     }
-
-    // Also use BroadcastChannel as a fallback (works across same-origin windows
-    // even when window.opener is not accessible due to cross-origin navigation)
-    try {
-      // Determine the channel name based on provider and state/nonce
-      let channelName: string | null = null;
-      if (parsed.provider === 'oauth2' && parsed.state) {
-        channelName = `oauth2_${parsed.state}`;
-      } else if (parsed.provider === 'twitter' && parsed.state) {
-        channelName = `twitter_oauth_${parsed.state}`;
-      } else if (parsed.provider === 'google' && parsed.nonce) {
-        channelName = `google_oauth_${parsed.nonce}`;
-      }
-
-      if (channelName) {
-        const channel = new BroadcastChannel(channelName);
-        channel.postMessage(message);
-        channel.close();
-      }
-    } catch {
-      // BroadcastChannel not supported or other error
-      console.log('BroadcastChannel not available');
-    }
-
-    window.close();
   }
 
   async initialize(options: InitializeOptions): Promise<void> {
