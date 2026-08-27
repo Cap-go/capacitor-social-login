@@ -54,6 +54,14 @@ public class GoogleRestoreCredentialHelperTest {
     }
 
     @Test
+    public void validateCreateRequestJsonRejectsMissingChallenge() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () ->
+            GoogleRestoreCredentialHelper.validateCreateRequestJson("{}")
+        );
+        assertEquals("requestJson must include challenge", error.getMessage());
+    }
+
+    @Test
     public void validateCreateRequestJsonRejectsMissingUserId() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () ->
             GoogleRestoreCredentialHelper.validateCreateRequestJson("{\"challenge\":\"abc\",\"user\":{}}")
