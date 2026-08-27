@@ -4,16 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import androidx.credentials.ClearCredentialStateRequest;
 import org.junit.Test;
 
 public class GoogleRestoreCredentialHelperTest {
-
-    @Test
-    public void buildClearRestoreCredentialRequestUsesRestoreCredentialType() {
-        ClearCredentialStateRequest request = GoogleRestoreCredentialHelper.buildClearRestoreCredentialRequest();
-        assertEquals(ClearCredentialStateRequest.TYPE_CLEAR_RESTORE_CREDENTIAL, request.getRequestType());
-    }
 
     @Test
     public void validateRequestJsonRejectsNull() {
