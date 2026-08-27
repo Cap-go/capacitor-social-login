@@ -55,6 +55,26 @@ public final class GoogleRestoreCredentialHelper {
         }
     }
 
+    static void validateCreateRequestJson(String requestJson) {
+        validateRequestJson(requestJson);
+        JSONObject object = new JSONObject(requestJson);
+        if (!object.has("challenge")) {
+            throw new IllegalArgumentException("requestJson must include challenge");
+        }
+        JSONObject user = object.optJSONObject("user");
+        if (user == null || !user.has("id")) {
+            throw new IllegalArgumentException("requestJson must include user.id");
+        }
+    }
+
+    static void validateGetRequestJson(String requestJson) {
+        validateRequestJson(requestJson);
+        JSONObject object = new JSONObject(requestJson);
+        if (!object.has("challenge")) {
+            throw new IllegalArgumentException("requestJson must include challenge");
+        }
+    }
+
     private static void reportCreateRequestJsonError(
         IllegalArgumentException error,
         CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> callback
@@ -74,7 +94,7 @@ public final class GoogleRestoreCredentialHelper {
         CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> callback
     ) {
         try {
-            validateRequestJson(requestJson);
+            validateCreateRequestJson(requestJson);
             CreateRestoreCredentialRequest request = new CreateRestoreCredentialRequest(requestJson, isCloudBackupEnabled);
             CredentialManager credentialManager = credentialManagerOrCreate(context);
             createRestoreCredentialInternal(credentialManager, context, request, isCloudBackupEnabled, requestJson, callback);
@@ -137,7 +157,7 @@ public final class GoogleRestoreCredentialHelper {
 
     public static void getRestoreCredential(Context context, String requestJson, CredentialManagerCallback<String, Exception> callback) {
         try {
-            validateRequestJson(requestJson);
+            validateGetRequestJson(requestJson);
             GetRestoreCredentialOption restoreOption = new GetRestoreCredentialOption(requestJson);
             CredentialManager credentialManager = credentialManagerOrCreate(context);
             GetCredentialRequest getRequest = new GetCredentialRequest.Builder().addCredentialOption(restoreOption).build();
