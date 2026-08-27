@@ -897,8 +897,8 @@ export interface GoogleCreateRestoreCredentialOptions {
   requestJson: string;
   /**
    * When `true` (default), the restore key is backed up to the cloud when the user has backup and
-   * end-to-end encryption (e.g. screen lock) enabled. If creation fails with `E2eeUnavailableException`
-   * on Android, retry with `false` to store the key locally only.
+   * end-to-end encryption (e.g. screen lock) enabled. If cloud backup creation fails with
+   * `E2eeUnavailableException` on Android, the plugin automatically retries with local-only storage.
    * @default true
    */
   isCloudBackupEnabled?: boolean;
