@@ -79,6 +79,24 @@ public class GoogleRestoreCredentialHelperTest {
         assertEquals("requestJson must be valid JSON", callback.error.getMessage());
     }
 
+    @Test
+    public void getRestoreCredentialSynchronouslyReportsMalformedJsonThroughCallback() {
+        RecordingGetCallback callback = new RecordingGetCallback();
+        GoogleRestoreCredentialHelper.getRestoreCredentialSynchronously(null, "{not-json", callback);
+        assertNotNull(callback.error);
+        assertTrue(callback.error instanceof IllegalArgumentException);
+        assertEquals("requestJson must be valid JSON", callback.error.getMessage());
+    }
+
+    @Test
+    public void getRestoreCredentialSynchronouslyReportsInvalidGetRequestThroughCallback() {
+        RecordingGetCallback callback = new RecordingGetCallback();
+        GoogleRestoreCredentialHelper.getRestoreCredentialSynchronously(null, "{}", callback);
+        assertNotNull(callback.error);
+        assertTrue(callback.error instanceof IllegalArgumentException);
+        assertEquals("requestJson must include challenge", callback.error.getMessage());
+    }
+
     private static final class RecordingCreateCallback
         implements CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> {
 

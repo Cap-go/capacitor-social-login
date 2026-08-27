@@ -3,6 +3,7 @@ package ee.forgr.capacitor.social.login;
 import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.credentials.ClearCredentialStateRequest;
 import androidx.credentials.CreateCredentialResponse;
 import androidx.credentials.CreateRestoreCredentialRequest;
@@ -22,9 +23,12 @@ import androidx.credentials.exceptions.GetCredentialCancellationException;
 import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 import androidx.credentials.exceptions.restorecredential.E2eeUnavailableException;
-import java.util.concurrent.CountDownLatch;
+import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -186,34 +190,48 @@ public final class GoogleRestoreCredentialHelper {
         String requestJson,
         CredentialManagerCallback<String, Exception> callback
     ) {
-        CountDownLatch latch = new CountDownLatch(1);
-        getRestoreCredential(
-            context,
-            requestJson,
-            new CredentialManagerCallback<String, Exception>() {
-                @Override
-                public void onResult(String result) {
-                    try {
-                        callback.onResult(result);
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-
-                @Override
-                public void onError(@NonNull Exception e) {
-                    try {
-                        callback.onError(e);
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-            }
-        );
         try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            validateGetRequestJson(requestJson);
+            GetRestoreCredentialOption restoreOption = new GetRestoreCredentialOption(requestJson);
+            CredentialManager credentialManager = credentialManagerOrCreate(context);
+            GetCredentialRequest getRequest = new GetCredentialRequest.Builder().addCredentialOption(restoreOption).build();
+
+            ListenableFuture<String> future = CallbackToFutureAdapter.getFuture((completer) -> {
+                getRestoreCredentialInternal(
+                    credentialManager,
+                    context,
+                    getRequest,
+                    new CredentialManagerCallback<String, Exception>() {
+                        @Override
+                        public void onResult(String result) {
+                            completer.set(result);
+                        }
+
+                        @Override
+                        public void onError(@NonNull Exception e) {
+                            completer.setException(e);
+                        }
+                    }
+                );
+                return "GoogleRestoreCredentialHelper.getRestoreCredentialSynchronously";
+            });
+
+            try {
+                callback.onResult(future.get(60, TimeUnit.SECONDS));
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof Exception) {
+                    callback.onError((Exception) cause);
+                } else {
+                    callback.onError(new IllegalStateException(cause != null ? cause.getMessage() : e.getMessage()));
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                callback.onError(e);
+            } catch (TimeoutException e) {
+                callback.onError(e);
+            }
+        } catch (IllegalArgumentException e) {
             callback.onError(e);
         }
     }
