@@ -90,9 +90,7 @@ public final class GoogleRestoreCredentialHelper {
                         callback.onResult(typed);
                     } catch (Exception e) {
                         callback.onError(
-                            new CreateCredentialUnknownException(
-                                "Unexpected create credential response type: " + response.getType()
-                            )
+                            new CreateCredentialUnknownException("Unexpected create credential response type: " + response.getType())
                         );
                     }
                 }
