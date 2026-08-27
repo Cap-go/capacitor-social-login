@@ -314,7 +314,17 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     call: T;
     options: ProviderSpecificCallOptionsMap[T];
   }): Promise<ProviderSpecificCallResponseMap[T]> {
-    throw new Error(`Provider specific call for ${options.call} is not implemented`);
+    switch (options.call) {
+      case 'facebook#getProfile':
+      case 'facebook#requestTracking':
+        throw new Error(`Provider specific call for ${options.call} is not implemented on web`);
+      case 'google#createRestoreCredential':
+      case 'google#getRestoreCredential':
+      case 'google#clearRestoreCredential':
+        throw new Error(`${options.call} is only available on Android`);
+      default:
+        throw new Error(`Provider specific call for ${options.call} is not implemented`);
+    }
   }
 
   async refreshToken(options: {

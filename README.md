@@ -1430,11 +1430,68 @@ Configuration for a single OAuth2 provider instance
 | **`status`** | <code>'authorized' \| 'denied' \| 'notDetermined' \| 'restricted'</code> | App tracking authorization status |
 
 
+#### GoogleCreateRestoreCredentialResponse
+
+Response from `google#createRestoreCredential`.
+
+Send `responseJson` to your server to complete restore key registration (same as passkey creation).
+
+| Prop               | Type                |
+| ------------------ | ------------------- |
+| **`responseJson`** | <code>string</code> |
+
+
+#### GoogleGetRestoreCredentialResponse
+
+Response from `google#getRestoreCredential`.
+
+Send `responseJson` to your server to sign the user in (same server path as passkey authentication).
+
+| Prop               | Type                |
+| ------------------ | ------------------- |
+| **`responseJson`** | <code>string</code> |
+
+
+#### GoogleClearRestoreCredentialResponse
+
+Response from `google#clearRestoreCredential`.
+
+| Prop          | Type                 |
+| ------------- | -------------------- |
+| **`cleared`** | <code>boolean</code> |
+
+
 #### FacebookGetProfileOptions
 
 | Prop         | Type                  | Description                              |
 | ------------ | --------------------- | ---------------------------------------- |
 | **`fields`** | <code>string[]</code> | Fields to retrieve from Facebook profile |
+
+
+#### GoogleCreateRestoreCredentialOptions
+
+Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#createRestoreCredential`.
+
+Android-only. Creates a Restore Credential (restore key) via Credential Manager after the user
+signs in. Your backend must supply WebAuthn `PublicKeyCredentialCreationOptionsJSON` — the same
+FIDO2/passkey registration flow used for passkeys.
+
+| Prop                       | Type                 | Description                                                                                                                                                                                                                                                     | Default           |
+| -------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **`requestJson`**          | <code>string</code>  | Credential creation options from your server in WebAuthn `PublicKeyCredentialCreationOptionsJSON` format.                                                                                                                                                       |                   |
+| **`isCloudBackupEnabled`** | <code>boolean</code> | When `true` (default), the restore key is backed up to the cloud when the user has backup and end-to-end encryption (e.g. screen lock) enabled. If creation fails with `E2eeUnavailableException` on Android, retry with `false` to store the key locally only. | <code>true</code> |
+
+
+#### GoogleGetRestoreCredentialOptions
+
+Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#getRestoreCredential`.
+
+Android-only. Retrieves a Restore Credential silently (e.g. on first launch on a new device or from
+`BackupAgent.onRestoreFinished`). Your backend must supply WebAuthn authentication request JSON.
+
+| Prop              | Type                | Description                                                                         |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------- |
+| **`requestJson`** | <code>string</code> | Credential request options from your server (WebAuthn authentication request JSON). |
 
 
 #### OpenSecureWindowResponse
@@ -1492,20 +1549,27 @@ Construct a type with a set of properties K of type T
 
 #### ProviderSpecificCallResponseMap
 
-<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingresponse">FacebookRequestTrackingResponse</a>; }</code>
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileresponse">FacebookGetProfileResponse</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingresponse">FacebookRequestTrackingResponse</a>; 'google#createRestoreCredential': <a href="#googlecreaterestorecredentialresponse">GoogleCreateRestoreCredentialResponse</a>; 'google#getRestoreCredential': <a href="#googlegetrestorecredentialresponse">GoogleGetRestoreCredentialResponse</a>; 'google#clearRestoreCredential': <a href="#googleclearrestorecredentialresponse">GoogleClearRestoreCredentialResponse</a>; }</code>
 
 
 #### ProviderSpecificCall
 
-<code>'facebook#getProfile' | 'facebook#requestTracking'</code>
+<code>'facebook#getProfile' | 'facebook#requestTracking' | 'google#createRestoreCredential' | 'google#getRestoreCredential' | 'google#clearRestoreCredential'</code>
 
 
 #### ProviderSpecificCallOptionsMap
 
-<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingoptions">FacebookRequestTrackingOptions</a>; }</code>
+<code>{ 'facebook#getProfile': <a href="#facebookgetprofileoptions">FacebookGetProfileOptions</a>; 'facebook#requestTracking': <a href="#facebookrequesttrackingoptions">FacebookRequestTrackingOptions</a>; 'google#createRestoreCredential': <a href="#googlecreaterestorecredentialoptions">GoogleCreateRestoreCredentialOptions</a>; 'google#getRestoreCredential': <a href="#googlegetrestorecredentialoptions">GoogleGetRestoreCredentialOptions</a>; 'google#clearRestoreCredential': <a href="#googleclearrestorecredentialoptions">GoogleClearRestoreCredentialOptions</a>; }</code>
 
 
 #### FacebookRequestTrackingOptions
+
+<code><a href="#record">Record</a>&lt;string, never&gt;</code>
+
+
+#### GoogleClearRestoreCredentialOptions
+
+Options for `google#clearRestoreCredential` (no fields).
 
 <code><a href="#record">Record</a>&lt;string, never&gt;</code>
 

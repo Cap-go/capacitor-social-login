@@ -880,7 +880,75 @@ export interface isLoggedInOptions {
 }
 
 // Define the provider-specific call types
-export type ProviderSpecificCall = 'facebook#getProfile' | 'facebook#requestTracking';
+/**
+ * Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#createRestoreCredential`.
+ *
+ * Android-only. Creates a Restore Credential (restore key) via Credential Manager after the user
+ * signs in. Your backend must supply WebAuthn `PublicKeyCredentialCreationOptionsJSON` — the same
+ * FIDO2/passkey registration flow used for passkeys.
+ *
+ * @see https://developer.android.com/identity/sign-in/restore-credentials
+ * @since 8.5.0
+ */
+export interface GoogleCreateRestoreCredentialOptions {
+  /**
+   * Credential creation options from your server in WebAuthn `PublicKeyCredentialCreationOptionsJSON` format.
+   */
+  requestJson: string;
+  /**
+   * When `true` (default), the restore key is backed up to the cloud when the user has backup and
+   * end-to-end encryption (e.g. screen lock) enabled. If creation fails with `E2eeUnavailableException`
+   * on Android, retry with `false` to store the key locally only.
+   * @default true
+   */
+  isCloudBackupEnabled?: boolean;
+}
+
+/**
+ * Response from `google#createRestoreCredential`.
+ *
+ * Send `responseJson` to your server to complete restore key registration (same as passkey creation).
+ */
+export interface GoogleCreateRestoreCredentialResponse {
+  responseJson: string;
+}
+
+/**
+ * Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#getRestoreCredential`.
+ *
+ * Android-only. Retrieves a Restore Credential silently (e.g. on first launch on a new device or from
+ * `BackupAgent.onRestoreFinished`). Your backend must supply WebAuthn authentication request JSON.
+ */
+export interface GoogleGetRestoreCredentialOptions {
+  /**
+   * Credential request options from your server (WebAuthn authentication request JSON).
+   */
+  requestJson: string;
+}
+
+/**
+ * Response from `google#getRestoreCredential`.
+ *
+ * Send `responseJson` to your server to sign the user in (same server path as passkey authentication).
+ */
+export interface GoogleGetRestoreCredentialResponse {
+  responseJson: string;
+}
+
+/** Options for `google#clearRestoreCredential` (no fields). */
+export type GoogleClearRestoreCredentialOptions = Record<string, never>;
+
+/** Response from `google#clearRestoreCredential`. */
+export interface GoogleClearRestoreCredentialResponse {
+  cleared: boolean;
+}
+
+export type ProviderSpecificCall =
+  | 'facebook#getProfile'
+  | 'facebook#requestTracking'
+  | 'google#createRestoreCredential'
+  | 'google#getRestoreCredential'
+  | 'google#clearRestoreCredential';
 
 // Define the options and response types for each specific call
 export interface FacebookGetProfileOptions {
@@ -949,11 +1017,17 @@ export interface FacebookRequestTrackingResponse {
 export type ProviderSpecificCallOptionsMap = {
   'facebook#getProfile': FacebookGetProfileOptions;
   'facebook#requestTracking': FacebookRequestTrackingOptions;
+  'google#createRestoreCredential': GoogleCreateRestoreCredentialOptions;
+  'google#getRestoreCredential': GoogleGetRestoreCredentialOptions;
+  'google#clearRestoreCredential': GoogleClearRestoreCredentialOptions;
 };
 
 export type ProviderSpecificCallResponseMap = {
   'facebook#getProfile': FacebookGetProfileResponse;
   'facebook#requestTracking': FacebookRequestTrackingResponse;
+  'google#createRestoreCredential': GoogleCreateRestoreCredentialResponse;
+  'google#getRestoreCredential': GoogleGetRestoreCredentialResponse;
+  'google#clearRestoreCredential': GoogleClearRestoreCredentialResponse;
 };
 
 // Add a helper type to map providers to their response types
@@ -1004,6 +1078,10 @@ export interface SocialLoginPlugin {
    * **Google Offline Mode Limitation:**
    * This method is NOT supported when Google is initialized with `mode: 'offline'`.
    * It will reject with error: "logout is not implemented when using offline mode"
+   *
+   * **Google Restore Credentials (Android):**
+   * When logging out from Google, the plugin also clears any stored Restore Credential
+   * (`google#clearRestoreCredential`) in addition to Credential Manager sign-in state.
    *
    * @throws Error if Google provider is in offline mode
    */
