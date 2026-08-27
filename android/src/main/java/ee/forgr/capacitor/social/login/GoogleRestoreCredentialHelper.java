@@ -24,6 +24,8 @@ import androidx.credentials.exceptions.NoCredentialException;
 import androidx.credentials.exceptions.restorecredential.E2eeUnavailableException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Shared Restore Credentials operations for Google Sign-In (Android Credential Manager).
@@ -46,6 +48,19 @@ public final class GoogleRestoreCredentialHelper {
         if (requestJson == null || requestJson.trim().isEmpty()) {
             throw new IllegalArgumentException("requestJson is required");
         }
+        try {
+            new JSONObject(requestJson);
+        } catch (JSONException e) {
+            throw new IllegalArgumentException("requestJson must be valid JSON");
+        }
+    }
+
+    private static void reportCreateRequestJsonError(
+        IllegalArgumentException error,
+        CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> callback
+    ) {
+        String message = error.getMessage() != null ? error.getMessage() : "Invalid requestJson";
+        callback.onError(new CreateCredentialUnknownException(message));
     }
 
     public static CredentialManager credentialManagerOrCreate(Context context) {
@@ -58,19 +73,24 @@ public final class GoogleRestoreCredentialHelper {
         boolean isCloudBackupEnabled,
         CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> callback
     ) {
-        validateRequestJson(requestJson);
-        CredentialManager credentialManager = credentialManagerOrCreate(context);
-        createRestoreCredentialInternal(credentialManager, context, requestJson, isCloudBackupEnabled, callback);
+        try {
+            validateRequestJson(requestJson);
+            CreateRestoreCredentialRequest request = new CreateRestoreCredentialRequest(requestJson, isCloudBackupEnabled);
+            CredentialManager credentialManager = credentialManagerOrCreate(context);
+            createRestoreCredentialInternal(credentialManager, context, request, isCloudBackupEnabled, requestJson, callback);
+        } catch (IllegalArgumentException e) {
+            reportCreateRequestJsonError(e, callback);
+        }
     }
 
     private static void createRestoreCredentialInternal(
         CredentialManager credentialManager,
         Context context,
-        String requestJson,
+        CreateRestoreCredentialRequest request,
         boolean isCloudBackupEnabled,
+        String requestJson,
         CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> callback
     ) {
-        CreateRestoreCredentialRequest request = new CreateRestoreCredentialRequest(requestJson, isCloudBackupEnabled);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.createCredentialAsync(
             context,
@@ -100,7 +120,12 @@ public final class GoogleRestoreCredentialHelper {
                     if (isCloudBackupEnabled && e instanceof E2eeUnavailableException) {
                         executor.shutdown();
                         Log.w(LOG_TAG, "Cloud backup unavailable for restore credential; retrying with local-only storage.");
-                        createRestoreCredentialInternal(credentialManager, context, requestJson, false, callback);
+                        try {
+                            CreateRestoreCredentialRequest retryRequest = new CreateRestoreCredentialRequest(requestJson, false);
+                            createRestoreCredentialInternal(credentialManager, context, retryRequest, false, requestJson, callback);
+                        } catch (IllegalArgumentException retryError) {
+                            reportCreateRequestJsonError(retryError, callback);
+                        }
                         return;
                     }
                     executor.shutdown();
@@ -111,12 +136,23 @@ public final class GoogleRestoreCredentialHelper {
     }
 
     public static void getRestoreCredential(Context context, String requestJson, CredentialManagerCallback<String, Exception> callback) {
-        validateRequestJson(requestJson);
-        CredentialManager credentialManager = credentialManagerOrCreate(context);
-        GetCredentialRequest getRequest = new GetCredentialRequest.Builder()
-            .addCredentialOption(new GetRestoreCredentialOption(requestJson))
-            .build();
+        try {
+            validateRequestJson(requestJson);
+            GetRestoreCredentialOption restoreOption = new GetRestoreCredentialOption(requestJson);
+            CredentialManager credentialManager = credentialManagerOrCreate(context);
+            GetCredentialRequest getRequest = new GetCredentialRequest.Builder().addCredentialOption(restoreOption).build();
+            getRestoreCredentialInternal(credentialManager, context, getRequest, callback);
+        } catch (IllegalArgumentException e) {
+            callback.onError(e);
+        }
+    }
 
+    private static void getRestoreCredentialInternal(
+        CredentialManager credentialManager,
+        Context context,
+        GetCredentialRequest getRequest,
+        CredentialManagerCallback<String, Exception> callback
+    ) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
             context,

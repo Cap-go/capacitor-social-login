@@ -881,18 +881,18 @@ export interface isLoggedInOptions {
 
 // Define the provider-specific call types
 /**
- * Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#createRestoreCredential`.
+ * Options for `providerSpecificCall` with `google#createRestoreCredential`.
  *
  * Android-only. Creates a Restore Credential (restore key) via Credential Manager after the user
- * signs in. Your backend must supply WebAuthn `PublicKeyCredentialCreationOptionsJSON` — the same
- * FIDO2/passkey registration flow used for passkeys.
+ * signs in. Your backend must supply WebAuthn PublicKeyCredentialCreationOptionsJSON (the same
+ * FIDO2/passkey registration flow used for passkeys).
  *
  * @see https://developer.android.com/identity/sign-in/restore-credentials
  * @since 8.5.0
  */
 export interface GoogleCreateRestoreCredentialOptions {
   /**
-   * Credential creation options from your server in WebAuthn `PublicKeyCredentialCreationOptionsJSON` format.
+   * Credential creation options from your server in WebAuthn PublicKeyCredentialCreationOptionsJSON format.
    */
   requestJson: string;
   /**
@@ -910,14 +910,15 @@ export interface GoogleCreateRestoreCredentialOptions {
  * Send `responseJson` to your server to complete restore key registration (same as passkey creation).
  */
 export interface GoogleCreateRestoreCredentialResponse {
+  /** Public key credential registration response JSON from Credential Manager. */
   responseJson: string;
 }
 
 /**
- * Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#getRestoreCredential`.
+ * Options for `providerSpecificCall` with `google#getRestoreCredential`.
  *
  * Android-only. Retrieves a Restore Credential silently (e.g. on first launch on a new device or from
- * `BackupAgent.onRestoreFinished`). Your backend must supply WebAuthn authentication request JSON.
+ * BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authentication request JSON.
  */
 export interface GoogleGetRestoreCredentialOptions {
   /**
@@ -932,6 +933,7 @@ export interface GoogleGetRestoreCredentialOptions {
  * Send `responseJson` to your server to sign the user in (same server path as passkey authentication).
  */
 export interface GoogleGetRestoreCredentialResponse {
+  /** Restore credential authentication response JSON from Credential Manager. */
   responseJson: string;
 }
 
@@ -940,6 +942,7 @@ export type GoogleClearRestoreCredentialOptions = Record<string, never>;
 
 /** Response from `google#clearRestoreCredential`. */
 export interface GoogleClearRestoreCredentialResponse {
+  /** Whether the restore credential clear request completed successfully. */
   cleared: boolean;
 }
 

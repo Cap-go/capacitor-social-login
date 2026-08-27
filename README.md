@@ -1436,9 +1436,9 @@ Response from `google#createRestoreCredential`.
 
 Send `responseJson` to your server to complete restore key registration (same as passkey creation).
 
-| Prop               | Type                |
-| ------------------ | ------------------- |
-| **`responseJson`** | <code>string</code> |
+| Prop               | Type                | Description                                                               |
+| ------------------ | ------------------- | ------------------------------------------------------------------------- |
+| **`responseJson`** | <code>string</code> | Public key credential registration response JSON from Credential Manager. |
 
 
 #### GoogleGetRestoreCredentialResponse
@@ -1447,18 +1447,18 @@ Response from `google#getRestoreCredential`.
 
 Send `responseJson` to your server to sign the user in (same server path as passkey authentication).
 
-| Prop               | Type                |
-| ------------------ | ------------------- |
-| **`responseJson`** | <code>string</code> |
+| Prop               | Type                | Description                                                              |
+| ------------------ | ------------------- | ------------------------------------------------------------------------ |
+| **`responseJson`** | <code>string</code> | Restore credential authentication response JSON from Credential Manager. |
 
 
 #### GoogleClearRestoreCredentialResponse
 
 Response from `google#clearRestoreCredential`.
 
-| Prop          | Type                 |
-| ------------- | -------------------- |
-| **`cleared`** | <code>boolean</code> |
+| Prop          | Type                 | Description                                                          |
+| ------------- | -------------------- | -------------------------------------------------------------------- |
+| **`cleared`** | <code>boolean</code> | Whether the restore credential clear request completed successfully. |
 
 
 #### FacebookGetProfileOptions
@@ -1470,24 +1470,24 @@ Response from `google#clearRestoreCredential`.
 
 #### GoogleCreateRestoreCredentialOptions
 
-Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#createRestoreCredential`.
+Options for `providerSpecificCall` with `google#createRestoreCredential`.
 
 Android-only. Creates a Restore Credential (restore key) via Credential Manager after the user
-signs in. Your backend must supply WebAuthn `PublicKeyCredentialCreationOptionsJSON` — the same
-FIDO2/passkey registration flow used for passkeys.
+signs in. Your backend must supply WebAuthn PublicKeyCredentialCreationOptionsJSON (the same
+FIDO2/passkey registration flow used for passkeys).
 
 | Prop                       | Type                 | Description                                                                                                                                                                                                                                                     | Default           |
 | -------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| **`requestJson`**          | <code>string</code>  | Credential creation options from your server in WebAuthn `PublicKeyCredentialCreationOptionsJSON` format.                                                                                                                                                       |                   |
+| **`requestJson`**          | <code>string</code>  | Credential creation options from your server in WebAuthn PublicKeyCredentialCreationOptionsJSON format.                                                                                                                                                         |                   |
 | **`isCloudBackupEnabled`** | <code>boolean</code> | When `true` (default), the restore key is backed up to the cloud when the user has backup and end-to-end encryption (e.g. screen lock) enabled. If creation fails with `E2eeUnavailableException` on Android, retry with `false` to store the key locally only. | <code>true</code> |
 
 
 #### GoogleGetRestoreCredentialOptions
 
-Options for {@link SocialLoginPlugin.providerSpecificCall} with `google#getRestoreCredential`.
+Options for `providerSpecificCall` with `google#getRestoreCredential`.
 
 Android-only. Retrieves a Restore Credential silently (e.g. on first launch on a new device or from
-`BackupAgent.onRestoreFinished`). Your backend must supply WebAuthn authentication request JSON.
+BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authentication request JSON.
 
 | Prop              | Type                | Description                                                                         |
 | ----------------- | ------------------- | ----------------------------------------------------------------------------------- |
