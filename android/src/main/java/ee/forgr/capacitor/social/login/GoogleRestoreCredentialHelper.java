@@ -57,21 +57,29 @@ public final class GoogleRestoreCredentialHelper {
 
     static void validateCreateRequestJson(String requestJson) {
         validateRequestJson(requestJson);
-        JSONObject object = new JSONObject(requestJson);
-        if (!object.has("challenge")) {
-            throw new IllegalArgumentException("requestJson must include challenge");
-        }
-        JSONObject user = object.optJSONObject("user");
-        if (user == null || !user.has("id")) {
-            throw new IllegalArgumentException("requestJson must include user.id");
+        try {
+            JSONObject object = new JSONObject(requestJson);
+            if (!object.has("challenge")) {
+                throw new IllegalArgumentException("requestJson must include challenge");
+            }
+            JSONObject user = object.optJSONObject("user");
+            if (user == null || !user.has("id")) {
+                throw new IllegalArgumentException("requestJson must include user.id");
+            }
+        } catch (JSONException e) {
+            throw new IllegalArgumentException("requestJson must be valid JSON");
         }
     }
 
     static void validateGetRequestJson(String requestJson) {
         validateRequestJson(requestJson);
-        JSONObject object = new JSONObject(requestJson);
-        if (!object.has("challenge")) {
-            throw new IllegalArgumentException("requestJson must include challenge");
+        try {
+            JSONObject object = new JSONObject(requestJson);
+            if (!object.has("challenge")) {
+                throw new IllegalArgumentException("requestJson must include challenge");
+            }
+        } catch (JSONException e) {
+            throw new IllegalArgumentException("requestJson must be valid JSON");
         }
     }
 
