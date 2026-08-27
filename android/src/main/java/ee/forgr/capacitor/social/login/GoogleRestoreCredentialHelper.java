@@ -22,6 +22,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException;
 import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 import androidx.credentials.exceptions.restorecredential.E2eeUnavailableException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.json.JSONException;
@@ -171,6 +172,48 @@ public final class GoogleRestoreCredentialHelper {
             GetCredentialRequest getRequest = new GetCredentialRequest.Builder().addCredentialOption(restoreOption).build();
             getRestoreCredentialInternal(credentialManager, context, getRequest, callback);
         } catch (IllegalArgumentException e) {
+            callback.onError(e);
+        }
+    }
+
+    /**
+     * Blocks until restore credential retrieval completes. Intended for {@link
+     * android.app.backup.BackupAgent#onRestoreFinished()} where the callback must finish before the
+     * method returns.
+     */
+    public static void getRestoreCredentialSynchronously(
+        Context context,
+        String requestJson,
+        CredentialManagerCallback<String, Exception> callback
+    ) {
+        CountDownLatch latch = new CountDownLatch(1);
+        getRestoreCredential(
+            context,
+            requestJson,
+            new CredentialManagerCallback<String, Exception>() {
+                @Override
+                public void onResult(String result) {
+                    try {
+                        callback.onResult(result);
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+
+                @Override
+                public void onError(@NonNull Exception e) {
+                    try {
+                        callback.onError(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+            }
+        );
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             callback.onError(e);
         }
     }

@@ -48,7 +48,7 @@ public final class GoogleRestoreCredentialBackupHelper {
             return;
         }
 
-        GoogleRestoreCredentialHelper.getRestoreCredential(
+        GoogleRestoreCredentialHelper.getRestoreCredentialSynchronously(
             context,
             requestJson,
             new androidx.credentials.CredentialManagerCallback<String, Exception>() {

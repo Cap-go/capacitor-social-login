@@ -1063,8 +1063,8 @@ public class GoogleProvider implements SocialProvider {
 
                             @Override
                             public void onError(@NonNull Exception e) {
-                                Log.w(LOG_TAG, "Failed to clear restore credential during logout; continuing logout.", e);
-                                completeLocalLogout(handler);
+                                Log.e(LOG_TAG, "Failed to clear restore credential during logout", e);
+                                handler.onError(e);
                             }
                         }
                     );
