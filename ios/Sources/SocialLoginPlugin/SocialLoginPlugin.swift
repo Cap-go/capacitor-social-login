@@ -514,8 +514,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Google Restore Credentials are only available on Android")
         default:
             call.reject(
-                "Invalid call. Supported calls: facebook#getProfile, facebook#requestTracking, " +
-                    "google#createRestoreCredential, google#getRestoreCredential, google#clearRestoreCredential"
+                "Invalid call. Supported calls: facebook#getProfile, facebook#requestTracking"
             )
         }
     }

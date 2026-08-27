@@ -400,7 +400,7 @@ public class SocialLoginPlugin extends Plugin {
                 break;
             default:
                 call.reject(
-                    "Invalid call. Supported calls: facebook#getProfile, facebook#requestTracking, " +
+                    "Invalid call. Supported calls: facebook#getProfile, " +
                         "google#createRestoreCredential, google#getRestoreCredential, google#clearRestoreCredential"
                 );
         }
