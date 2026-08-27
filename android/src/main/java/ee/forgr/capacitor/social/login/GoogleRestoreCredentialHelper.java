@@ -17,11 +17,12 @@ import androidx.credentials.GetRestoreCredentialOption;
 import androidx.credentials.RestoreCredential;
 import androidx.credentials.exceptions.ClearCredentialException;
 import androidx.credentials.exceptions.CreateCredentialException;
+import androidx.credentials.exceptions.CreateCredentialUnknownException;
 import androidx.credentials.exceptions.GetCredentialCancellationException;
 import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 import androidx.credentials.exceptions.restorecredential.E2eeUnavailableException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -70,7 +71,7 @@ public final class GoogleRestoreCredentialHelper {
         CredentialManagerCallback<CreateRestoreCredentialResponse, CreateCredentialException> callback
     ) {
         CreateRestoreCredentialRequest request = new CreateRestoreCredentialRequest(requestJson, isCloudBackupEnabled);
-        Executor executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.createCredentialAsync(
             context,
             request,
@@ -89,8 +90,7 @@ public final class GoogleRestoreCredentialHelper {
                         callback.onResult(typed);
                     } catch (Exception e) {
                         callback.onError(
-                            new CreateCredentialException(
-                                CreateRestoreCredentialResponse.BUNDLE_KEY_CREATE_RESTORE_CREDENTIAL_RESPONSE,
+                            new CreateCredentialUnknownException(
                                 "Unexpected create credential response type: " + response.getType()
                             )
                         );
@@ -100,6 +100,7 @@ public final class GoogleRestoreCredentialHelper {
                 @Override
                 public void onError(@NonNull CreateCredentialException e) {
                     if (isCloudBackupEnabled && e instanceof E2eeUnavailableException) {
+                        executor.shutdown();
                         Log.w(LOG_TAG, "Cloud backup unavailable for restore credential; retrying with local-only storage.");
                         createRestoreCredentialInternal(credentialManager, context, requestJson, false, callback);
                         return;
@@ -118,7 +119,7 @@ public final class GoogleRestoreCredentialHelper {
             .addCredentialOption(new GetRestoreCredentialOption(requestJson))
             .build();
 
-        Executor executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
             context,
             getRequest,
@@ -172,7 +173,7 @@ public final class GoogleRestoreCredentialHelper {
     public static void clearRestoreCredential(Context context, CredentialManagerCallback<Void, Exception> callback) {
         CredentialManager credentialManager = credentialManagerOrCreate(context);
         ClearCredentialStateRequest request = buildClearRestoreCredentialRequest();
-        Executor executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.clearCredentialStateAsync(
             request,
             null,
