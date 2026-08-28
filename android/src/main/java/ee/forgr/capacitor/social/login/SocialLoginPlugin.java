@@ -375,8 +375,34 @@ public class SocialLoginPlugin extends Plugin {
 
                 ((FacebookProvider) provider).getProfile(fieldsArray, call);
                 break;
+            case "google#createRestoreCredential":
+            case "google#getRestoreCredential":
+            case "google#clearRestoreCredential":
+                SocialProvider googleProvider = this.socialProviderHashMap.get("google");
+                if (googleProvider == null || !(googleProvider instanceof GoogleProvider)) {
+                    call.reject("Google provider not initialized");
+                    return;
+                }
+                GoogleProvider google = (GoogleProvider) googleProvider;
+                switch (customCall) {
+                    case "google#createRestoreCredential":
+                        google.createRestoreCredential(call);
+                        break;
+                    case "google#getRestoreCredential":
+                        google.getRestoreCredential(call);
+                        break;
+                    case "google#clearRestoreCredential":
+                        google.clearRestoreCredential(call);
+                        break;
+                    default:
+                        call.reject("Invalid Google provider call");
+                }
+                break;
             default:
-                call.reject("Invalid call. Supported calls: facebook#getProfile");
+                call.reject(
+                    "Invalid call. Supported calls: facebook#getProfile, " +
+                        "google#createRestoreCredential, google#getRestoreCredential, google#clearRestoreCredential"
+                );
         }
     }
 

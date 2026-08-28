@@ -1040,22 +1040,139 @@ public class GoogleProvider implements SocialProvider {
         );
     }
 
+    private void completeLocalLogout(CredentialManagerCallback<Void, Exception> handler) {
+        context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+        GoogleProvider.this.accessToken = null;
+        GoogleProvider.this.idToken = null;
+        handler.onResult(null);
+    }
+
     private void rawLogout(CredentialManagerCallback<Void, Exception> handler) {
         Log.i(LOG_TAG, "Logout requested");
         clearCredentialManagerState(
             new CredentialManagerCallback<Void, Exception>() {
                 @Override
                 public void onResult(Void unused) {
-                    context.getSharedPreferences(SHARED_PREFERENCE_NAME, Context.MODE_PRIVATE).edit().clear().apply();
-                    GoogleProvider.this.accessToken = null;
-                    GoogleProvider.this.idToken = null;
-                    handler.onResult(null);
+                    GoogleRestoreCredentialHelper.clearRestoreCredential(
+                        context,
+                        new CredentialManagerCallback<Void, Exception>() {
+                            @Override
+                            public void onResult(Void unusedRestore) {
+                                completeLocalLogout(handler);
+                            }
+
+                            @Override
+                            public void onError(@NonNull Exception e) {
+                                Log.e(LOG_TAG, "Failed to clear restore credential during logout", e);
+                                handler.onError(e);
+                            }
+                        }
+                    );
                 }
 
                 @Override
                 public void onError(@NonNull Exception e) {
                     Log.e(LOG_TAG, "Failed to clear credential state", e);
                     handler.onError(e);
+                }
+            }
+        );
+    }
+
+    public void createRestoreCredential(PluginCall call) {
+        JSObject options = call.getObject("options", new JSObject());
+        String requestJson = options.getString("requestJson");
+        boolean isCloudBackupEnabled = !options.has("isCloudBackupEnabled") || options.getBoolean("isCloudBackupEnabled", true);
+
+        try {
+            GoogleRestoreCredentialHelper.validateRequestJson(requestJson);
+        } catch (IllegalArgumentException e) {
+            call.reject(e.getMessage());
+            return;
+        }
+
+        GoogleRestoreCredentialHelper.createRestoreCredential(
+            context,
+            requestJson,
+            isCloudBackupEnabled,
+            new CredentialManagerCallback<
+                androidx.credentials.CreateRestoreCredentialResponse,
+                androidx.credentials.exceptions.CreateCredentialException
+            >() {
+                @Override
+                public void onResult(androidx.credentials.CreateRestoreCredentialResponse response) {
+                    try {
+                        JSObject result = new JSObject().put("responseJson", response.getResponseJson());
+                        call.resolve(result);
+                    } catch (Exception e) {
+                        call.reject("Failed to create restore credential: " + e.getMessage());
+                    }
+                }
+
+                @Override
+                public void onError(@NonNull androidx.credentials.exceptions.CreateCredentialException e) {
+                    String message = e.getErrorMessage() != null ? e.getErrorMessage().toString() : e.getMessage();
+                    call.reject("Failed to create restore credential: " + message);
+                }
+            }
+        );
+    }
+
+    public void getRestoreCredential(PluginCall call) {
+        JSObject options = call.getObject("options", new JSObject());
+        String requestJson = options.getString("requestJson");
+
+        try {
+            GoogleRestoreCredentialHelper.validateRequestJson(requestJson);
+        } catch (IllegalArgumentException e) {
+            call.reject(e.getMessage());
+            return;
+        }
+
+        GoogleRestoreCredentialHelper.getRestoreCredential(
+            context,
+            requestJson,
+            new CredentialManagerCallback<String, Exception>() {
+                @Override
+                public void onResult(String responseJson) {
+                    try {
+                        JSObject result = new JSObject().put("responseJson", responseJson);
+                        call.resolve(result);
+                    } catch (Exception e) {
+                        call.reject("Failed to get restore credential: " + e.getMessage());
+                    }
+                }
+
+                @Override
+                public void onError(@NonNull Exception e) {
+                    if (e instanceof NoCredentialException) {
+                        call.reject("No restore credential available");
+                        return;
+                    }
+                    if (e instanceof GetCredentialCancellationException) {
+                        call.reject("Restore credential request cancelled", USER_CANCELLED_CODE, e);
+                        return;
+                    }
+                    String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                    call.reject("Failed to get restore credential: " + message);
+                }
+            }
+        );
+    }
+
+    public void clearRestoreCredential(PluginCall call) {
+        GoogleRestoreCredentialHelper.clearRestoreCredential(
+            context,
+            new CredentialManagerCallback<Void, Exception>() {
+                @Override
+                public void onResult(Void unused) {
+                    call.resolve(new JSObject().put("cleared", true));
+                }
+
+                @Override
+                public void onError(@NonNull Exception e) {
+                    String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                    call.reject("Failed to clear restore credential: " + message);
                 }
             }
         );
