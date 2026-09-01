@@ -88,6 +88,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
           removeOAuthListener();
           removeOAuthListener = null;
         }
+        this.clearPendingTelegramState(state);
         if (shouldClose) {
           try {
             popup.close();
@@ -319,6 +320,22 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     } catch (err) {
       console.warn('Failed to parse pending Telegram login payload', err);
       return null;
+    }
+  }
+
+  private clearPendingTelegramState(state: string): void {
+    try {
+      localStorage.removeItem(`${this.STATE_PREFIX}${state}`);
+      const raw = localStorage.getItem(BaseSocialLogin.OAUTH_STATE_KEY);
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw) as { provider?: string; state?: string };
+      if (parsed.provider === 'telegram' && parsed.state === state) {
+        localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
+      }
+    } catch {
+      // ignore storage errors
     }
   }
 

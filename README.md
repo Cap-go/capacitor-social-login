@@ -1427,11 +1427,11 @@ Configuration for a single OAuth2 provider instance
 
 #### TelegramLoginOptions
 
-| Prop                | Type                           | Description                                                                                                 | Default              |
-| ------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- | -------------------- |
-| **`redirectUrl`**   | <code>string</code>            | Override the redirect URL for this login attempt. Defaults to the redirect configured during initialize().  |                      |
-| **`state`**         | <code>string</code>            | Optional state parameter for CSRF protection. If omitted, a secure random value is generated automatically. |                      |
-| **`requestAccess`** | <code>'read' \| 'write'</code> | Override requested access level for this login. Defaults to the value configured during initialize().       | <code>'write'</code> |
+| Prop                | Type                           | Description                                                                                                                                                                     | Default              |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| **`redirectUrl`**   | <code>string</code>            | Override the redirect URL for this login attempt. Defaults to the redirect configured during initialize(). Required on iOS/Android when initialize() did not set `redirectUrl`. |                      |
+| **`state`**         | <code>string</code>            | Optional state parameter for CSRF protection. If omitted, a secure random value is generated automatically.                                                                     |                      |
+| **`requestAccess`** | <code>'read' \| 'write'</code> | Override requested access level for this login. Defaults to the value configured during initialize().                                                                           | <code>'write'</code> |
 
 
 #### OAuth2LoginOptions

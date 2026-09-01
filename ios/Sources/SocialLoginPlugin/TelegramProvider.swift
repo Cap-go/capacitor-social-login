@@ -98,8 +98,10 @@ class TelegramProvider: NSObject {
                 return
             }
 
-            let query = components.queryItems ?? []
-            let payload = Dictionary(uniqueKeysWithValues: query.map { ($0.name, $0.value ?? "") })
+            var payload: [String: String] = [:]
+            for item in components.queryItems ?? [] {
+                payload[item.name] = item.value ?? ""
+            }
 
             let returnedState = payload["state"]
             if returnedState != self.pendingState {

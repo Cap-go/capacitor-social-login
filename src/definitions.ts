@@ -189,6 +189,7 @@ export interface InitializeOptions {
     /**
      * Default redirect URL that will receive Telegram auth data.
      * For mobile apps, prefer a custom scheme (e.g. `myapp://telegram-auth`).
+     * On iOS/Android this must be set here or per login; native login rejects if it is missing.
      */
     redirectUrl?: string;
     /**
@@ -466,6 +467,7 @@ export interface TelegramLoginOptions {
   /**
    * Override the redirect URL for this login attempt.
    * Defaults to the redirect configured during initialize().
+   * Required on iOS/Android when initialize() did not set `redirectUrl`.
    */
   redirectUrl?: string;
   /**
