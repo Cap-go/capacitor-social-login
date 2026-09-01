@@ -7,6 +7,7 @@ import type {
   TelegramProfile,
 } from './definitions';
 import { createUserCancelledError, inferUserCancelledError } from './errors';
+import { listenForOAuthResult } from './oauth-popup-bridge';
 
 interface TelegramPendingLogin {
   redirectUri: string;
@@ -54,7 +55,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     const origin = this.origin ?? this.getOriginFromRedirect(redirectUri);
     if (!origin || (!origin.startsWith('https://') && !origin.startsWith('http://'))) {
       throw new Error(
-        'Telegram origin is required when redirectUrl is not http(s). Pass origin matching the domain registered with BotFather.',
+        'Telegram origin must be a valid http(s) URL registered with BotFather. Pass origin when redirectUrl is not http(s).',
       );
     }
     const returnTo = this.appendStateToRedirect(redirectUri, state);
@@ -75,92 +76,76 @@ export class TelegramSocialLogin extends BaseSocialLogin {
         return;
       }
 
-      const channelName = `telegram_oauth_${state}`;
-      let broadcastChannel: BroadcastChannel | null = null;
-      try {
-        broadcastChannel = new BroadcastChannel(channelName);
-      } catch {
-        // BroadcastChannel might be unavailable; postMessage fallback handles same-origin cases
-      }
+      let settled = false;
+      let timeoutHandle = 0;
+      let popupClosedInterval = 0;
+      let removeOAuthListener: (() => void) | null = null;
 
-      const cleanup = (
-        messageHandler: (event: MessageEvent) => void,
-        timeoutHandle: number,
-        intervalHandle: number,
-      ) => {
-        window.removeEventListener('message', messageHandler);
+      const cleanup = (shouldClose = false) => {
         clearTimeout(timeoutHandle);
-        clearInterval(intervalHandle);
-        if (broadcastChannel) {
-          broadcastChannel.close();
+        clearInterval(popupClosedInterval);
+        if (removeOAuthListener) {
+          removeOAuthListener();
+          removeOAuthListener = null;
+        }
+        if (shouldClose) {
+          try {
+            popup.close();
+          } catch {
+            // ignore if already closed
+          }
         }
       };
 
-      const handleOAuthMessage = (data: Record<string, unknown>) => {
-        if (data?.type === 'oauth-response') {
+      const settle = (shouldClose: boolean, action: () => void) => {
+        if (settled) return;
+        settled = true;
+        cleanup(shouldClose);
+        action();
+      };
+
+      removeOAuthListener = listenForOAuthResult('telegram', state, {
+        onResponse: (data) => {
           if (data?.provider && data.provider !== 'telegram') {
-            return false;
+            return;
           }
-          cleanup(messageHandler, timeoutHandle, popupClosedInterval);
           const {
             provider: _ignoredProvider,
             type: _ignoredType,
             ...payload
           } = data as unknown as TelegramLoginResponse & { provider?: string; type?: string };
-          resolve({
-            provider: 'telegram' as T,
-            result: payload as ProviderResponseMap[T],
-          } as { provider: T; result: ProviderResponseMap[T] });
-          return true;
-        } else if (data?.type === 'oauth-error') {
-          if (data?.provider && data.provider !== 'telegram') {
-            return false;
-          }
-          cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          const message = (data.error as string) || 'Telegram login was cancelled.';
-          reject(data.code === 'USER_CANCELLED' ? createUserCancelledError(message) : inferUserCancelledError(message));
-          return true;
-        }
-        return false;
-      };
+          settle(true, () => {
+            resolve({
+              provider: 'telegram' as T,
+              result: payload as ProviderResponseMap[T],
+            } as { provider: T; result: ProviderResponseMap[T] });
+          });
+        },
+        onError: (error, code) => {
+          const message = error || 'Telegram login was cancelled.';
+          settle(true, () => {
+            reject(code === 'USER_CANCELLED' ? createUserCancelledError(message) : inferUserCancelledError(message));
+          });
+        },
+      });
 
-      const messageHandler = (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) {
-          return;
-        }
-        handleOAuthMessage(event.data);
-      };
+      timeoutHandle = window.setTimeout(() => {
+        settle(true, () => {
+          reject(new Error('Telegram login timed out.'));
+        });
+      }, 300000);
 
-      window.addEventListener('message', messageHandler);
-
-      const timeoutHandle = window.setTimeout(() => {
-        cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-        try {
-          popup.close();
-        } catch {
-          // ignore if already closed
-        }
-        reject(new Error('Telegram login timed out.'));
-      }, 300000); // 5 minutes
-
-      const popupClosedInterval = window.setInterval(() => {
+      popupClosedInterval = window.setInterval(() => {
         try {
           if (popup.closed) {
-            cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-            reject(createUserCancelledError('Telegram login window was closed.'));
+            settle(false, () => {
+              reject(createUserCancelledError('Telegram login window was closed.'));
+            });
           }
         } catch {
           clearInterval(popupClosedInterval);
         }
       }, 1000);
-
-      // Assign after messageHandler / timeoutHandle / popupClosedInterval exist so
-      // a fast BroadcastChannel delivery cannot hit a temporal dead zone.
-      if (broadcastChannel) {
-        broadcastChannel.onmessage = (event: MessageEvent) => {
-          handleOAuthMessage(event.data);
-        };
-      }
     });
   }
 
