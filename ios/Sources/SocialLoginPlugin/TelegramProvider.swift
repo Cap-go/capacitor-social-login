@@ -20,7 +20,6 @@ struct TelegramLoginResponse {
 private struct TelegramStoredSession: Codable {
     let profile: TelegramProfileStored
     let authDate: Int
-    let hash: String
     let requestAccess: String
     let expiresAt: Date
 }
@@ -180,7 +179,6 @@ class TelegramProvider: NSObject {
                 photoUrl: response.profile.photoUrl
             ),
             authDate: response.authDate,
-            hash: response.hash,
             requestAccess: response.requestAccess,
             expiresAt: Date(timeIntervalSince1970: TimeInterval(response.authDate)).addingTimeInterval(sessionTtl)
         )
@@ -252,6 +250,11 @@ class TelegramProvider: NSObject {
 
 extension TelegramProvider: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let active = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+        if let window = active?.windows.first(where: { $0.isKeyWindow }) ?? active?.windows.first {
+            return window
+        }
+        return ASPresentationAnchor()
     }
 }

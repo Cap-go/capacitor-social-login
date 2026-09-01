@@ -14,7 +14,7 @@ interface TelegramPendingLogin {
   requestAccess: 'read' | 'write';
 }
 
-interface TelegramStoredSession extends TelegramLoginResponse {
+interface TelegramStoredSession {
   expiresAt: number;
 }
 
@@ -179,12 +179,14 @@ export class TelegramSocialLogin extends BaseSocialLogin {
   async handleOAuthRedirect(url: URL, expectedState?: string): Promise<LoginResult | { error: string } | null> {
     const params = url.searchParams;
     const stateFromUrl = params.get('state');
-    const resolvedState = expectedState ?? stateFromUrl ?? undefined;
-    if (!resolvedState) {
+    if (!stateFromUrl) {
       return null;
     }
+    if (expectedState && expectedState !== stateFromUrl) {
+      return { error: 'Telegram login session expired or state mismatch.' };
+    }
 
-    const pending = this.consumePendingLogin(resolvedState);
+    const pending = this.consumePendingLogin(stateFromUrl);
     if (!pending) {
       localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
       return { error: 'Telegram login session expired or state mismatch.' };
@@ -226,7 +228,6 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     };
 
     this.persistSession({
-      ...result,
       expiresAt: authDate * 1000 + this.SESSION_TTL_MS,
     });
 

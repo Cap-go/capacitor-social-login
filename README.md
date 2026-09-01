@@ -579,7 +579,9 @@ const res = await SocialLogin.login({
   options: {},
 });
 
-// Verify `res.result.hash` on your backend with the bot token. Never ship the bot token in the app.
+// Verify `res.result.hash` on your backend with the bot token.
+// Reject stale or future `res.result.authDate` values before creating a session.
+// Never ship the bot token in the app.
 console.log(res.result.profile.id, res.result.hash);
 ```
 

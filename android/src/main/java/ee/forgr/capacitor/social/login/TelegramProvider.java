@@ -201,7 +201,6 @@ public class TelegramProvider implements SocialProvider {
                 lastName,
                 username,
                 photoUrl,
-                hash,
                 pendingRequestAccess != null ? pendingRequestAccess : requestAccess,
                 authDateSeconds,
                 authDateSeconds * 1000L + SESSION_TTL_MS
@@ -237,7 +236,6 @@ public class TelegramProvider implements SocialProvider {
             stored.put("lastName", session.lastName);
             stored.put("username", session.username);
             stored.put("photoUrl", session.photoUrl);
-            stored.put("hash", session.hash);
             stored.put("requestAccess", session.requestAccess);
             stored.put("authDate", session.authDateSeconds);
             stored.put("expiresAt", session.expiresAtMs);
@@ -262,7 +260,6 @@ public class TelegramProvider implements SocialProvider {
                 obj.optString("lastName", null),
                 obj.optString("username", null),
                 obj.optString("photoUrl", null),
-                obj.optString("hash", null),
                 obj.optString("requestAccess", "write"),
                 obj.optLong("authDate", 0L),
                 obj.optLong("expiresAt", 0L)
@@ -328,7 +325,6 @@ public class TelegramProvider implements SocialProvider {
         final String lastName;
         final String username;
         final String photoUrl;
-        final String hash;
         final String requestAccess;
         final long authDateSeconds;
         final long expiresAtMs;
@@ -339,7 +335,6 @@ public class TelegramProvider implements SocialProvider {
             String lastName,
             String username,
             String photoUrl,
-            String hash,
             String requestAccess,
             long authDateSeconds,
             long expiresAtMs
@@ -349,7 +344,6 @@ public class TelegramProvider implements SocialProvider {
             this.lastName = lastName;
             this.username = username;
             this.photoUrl = photoUrl;
-            this.hash = hash;
             this.requestAccess = requestAccess;
             this.authDateSeconds = authDateSeconds;
             this.expiresAtMs = expiresAtMs;
