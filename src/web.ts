@@ -305,8 +305,6 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.getAuthorizationCode();
       case 'twitter':
         return this.twitterProvider.getAuthorizationCode();
-      case 'telegram':
-        return this.telegramProvider.getAuthorizationCode();
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 getAuthorizationCode');

@@ -941,7 +941,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -1198,6 +1198,8 @@ export interface SocialLoginPlugin {
    * It will reject with error: "getAuthorizationCode is not implemented when using offline mode"
    *
    * In offline mode, the authorization code (serverAuthCode) is already returned by the `login()` method.
+   *
+   * Telegram login does not produce an authorization code; use the `hash` from `login()` and verify it on your backend.
    *
    * @throws Error if Google provider is in offline mode
    */

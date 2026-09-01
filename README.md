@@ -903,7 +903,7 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login<T extends "apple" | "google" | "facebook" | "twitter" | "telegram" | "oauth2">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
+login<T extends "apple" | "google" | "facebook" | "twitter" | "oauth2" | "telegram">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
@@ -927,7 +927,7 @@ Logout
 
 | Param         | Type                                                                                                                      |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'telegram' \| 'oauth2'; providerId?: string; }</code> |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2' \| 'telegram'; providerId?: string; }</code> |
 
 --------------------
 
@@ -1454,7 +1454,7 @@ Configuration for a single OAuth2 provider instance
 
 | Prop             | Type                                                                                  | Description                                                           |
 | ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'telegram' \| 'oauth2'</code> | Provider                                                              |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2' \| 'telegram'</code> | Provider                                                              |
 | **`providerId`** | <code>string</code>                                                                   | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
@@ -1468,10 +1468,10 @@ Configuration for a single OAuth2 provider instance
 
 #### AuthorizationCodeOptions
 
-| Prop             | Type                                                                                  | Description                                                           |
-| ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'telegram' \| 'oauth2'</code> | Provider                                                              |
-| **`providerId`** | <code>string</code>                                                                   | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
+| Prop             | Type                                                                    | Description                                                           |
+| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                     | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### FacebookGetProfileResponse

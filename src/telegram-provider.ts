@@ -279,10 +279,14 @@ export class TelegramSocialLogin extends BaseSocialLogin {
 
   private getOriginFromRedirect(redirectUri: string): string {
     try {
-      return new URL(redirectUri).origin;
+      const url = new URL(redirectUri);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        return url.origin;
+      }
     } catch {
-      return window.location.origin;
+      // custom schemes and invalid URLs are not valid Telegram widget origins
     }
+    return window.location.origin;
   }
 
   private persistSession(session: TelegramStoredSession): void {
