@@ -20,6 +20,7 @@ public class DependencyAvailabilityChecker {
     private static Boolean facebookDependenciesAvailable = null;
     private static Boolean appleDependenciesAvailable = null;
     private static Boolean twitterDependenciesAvailable = null;
+    private static Boolean telegramDependenciesAvailable = null;
 
     /**
      * Set the plugin instance for config access
@@ -66,7 +67,7 @@ public class DependencyAvailabilityChecker {
 
     /**
      * Check if a provider's dependencies are available.
-     * @param providerName Provider name: "google", "facebook", "apple", or "twitter"
+     * @param providerName Provider name: "google", "facebook", "apple", "twitter", or "telegram"
      * @return true if dependencies are available, false otherwise
      */
     public static boolean isProviderAvailable(String providerName) {
@@ -83,6 +84,8 @@ public class DependencyAvailabilityChecker {
                 return isAppleAvailable();
             case "twitter":
                 return isTwitterAvailable();
+            case "telegram":
+                return isTelegramAvailable();
             default:
                 Log.w(LOG_TAG, "Unknown provider: " + providerName);
                 return false;
@@ -261,6 +264,22 @@ public class DependencyAvailabilityChecker {
     }
 
     /**
+     * Telegram Login uses the system WebView (OAuth2LoginActivity); allow config to disable it.
+     */
+    private static boolean isTelegramAvailable() {
+        if (telegramDependenciesAvailable != null) {
+            return telegramDependenciesAvailable;
+        }
+        if (!isProviderEnabledInConfig("telegram")) {
+            telegramDependenciesAvailable = false;
+            Log.d(LOG_TAG, "Telegram provider is disabled via config");
+            return false;
+        }
+        telegramDependenciesAvailable = true;
+        return true;
+    }
+
+    /**
      * Check if a specific class is available using reflection.
      */
     private static boolean isClassAvailable(String className) {
@@ -283,5 +302,6 @@ public class DependencyAvailabilityChecker {
         facebookDependenciesAvailable = null;
         appleDependenciesAvailable = null;
         twitterDependenciesAvailable = null;
+        telegramDependenciesAvailable = null;
     }
 }

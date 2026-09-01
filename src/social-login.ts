@@ -46,7 +46,7 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
     return rawSocialLogin.logout(options);
