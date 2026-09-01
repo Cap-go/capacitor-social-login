@@ -39,14 +39,23 @@ export const buildLinkedInOAuthConfig = (config: LinkedInProviderConfig): OAuth2
   };
 };
 
-export const buildLinkedInLoginOptions = (options: LinkedInLoginOptions = {}): OAuth2LoginOptions => {
-  const scope = options.scope ?? options.scopes ?? LINKEDIN_DEFAULT_SCOPE;
+const createOAuthState = (): string =>
+  [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, '0')).join('');
 
-  return {
+export const buildLinkedInLoginOptions = (options: LinkedInLoginOptions = {}): OAuth2LoginOptions => {
+  const scope = options.scope ?? options.scopes;
+  const loginOptions: OAuth2LoginOptions = {
     ...options,
     providerId: LINKEDIN_PROVIDER_ID,
-    scope,
+    ...(scope === undefined ? {} : { scope }),
   };
+
+  // Bind convenience-redirect remapping to this OAuth state, not a generic sentinel.
+  if (loginOptions.flow === 'redirect' && !loginOptions.state) {
+    loginOptions.state = createOAuthState();
+  }
+
+  return loginOptions;
 };
 
 export const isLinkedInOAuthResult = (
@@ -62,19 +71,19 @@ export const asLinkedInLoginResult = (result: {
   result: result.result,
 });
 
-export const markLinkedInRedirectPending = (): void => {
+export const markLinkedInRedirectPending = (state: string): void => {
   try {
-    sessionStorage.setItem(LINKEDIN_REDIRECT_PENDING_KEY, '1');
+    sessionStorage.setItem(LINKEDIN_REDIRECT_PENDING_KEY, state);
   } catch {
     // sessionStorage may be unavailable
   }
 };
 
-export const consumeLinkedInRedirectPending = (): boolean => {
+export const consumeLinkedInRedirectPending = (state?: string | null): boolean => {
   try {
-    const pending = sessionStorage.getItem(LINKEDIN_REDIRECT_PENDING_KEY) === '1';
+    const pending = sessionStorage.getItem(LINKEDIN_REDIRECT_PENDING_KEY);
     sessionStorage.removeItem(LINKEDIN_REDIRECT_PENDING_KEY);
-    return pending;
+    return Boolean(pending && state && pending === state);
   } catch {
     return false;
   }

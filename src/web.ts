@@ -256,10 +256,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         }>;
       case 'linkedin': {
         const linkedInOptions = (options.options as LinkedInLoginOptions | undefined) ?? {};
-        if (linkedInOptions?.flow === 'redirect') {
-          markLinkedInRedirectPending();
+        const oauthOptions = buildLinkedInLoginOptions(linkedInOptions);
+        if (oauthOptions.flow === 'redirect' && oauthOptions.state) {
+          markLinkedInRedirectPending(oauthOptions.state);
         }
-        const response = await this.oauth2Provider.login(buildLinkedInLoginOptions(linkedInOptions));
+        const response = await this.oauth2Provider.login(oauthOptions);
         return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
       }
       case 'oauth2':
@@ -402,8 +403,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async handleRedirectCallback(): Promise<LoginResult | null> {
-    const pendingLinkedInRedirect = consumeLinkedInRedirectPending();
     const parsed = await this.parseRedirectResult();
+    const callbackState = parsed.state ?? new URL(window.location.href).searchParams.get('state');
+    const pendingLinkedInRedirect = consumeLinkedInRedirectPending(callbackState);
     const result = parsed.result;
     if (!result) return null;
     if ('error' in result) {

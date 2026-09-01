@@ -70,12 +70,13 @@ class SocialLoginClient implements SocialLoginPlugin {
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     if (options.provider === 'linkedin') {
       const linkedInOptions = (options.options as LinkedInLoginOptions | undefined) ?? {};
-      if (linkedInOptions?.flow === 'redirect') {
-        markLinkedInRedirectPending();
+      const oauthOptions = buildLinkedInLoginOptions(linkedInOptions);
+      if (oauthOptions.flow === 'redirect' && oauthOptions.state) {
+        markLinkedInRedirectPending(oauthOptions.state);
       }
       const response = await rawSocialLogin.login({
         provider: 'oauth2',
-        options: buildLinkedInLoginOptions(linkedInOptions),
+        options: oauthOptions,
       });
       return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
     }
