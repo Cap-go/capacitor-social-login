@@ -358,8 +358,8 @@ public class OAuth2Provider implements SocialProvider {
                 additionalLogoutParameters,
                 config.optBoolean("androidUseCustomTabs", false),
                 config.optBoolean("logsEnabled", false),
-                config.optString("clientIdParamName", "client_id"),
-                config.optString("clientSecretParamName", "client_secret")
+                oauthParamName(config, "clientIdParamName", "client_id"),
+                oauthParamName(config, "clientSecretParamName", "client_secret")
             );
 
             providers.put(providerId, providerConfig);
@@ -1491,6 +1491,18 @@ public class OAuth2Provider implements SocialProvider {
         pendingState = null;
         pendingUseCustomTabs = false;
         clearPersistedCustomTabsState();
+    }
+
+    private static String oauthParamName(JSONObject config, String key, String fallback) {
+        if (config.isNull(key)) {
+            return fallback;
+        }
+        String value = config.optString(key, fallback);
+        if (value == null) {
+            return fallback;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? fallback : trimmed;
     }
 
     private static Map<String, String> jsonObjectToMap(JSONObject json) throws JSONException {

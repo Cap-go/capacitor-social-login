@@ -39,7 +39,7 @@ export interface OAuth2ProviderConfig {
   authorizationEndpoint?: string;
   /**
    * OAuth 2.0 client secret for token requests (e.g., when exchanging the code).
-   * This value is sent as `client_secret` in token/refresh requests when provided.
+   * When provided, this value is sent using `clientSecretParamName` (default `client_secret`).
    */
   clientSecret?: string;
   /**
@@ -195,12 +195,13 @@ export interface TikTokProviderConfig {
    */
   redirectUrl: string;
   /**
-   * TikTok client secret. Provide this if you want the plugin to exchange the authorization code for tokens client-side.
-   * If omitted, only PKCE public-client token exchange will succeed.
+   * TikTok client secret. Optional.
+   * Provide this only if you want the plugin to exchange the authorization code for tokens on-device.
+   * Omit it (recommended for web) and send the authorization code to your backend for token exchange.
    */
   clientSecret?: string;
   /**
-   * Scopes to request during login.
+   * Scopes to request during login. Arrays are sent as a comma-separated string (TikTok Login Kit).
    * @default ['user.info.basic']
    * @example ['user.info.basic','video.list']
    */

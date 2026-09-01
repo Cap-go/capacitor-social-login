@@ -13,10 +13,13 @@ const TIKTOK_AUTH_URL = 'https://www.tiktok.com/v2/auth/authorize/';
 const TIKTOK_TOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/';
 const TIKTOK_DEFAULT_SCOPE = 'user.info.basic';
 
-const normalizeScope = (scope?: string | string[]): string => {
-  if (!scope) return TIKTOK_DEFAULT_SCOPE;
+// TikTok Login Kit expects comma-separated scopes, not space-separated.
+const serializeTikTokScope = (scope?: string | string[]): string | undefined => {
+  if (scope === undefined || scope === null || scope === '') {
+    return undefined;
+  }
   if (Array.isArray(scope)) {
-    return scope.filter(Boolean).join(' ');
+    return scope.filter(Boolean).join(',');
   }
   return scope;
 };
@@ -29,19 +32,22 @@ export const buildTikTokOAuthConfig = (config: TikTokProviderConfig): OAuth2Prov
   redirectUrl: config.redirectUrl,
   responseType: 'code',
   pkceEnabled: config.pkceEnabled ?? true,
-  scope: normalizeScope(config.scope ?? config.scopes),
+  scope: serializeTikTokScope(config.scope ?? config.scopes) ?? TIKTOK_DEFAULT_SCOPE,
   clientIdParamName: 'client_key',
   clientSecretParamName: 'client_secret',
   logsEnabled: config.logsEnabled ?? false,
 });
 
-export const buildTikTokLoginOptions = (options: TikTokLoginOptions = {}): OAuth2LoginOptions => ({
-  providerId: TIKTOK_PROVIDER_ID,
-  scope: normalizeScope(options.scope ?? options.scopes),
-  state: options.state,
-  codeVerifier: options.codeVerifier,
-  redirectUrl: options.redirectUrl,
-});
+export const buildTikTokLoginOptions = (options: TikTokLoginOptions = {}): OAuth2LoginOptions => {
+  const scope = serializeTikTokScope(options.scope ?? options.scopes);
+  return {
+    providerId: TIKTOK_PROVIDER_ID,
+    ...(scope === undefined ? {} : { scope }),
+    state: options.state,
+    codeVerifier: options.codeVerifier,
+    redirectUrl: options.redirectUrl,
+  };
+};
 
 export const isTikTokOAuthResult = (
   result: LoginResult,
