@@ -1016,7 +1016,7 @@ Refresh the access token
 ### refreshToken(...)
 
 ```typescript
-refreshToken(options: { provider: 'oauth2' | 'linkedin'; providerId: string; refreshToken?: string; additionalParameters?: Record<string, string>; }) => Promise<OAuth2LoginResponse>
+refreshToken(options: RefreshTokenOptions) => Promise<OAuth2LoginResponse>
 ```
 
 OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
@@ -1030,9 +1030,9 @@ Security note:
 
 If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
 
-| Param         | Type                                                                                                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`options`** | <code>{ provider: 'linkedin' \| 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code> |
+| Param         | Type                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| **`options`** | <code><a href="#refreshtokenoptions">RefreshTokenOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#oauth2loginresponse">OAuth2LoginResponse</a>&gt;</code>
 
@@ -1314,6 +1314,7 @@ Uses the OAuth2 engine with LinkedIn defaults:
 | Prop               | Type                | Description                                                                                                                                                            |
 | ------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`clientId`**     | <code>string</code> | LinkedIn Client ID from the LinkedIn Developer Portal.                                                                                                                 |
+| **`redirectUrl`**  | <code>string</code> | Redirect URL that receives the OAuth callback. Must match a redirect URL configured in the LinkedIn Developer Portal.                                                  |
 | **`clientSecret`** | <code>string</code> | LinkedIn Client Secret. Prefer exchanging the authorization code on a backend when possible. Needed for confidential clients that do not use PKCE-only token exchange. |
 
 
@@ -1687,6 +1688,14 @@ From T, pick a set of properties whose keys are in the union K
 <a href="#extract">Extract</a> from T those types that are assignable to U
 
 <code>T extends U ? T : never</code>
+
+
+#### RefreshTokenOptions
+
+Options for `refreshToken()`.
+`providerId` is required for generic `oauth2` and ignored for LinkedIn.
+
+<code>{ provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; } | { provider: 'linkedin'; providerId?: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code>
 
 
 #### LoginResult

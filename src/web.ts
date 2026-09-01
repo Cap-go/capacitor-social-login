@@ -22,6 +22,7 @@ import type {
   FacebookGetProfileOptions,
   TelegramLoginOptions,
   LinkedInLoginOptions,
+  RefreshTokenOptions,
 } from './definitions';
 import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
@@ -212,7 +213,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     const oauth2Configs: Record<string, OAuth2ProviderConfig> = { ...(options.oauth2 ?? {}) };
-    if (options.linkedin) {
+    if (options.linkedin && !oauth2Configs[LINKEDIN_PROVIDER_ID]) {
       oauth2Configs[LINKEDIN_PROVIDER_ID] = buildLinkedInOAuthConfig(options.linkedin);
     }
     if (Object.keys(oauth2Configs).length > 0) {
@@ -386,12 +387,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
-  async refreshToken(options: {
-    provider: 'oauth2' | 'linkedin';
-    providerId: string;
-    refreshToken?: string;
-    additionalParameters?: Record<string, string>;
-  }): Promise<OAuth2LoginResponse> {
+  async refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse> {
     if (options.provider === 'linkedin') {
       return this.oauth2Provider.refreshToken(LINKEDIN_PROVIDER_ID, options.refreshToken, options.additionalParameters);
     }

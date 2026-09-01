@@ -180,6 +180,12 @@ export interface LinkedInProviderConfig extends OAuth2ProviderConfig {
    */
   clientId: string;
   /**
+   * Redirect URL that receives the OAuth callback.
+   * Must match a redirect URL configured in the LinkedIn Developer Portal.
+   * @example 'https://your-app.example/auth/linkedin'
+   */
+  redirectUrl: string;
+  /**
    * LinkedIn Client Secret.
    *
    * Prefer exchanging the authorization code on a backend when possible.
@@ -187,6 +193,24 @@ export interface LinkedInProviderConfig extends OAuth2ProviderConfig {
    */
   clientSecret?: string;
 }
+
+/**
+ * Options for `refreshToken()`.
+ * `providerId` is required for generic `oauth2` and ignored for LinkedIn.
+ */
+export type RefreshTokenOptions =
+  | {
+      provider: 'oauth2';
+      providerId: string;
+      refreshToken?: string;
+      additionalParameters?: Record<string, string>;
+    }
+  | {
+      provider: 'linkedin';
+      providerId?: string;
+      refreshToken?: string;
+      additionalParameters?: Record<string, string>;
+    };
 
 export interface InitializeOptions {
   /**
@@ -1284,12 +1308,7 @@ export interface SocialLoginPlugin {
    *
    * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
    */
-  refreshToken(options: {
-    provider: 'oauth2' | 'linkedin';
-    providerId: string;
-    refreshToken?: string;
-    additionalParameters?: Record<string, string>;
-  }): Promise<OAuth2LoginResponse>;
+  refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse>;
 
   /**
    * Web-only: handle the OAuth redirect callback and return the parsed result.

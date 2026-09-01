@@ -13,6 +13,7 @@ import type {
   OpenSecureWindowResponse,
   OAuth2LoginResponse,
   ProviderResponseMap,
+  RefreshTokenOptions,
   ProviderSpecificCall,
   ProviderSpecificCallOptionsMap,
   ProviderSpecificCallResponseMap,
@@ -48,7 +49,7 @@ class SocialLoginClient implements SocialLoginPlugin {
       linkedin,
       oauth2: {
         ...(oauth2 ?? {}),
-        [LINKEDIN_PROVIDER_ID]: buildLinkedInOAuthConfig(linkedin),
+        [LINKEDIN_PROVIDER_ID]: oauth2?.[LINKEDIN_PROVIDER_ID] ?? buildLinkedInOAuthConfig(linkedin),
       },
     };
   }
@@ -114,12 +115,7 @@ class SocialLoginClient implements SocialLoginPlugin {
     return rawSocialLogin.refresh(options);
   }
 
-  async refreshToken(options: {
-    provider: 'oauth2' | 'linkedin';
-    providerId: string;
-    refreshToken?: string;
-    additionalParameters?: Record<string, string>;
-  }): Promise<OAuth2LoginResponse> {
+  async refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse> {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.refreshToken({
         provider: 'oauth2',
