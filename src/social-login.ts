@@ -171,5 +171,5 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 }
 
-export const SocialLoginBase = new SocialLoginClient();
-export const SocialLogin = SocialLoginBase;
+export const SocialLoginBase = rawSocialLogin;
+export const SocialLogin = new SocialLoginClient();
