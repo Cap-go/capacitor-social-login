@@ -7,6 +7,7 @@ import type {
   AuthorizationCode,
   AuthorizationCodeOptions,
   InitializeOptions,
+  LinkedInLoginOptions,
   LoginOptions,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
@@ -18,6 +19,13 @@ import type {
   SocialLoginPlugin,
   isLoggedInOptions,
 } from './definitions';
+import {
+  asLinkedInLoginResult,
+  buildLinkedInLoginOptions,
+  buildLinkedInOAuthConfig,
+  isLinkedInOAuthResult,
+  LINKEDIN_PROVIDER_ID,
+} from './linkedin-provider';
 
 const GOOGLE_OFFLINE_REFRESH_MESSAGE =
   "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh.";
@@ -29,34 +37,67 @@ const rawSocialLogin = registerPlugin<SocialLoginPlugin>('SocialLogin', {
 class SocialLoginClient implements SocialLoginPlugin {
   private initializeOptions?: InitializeOptions;
 
+  private normalizeInitializeOptions(options: InitializeOptions): InitializeOptions {
+    if (!options.linkedin) {
+      return options;
+    }
+
+    const { linkedin, oauth2, ...rest } = options;
+    return {
+      ...rest,
+      linkedin,
+      oauth2: {
+        ...(oauth2 ?? {}),
+        [LINKEDIN_PROVIDER_ID]: buildLinkedInOAuthConfig(linkedin),
+      },
+    };
+  }
+
   constructor() {
     this.initialize = this.initialize.bind(this);
     this.refresh = this.refresh.bind(this);
   }
 
   async initialize(options: InitializeOptions): Promise<void> {
-    await rawSocialLogin.initialize(options);
-    this.initializeOptions = options;
+    const normalized = this.normalizeInitializeOptions(options);
+    await rawSocialLogin.initialize(normalized);
+    this.initializeOptions = normalized;
   }
 
   async login<T extends LoginOptions['provider']>(
     options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+    if (options.provider === 'linkedin') {
+      const response = await rawSocialLogin.login({
+        provider: 'oauth2',
+        options: buildLinkedInLoginOptions(options.options as LinkedInLoginOptions),
+      });
+      return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
+    }
     return rawSocialLogin.login(options);
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.logout({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
     return rawSocialLogin.logout(options);
   }
 
   async isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.isLoggedIn({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
     return rawSocialLogin.isLoggedIn(options);
   }
 
   async getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.getAuthorizationCode({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
     return rawSocialLogin.getAuthorizationCode(options);
   }
 
@@ -64,20 +105,38 @@ class SocialLoginClient implements SocialLoginPlugin {
     if (options.provider === 'google' && this.initializeOptions?.google?.mode === 'offline') {
       console.warn(`[SocialLogin] ${GOOGLE_OFFLINE_REFRESH_MESSAGE}`);
     }
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.refresh({
+        provider: 'oauth2',
+        options: buildLinkedInLoginOptions(options.options as LinkedInLoginOptions),
+      });
+    }
     return rawSocialLogin.refresh(options);
   }
 
   async refreshToken(options: {
-    provider: 'oauth2';
+    provider: 'oauth2' | 'linkedin';
     providerId: string;
     refreshToken?: string;
     additionalParameters?: Record<string, string>;
   }): Promise<OAuth2LoginResponse> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.refreshToken({
+        provider: 'oauth2',
+        providerId: LINKEDIN_PROVIDER_ID,
+        refreshToken: options.refreshToken,
+        additionalParameters: options.additionalParameters,
+      });
+    }
     return rawSocialLogin.refreshToken(options);
   }
 
   async handleRedirectCallback() {
-    return rawSocialLogin.handleRedirectCallback();
+    const result = await rawSocialLogin.handleRedirectCallback();
+    if (result && isLinkedInOAuthResult(result)) {
+      return asLinkedInLoginResult(result);
+    }
+    return result;
   }
 
   async decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }> {

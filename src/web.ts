@@ -16,14 +16,23 @@ import type {
   LoginResult,
   OAuth2LoginOptions,
   OAuth2LoginResponse,
+  OAuth2ProviderConfig,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
   FacebookGetProfileOptions,
   TelegramLoginOptions,
+  LinkedInLoginOptions,
 } from './definitions';
 import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
+import {
+  asLinkedInLoginResult,
+  buildLinkedInLoginOptions,
+  buildLinkedInOAuthConfig,
+  isLinkedInOAuthResult,
+  LINKEDIN_PROVIDER_ID,
+} from './linkedin-provider';
 import {
   clearOAuthPopupMarker,
   deliverOAuthResult,
@@ -202,8 +211,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       );
     }
 
-    if (options.oauth2 && Object.keys(options.oauth2).length > 0) {
-      initPromises.push(this.oauth2Provider.initializeProviders(options.oauth2));
+    const oauth2Configs: Record<string, OAuth2ProviderConfig> = { ...(options.oauth2 ?? {}) };
+    if (options.linkedin) {
+      oauth2Configs[LINKEDIN_PROVIDER_ID] = buildLinkedInOAuthConfig(options.linkedin);
+    }
+    if (Object.keys(oauth2Configs).length > 0) {
+      initPromises.push(this.oauth2Provider.initializeProviders(oauth2Configs));
     }
 
     await Promise.all(initPromises);
@@ -238,6 +251,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           provider: T;
           result: ProviderResponseMap[T];
         }>;
+      case 'linkedin': {
+        const response = await this.oauth2Provider.login(
+          buildLinkedInLoginOptions(options.options as LinkedInLoginOptions),
+        );
+        return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
+      }
       case 'oauth2':
         return this.oauth2Provider.login(options.options as OAuth2LoginOptions) as Promise<{
           provider: T;
@@ -249,7 +268,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
     switch (options.provider) {
@@ -263,6 +282,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.twitterProvider.logout();
       case 'telegram':
         return this.telegramProvider.logout();
+      case 'linkedin':
+        return this.oauth2Provider.logout(LINKEDIN_PROVIDER_ID);
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 logout');
@@ -285,6 +306,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.twitterProvider.isLoggedIn();
       case 'telegram':
         return this.telegramProvider.isLoggedIn();
+      case 'linkedin':
+        return this.oauth2Provider.isLoggedIn(LINKEDIN_PROVIDER_ID);
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 isLoggedIn');
@@ -305,6 +328,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.facebookProvider.getAuthorizationCode();
       case 'twitter':
         return this.twitterProvider.getAuthorizationCode();
+      case 'linkedin':
+        return this.oauth2Provider.getAuthorizationCode(LINKEDIN_PROVIDER_ID);
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 getAuthorizationCode');
@@ -327,6 +352,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.twitterProvider.refresh();
       case 'telegram':
         return this.telegramProvider.refresh();
+      case 'linkedin':
+        return this.oauth2Provider.refresh(LINKEDIN_PROVIDER_ID);
       case 'oauth2': {
         const oauth2Options = options.options as OAuth2LoginOptions;
         if (!oauth2Options?.providerId) {
@@ -360,11 +387,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async refreshToken(options: {
-    provider: 'oauth2';
+    provider: 'oauth2' | 'linkedin';
     providerId: string;
     refreshToken?: string;
     additionalParameters?: Record<string, string>;
   }): Promise<OAuth2LoginResponse> {
+    if (options.provider === 'linkedin') {
+      return this.oauth2Provider.refreshToken(LINKEDIN_PROVIDER_ID, options.refreshToken, options.additionalParameters);
+    }
     if (options.provider !== 'oauth2') {
       throw new Error('refreshToken is only implemented for oauth2 on web');
     }
@@ -377,6 +407,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (!result) return null;
     if ('error' in result) {
       throw inferUserCancelledError(result.error);
+    }
+    if (isLinkedInOAuthResult(result)) {
+      return asLinkedInLoginResult(result);
     }
     return result;
   }
