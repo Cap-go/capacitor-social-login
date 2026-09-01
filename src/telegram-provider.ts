@@ -72,6 +72,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
 
     return new Promise((resolve, reject) => {
       if (!popup) {
+        this.clearPendingTelegramState(state);
         reject(new Error('Unable to open login window. Please allow popups.'));
         return;
       }
