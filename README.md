@@ -568,6 +568,8 @@ await SocialLogin.initialize({
   telegram: {
     botId: '123456789',
     redirectUrl: 'https://your-app.example/auth/telegram', // or myapp://telegram-auth on native
+    // Required on native when redirectUrl is a custom scheme
+    origin: 'https://your-app.example',
     requestAccess: 'write',
   },
 });

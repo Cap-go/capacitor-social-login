@@ -6,7 +6,7 @@ import type {
   TelegramLoginResponse,
   TelegramProfile,
 } from './definitions';
-import { createUserCancelledError } from './errors';
+import { createUserCancelledError, inferUserCancelledError } from './errors';
 
 interface TelegramPendingLogin {
   redirectUri: string;
@@ -112,7 +112,8 @@ export class TelegramSocialLogin extends BaseSocialLogin {
             return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          reject(createUserCancelledError((data.error as string) || 'Telegram login was cancelled.'));
+          const message = (data.error as string) || 'Telegram login was cancelled.';
+          reject(data.code === 'USER_CANCELLED' ? createUserCancelledError(message) : inferUserCancelledError(message));
           return true;
         }
         return false;
@@ -218,16 +219,20 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     };
 
     const authDate = Number.parseInt(authDateRaw, 10);
+    if (!Number.isFinite(authDate)) {
+      localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
+      return { error: 'Telegram auth_date is invalid.' };
+    }
     const result: TelegramLoginResponse = {
       profile,
-      authDate: Number.isFinite(authDate) ? authDate : Math.floor(Date.now() / 1000),
+      authDate,
       hash,
       requestAccess: pending.requestAccess,
     };
 
     this.persistSession({
       ...result,
-      expiresAt: (Number.isFinite(authDate) ? authDate * 1000 : Date.now()) + this.SESSION_TTL_MS,
+      expiresAt: authDate * 1000 + this.SESSION_TTL_MS,
     });
 
     localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
@@ -265,9 +270,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
   private appendStateToRedirect(redirectUri: string, state: string): string {
     try {
       const redirect = new URL(redirectUri);
-      if (!redirect.searchParams.has('state')) {
-        redirect.searchParams.set('state', state);
-      }
+      redirect.searchParams.set('state', state);
       return redirect.toString();
     } catch {
       return redirectUri;

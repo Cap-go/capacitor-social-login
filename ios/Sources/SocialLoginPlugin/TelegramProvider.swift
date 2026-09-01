@@ -68,6 +68,10 @@ class TelegramProvider: NSObject {
         pendingState = state
 
         let origin = self.origin ?? Self.deriveOrigin(from: redirect)
+        guard Self.isHttpOrigin(origin) else {
+            completion(.failure(NSError(domain: "TelegramProvider", code: -5, userInfo: [NSLocalizedDescriptionKey: "telegram.origin must be an http(s) domain registered with the bot when redirectUrl is not http(s)."])))
+            return
+        }
         let returnTo = Self.appendState(to: redirect, state: state)
 
         guard let authUrl = Self.buildAuthUrl(botId: botId, origin: origin, requestAccess: requestAccess, returnTo: returnTo, languageCode: languageCode) else {
@@ -114,7 +118,10 @@ class TelegramProvider: NSObject {
                 return
             }
 
-            let authDate = Int(authDateRaw) ?? Int(Date().timeIntervalSince1970)
+            guard let authDate = Int(authDateRaw) else {
+                completion(.failure(NSError(domain: "TelegramProvider", code: -9, userInfo: [NSLocalizedDescriptionKey: "Telegram auth_date is invalid."])))
+                return
+            }
             let profile = TelegramProfile(
                 id: id,
                 firstName: payload["first_name"] ?? "",
@@ -196,6 +203,13 @@ class TelegramProvider: NSObject {
         }
     }
 
+    private static func isHttpOrigin(_ value: String) -> Bool {
+        guard let url = URL(string: value), let scheme = url.scheme?.lowercased() else {
+            return false
+        }
+        return scheme == "https" || scheme == "http"
+    }
+
     private static func deriveOrigin(from redirect: String) -> String {
         if let url = URL(string: redirect), let host = url.host, let scheme = url.scheme {
             return "\(scheme)://\(host)"
@@ -207,10 +221,8 @@ class TelegramProvider: NSObject {
         guard var components = URLComponents(string: redirect) else {
             return redirect
         }
-        var queryItems = components.queryItems ?? []
-        if !queryItems.contains(where: { $0.name == "state" }) {
-            queryItems.append(URLQueryItem(name: "state", value: state))
-        }
+        var queryItems = (components.queryItems ?? []).filter { $0.name != "state" }
+        queryItems.append(URLQueryItem(name: "state", value: state))
         components.queryItems = queryItems
         return components.url?.absoluteString ?? redirect
     }

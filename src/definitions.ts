@@ -193,7 +193,8 @@ export interface InitializeOptions {
     redirectUrl?: string;
     /**
      * Origin/domain registered for the Telegram login widget.
-     * Defaults to the origin of `redirectUrl` on mobile and `window.location.origin` on web.
+     * Required when `redirectUrl` is not `http`/`https` (for example a custom scheme like `myapp://telegram-auth`).
+     * Defaults to the origin of `redirectUrl` only when that URL is already http(s).
      * @example 'https://example.com'
      */
     origin?: string;

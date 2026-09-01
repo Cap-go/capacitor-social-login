@@ -78,11 +78,16 @@ public class TelegramProvider implements SocialProvider {
         String state = config != null && config.has("state")
             ? config.optString("state", UUID.randomUUID().toString())
             : UUID.randomUUID().toString();
+        String resolvedOrigin = origin != null && !origin.isEmpty() ? origin : deriveOrigin(redirect);
+        if (!isHttpOrigin(resolvedOrigin)) {
+            call.reject("telegram.origin must be an http(s) domain registered with the bot when redirectUrl is not http(s).");
+            return;
+        }
+
         pendingState = state;
         pendingRequestAccess = resolvedRequestAccess;
         pendingCall = call;
 
-        String resolvedOrigin = origin != null ? origin : deriveOrigin(redirect);
         String returnTo = appendStateToRedirect(redirect, state);
 
         Uri.Builder builder = Uri.parse("https://oauth.telegram.org/auth")
@@ -179,7 +184,9 @@ public class TelegramProvider implements SocialProvider {
         try {
             authDateSeconds = Long.parseLong(authDateRaw);
         } catch (NumberFormatException e) {
-            authDateSeconds = System.currentTimeMillis() / 1000L;
+            pendingCall.reject("Telegram auth_date is invalid.");
+            cleanupPending();
+            return true;
         }
 
         String firstName = data.getStringExtra("first_name");
@@ -274,11 +281,16 @@ public class TelegramProvider implements SocialProvider {
     private static String appendStateToRedirect(String redirect, String state) {
         try {
             Uri uri = Uri.parse(redirect);
-            Uri.Builder builder = uri.buildUpon();
-            String existing = uri.getQueryParameter("state");
-            if (existing == null) {
-                builder.appendQueryParameter("state", state);
+            Uri.Builder builder = uri.buildUpon().clearQuery();
+            for (String name : uri.getQueryParameterNames()) {
+                if ("state".equals(name)) {
+                    continue;
+                }
+                for (String value : uri.getQueryParameters(name)) {
+                    builder.appendQueryParameter(name, value);
+                }
             }
+            builder.appendQueryParameter("state", state);
             return builder.build().toString();
         } catch (Exception e) {
             return redirect;
@@ -293,6 +305,14 @@ public class TelegramProvider implements SocialProvider {
             }
         } catch (Exception ignored) {}
         return redirect;
+    }
+
+    private static boolean isHttpOrigin(String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        String scheme = Uri.parse(value).getScheme();
+        return "https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme);
     }
 
     private static class TelegramSession {
