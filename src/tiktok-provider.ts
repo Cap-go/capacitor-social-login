@@ -35,7 +35,7 @@ export const buildTikTokOAuthConfig = (config: TikTokProviderConfig): OAuth2Prov
   logsEnabled: config.logsEnabled ?? false,
 });
 
-export const buildTikTokLoginOptions = (options: TikTokLoginOptions): OAuth2LoginOptions => ({
+export const buildTikTokLoginOptions = (options: TikTokLoginOptions = {}): OAuth2LoginOptions => ({
   providerId: TIKTOK_PROVIDER_ID,
   scope: normalizeScope(options.scope ?? options.scopes),
   state: options.state,

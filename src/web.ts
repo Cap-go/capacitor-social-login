@@ -213,8 +213,13 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
 
     const oauth2Configs: Record<string, OAuth2ProviderConfig> = { ...(options.oauth2 ?? {}) };
-    if (options.tiktok?.clientKey && options.tiktok.redirectUrl) {
-      oauth2Configs[TIKTOK_PROVIDER_ID] = buildTikTokOAuthConfig(options.tiktok);
+    if (options.tiktok) {
+      if (!options.tiktok.clientKey || !options.tiktok.redirectUrl) {
+        throw new Error('tiktok.clientKey and tiktok.redirectUrl are required');
+      }
+      if (!oauth2Configs[TIKTOK_PROVIDER_ID]) {
+        oauth2Configs[TIKTOK_PROVIDER_ID] = buildTikTokOAuthConfig(options.tiktok);
+      }
     }
     if (Object.keys(oauth2Configs).length > 0) {
       initPromises.push(this.oauth2Provider.initializeProviders(oauth2Configs));

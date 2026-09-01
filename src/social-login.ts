@@ -43,13 +43,17 @@ class SocialLoginClient implements SocialLoginPlugin {
       return options;
     }
 
+    if (!options.tiktok.clientKey || !options.tiktok.redirectUrl) {
+      throw new Error('tiktok.clientKey and tiktok.redirectUrl are required');
+    }
+
     const { tiktok, oauth2, ...rest } = options;
     return {
       ...rest,
       tiktok,
       oauth2: {
         ...(oauth2 ?? {}),
-        [TIKTOK_PROVIDER_ID]: buildTikTokOAuthConfig(tiktok),
+        [TIKTOK_PROVIDER_ID]: oauth2?.[TIKTOK_PROVIDER_ID] ?? buildTikTokOAuthConfig(tiktok),
       },
     };
   }
@@ -171,5 +175,5 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 }
 
-export const SocialLoginBase = rawSocialLogin;
-export const SocialLogin = new SocialLoginClient();
+export const SocialLoginBase = new SocialLoginClient();
+export const SocialLogin = SocialLoginBase;
