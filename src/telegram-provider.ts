@@ -53,7 +53,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     const state = options.state ?? this.generateState();
     const requestAccess = options.requestAccess ?? this.requestAccess;
     const origin = this.origin ?? this.getOriginFromRedirect(redirectUri);
-    if (!origin || (!origin.startsWith('https://') && !origin.startsWith('http://'))) {
+    if (!this.isHttpOrigin(origin)) {
       throw new Error(
         'Telegram origin must be a valid http(s) URL registered with BotFather. Pass origin when redirectUrl is not http(s).',
       );
@@ -210,8 +210,8 @@ export class TelegramSocialLogin extends BaseSocialLogin {
       photoUrl: params.get('photo_url'),
     };
 
-    const authDate = Number.parseInt(authDateRaw, 10);
-    if (!Number.isFinite(authDate)) {
+    const authDate = Number(authDateRaw);
+    if (!Number.isInteger(authDate)) {
       localStorage.removeItem(BaseSocialLogin.OAUTH_STATE_KEY);
       return { error: 'Telegram auth_date is invalid.' };
     }
@@ -269,16 +269,20 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     }
   }
 
-  private getOriginFromRedirect(redirectUri: string): string | undefined {
-    try {
-      const url = new URL(redirectUri);
-      if (url.protocol === 'http:' || url.protocol === 'https:') {
-        return url.origin;
-      }
-    } catch {
-      // custom schemes and invalid URLs are not valid Telegram widget origins
+  private isHttpOrigin(value: string | null | undefined): value is string {
+    if (!value) {
+      return false;
     }
-    return undefined;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
+  private getOriginFromRedirect(redirectUri: string): string | undefined {
+    return this.isHttpOrigin(redirectUri) ? new URL(redirectUri).origin : undefined;
   }
 
   private persistSession(session: TelegramStoredSession): void {
