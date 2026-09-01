@@ -1,5 +1,12 @@
 import { BaseSocialLogin } from './base';
-import type { AuthorizationCode, FacebookLoginOptions, FacebookLoginResponse, LoginResult } from './definitions';
+import type {
+  AuthorizationCode,
+  FacebookGetProfileResponse,
+  FacebookLoginOptions,
+  FacebookLoginResponse,
+  FacebookRequestTrackingResponse,
+  LoginResult,
+} from './definitions';
 import { createUserCancelledError } from './errors';
 
 declare const FB: {
@@ -139,6 +146,49 @@ export class FacebookSocialLogin extends BaseSocialLogin {
 
   async refresh(options: FacebookLoginOptions): Promise<void> {
     await this.login(options);
+  }
+
+  async getProfile(fields?: string[]): Promise<FacebookGetProfileResponse> {
+    if (!this.appId) {
+      throw new Error('Facebook App ID not set. Call initialize() first.');
+    }
+
+    const requestedFields = Array.isArray(fields) && fields.length > 0 ? fields : ['id', 'name', 'email', 'picture'];
+
+    return new Promise((resolve, reject) => {
+      FB.getLoginStatus((statusResponse) => {
+        if (statusResponse.status !== 'connected') {
+          reject(new Error('User is not logged in. Call login() before fetching profile.'));
+          return;
+        }
+
+        FB.api('/me', { fields: requestedFields.join(',') }, (profile: any) => {
+          if (profile && !profile.error) {
+            resolve({
+              profile: {
+                ...profile,
+                id: profile.id ?? null,
+                name: profile.name ?? null,
+                email: profile.email ?? null,
+                first_name: profile.first_name ?? null,
+                last_name: profile.last_name ?? null,
+              },
+            });
+          } else {
+            const errorMessage = profile?.error?.message ?? 'Failed to fetch Facebook profile';
+            reject(new Error(errorMessage));
+          }
+        });
+      });
+    });
+  }
+
+  async requestTracking(): Promise<FacebookRequestTrackingResponse> {
+    if (!this.appId) {
+      throw new Error('Facebook App ID not set. Call initialize() first.');
+    }
+    // App Tracking Transparency is not applicable on web.
+    return { status: 'authorized' };
   }
 
   private waitForConnection(

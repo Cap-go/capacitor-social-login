@@ -18,6 +18,7 @@ import type {
   OAuth2LoginResponse,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
+  FacebookGetProfileOptions,
 } from './definitions';
 import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
@@ -315,9 +316,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     options: ProviderSpecificCallOptionsMap[T];
   }): Promise<ProviderSpecificCallResponseMap[T]> {
     switch (options.call) {
-      case 'facebook#getProfile':
+      case 'facebook#getProfile': {
+        const fields = (options.options as FacebookGetProfileOptions | undefined)?.fields;
+        return this.facebookProvider.getProfile(fields) as Promise<ProviderSpecificCallResponseMap[T]>;
+      }
       case 'facebook#requestTracking':
-        throw new Error(`Provider specific call for ${options.call} is not implemented on web`);
+        return this.facebookProvider.requestTracking() as Promise<ProviderSpecificCallResponseMap[T]>;
       case 'google#createRestoreCredential':
       case 'google#getRestoreCredential':
       case 'google#clearRestoreCredential':

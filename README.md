@@ -190,6 +190,8 @@ Docs: [How to setup facebook login](https://capgo.app/docs/plugins/social-login/
 
 This plugin fully supports Facebook Business Login for accessing business-related features and permissions. Business accounts can request additional permissions beyond standard consumer login, including Instagram and Pages management.
 
+Works on **iOS**, **Android**, and **Web**. After login, use `providerSpecificCall` to fetch business fields (e.g., `instagram_business_account`, Pages) on every platform.
+
 **Supported Business Permissions:**
 - `instagram_basic` - Access to Instagram Basic Display API
 - `instagram_manage_insights` - Access to Instagram Insights
@@ -1463,9 +1465,9 @@ Response from `google#clearRestoreCredential`.
 
 #### FacebookGetProfileOptions
 
-| Prop         | Type                  | Description                              |
-| ------------ | --------------------- | ---------------------------------------- |
-| **`fields`** | <code>string[]</code> | Fields to retrieve from Facebook profile |
+| Prop         | Type                  | Description                               | Default                                         |
+| ------------ | --------------------- | ----------------------------------------- | ----------------------------------------------- |
+| **`fields`** | <code>string[]</code> | Fields to retrieve from Facebook profile. | <code>['id', 'name', 'email', 'picture']</code> |
 
 
 #### GoogleCreateRestoreCredentialOptions
