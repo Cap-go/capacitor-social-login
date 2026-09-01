@@ -215,7 +215,10 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     if (!config) {
       throw new Error(`OAuth2 provider '${providerId}' not configured. Call initialize() first.`);
     }
-    return this.normalizeStoredConfig(config);
+    // Mutate in place so later discovery writes are visible to the same config object.
+    config.clientIdParamName = normalizeOAuthParamName(config.clientIdParamName, 'client_id');
+    config.clientSecretParamName = normalizeOAuthParamName(config.clientSecretParamName, 'client_secret');
+    return config;
   }
 
   private getTokensKey(providerId: string): string {
