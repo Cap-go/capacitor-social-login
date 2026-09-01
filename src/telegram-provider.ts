@@ -112,8 +112,9 @@ export class TelegramSocialLogin extends BaseSocialLogin {
           const {
             provider: _ignoredProvider,
             type: _ignoredType,
+            _ts: _ignoredTs,
             ...payload
-          } = data as unknown as TelegramLoginResponse & { provider?: string; type?: string };
+          } = data as unknown as TelegramLoginResponse & { provider?: string; type?: string; _ts?: number };
           settle(true, () => {
             resolve({
               provider: 'telegram' as T,
