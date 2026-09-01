@@ -31,8 +31,10 @@ import {
   asLinkedInLoginResult,
   buildLinkedInLoginOptions,
   buildLinkedInOAuthConfig,
+  consumeLinkedInRedirectPending,
   isLinkedInOAuthResult,
   LINKEDIN_PROVIDER_ID,
+  markLinkedInRedirectPending,
 } from './linkedin-provider';
 import {
   clearOAuthPopupMarker,
@@ -253,9 +255,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           result: ProviderResponseMap[T];
         }>;
       case 'linkedin': {
-        const response = await this.oauth2Provider.login(
-          buildLinkedInLoginOptions(options.options as LinkedInLoginOptions),
-        );
+        const linkedInOptions = options.options as LinkedInLoginOptions;
+        if (linkedInOptions?.flow === 'redirect') {
+          markLinkedInRedirectPending();
+        }
+        const response = await this.oauth2Provider.login(buildLinkedInLoginOptions(linkedInOptions));
         return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
       }
       case 'oauth2':
@@ -392,7 +396,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       return this.oauth2Provider.refreshToken(LINKEDIN_PROVIDER_ID, options.refreshToken, options.additionalParameters);
     }
     if (options.provider !== 'oauth2') {
-      throw new Error('refreshToken is only implemented for oauth2 on web');
+      throw new Error('refreshToken is only implemented for oauth2 and linkedin on web');
     }
     return this.oauth2Provider.refreshToken(options.providerId, options.refreshToken, options.additionalParameters);
   }
@@ -404,7 +408,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if ('error' in result) {
       throw inferUserCancelledError(result.error);
     }
-    if (isLinkedInOAuthResult(result)) {
+    if (consumeLinkedInRedirectPending() && isLinkedInOAuthResult(result)) {
       return asLinkedInLoginResult(result);
     }
     return result;

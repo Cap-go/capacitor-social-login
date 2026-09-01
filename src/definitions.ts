@@ -1316,6 +1316,8 @@ export interface SocialLoginPlugin {
    * Notes:
    * - This is only meaningful on Web. iOS/Android implementations will reject.
    * - Intended for redirect-based flows (e.g. `oauth2` with `flow: 'redirect'`) where the page navigates away.
+   * - LinkedIn convenience logins (`provider: 'linkedin'`, `flow: 'redirect'`) return `provider: 'linkedin'`.
+   *   The same app used as `oauth2` with `providerId: 'linkedin'` keeps `provider: 'oauth2'`.
    */
   handleRedirectCallback(): Promise<LoginResult | null>;
 

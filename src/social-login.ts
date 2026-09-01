@@ -24,8 +24,8 @@ import {
   asLinkedInLoginResult,
   buildLinkedInLoginOptions,
   buildLinkedInOAuthConfig,
-  isLinkedInOAuthResult,
   LINKEDIN_PROVIDER_ID,
+  markLinkedInRedirectPending,
 } from './linkedin-provider';
 
 const GOOGLE_OFFLINE_REFRESH_MESSAGE =
@@ -69,9 +69,13 @@ class SocialLoginClient implements SocialLoginPlugin {
     options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     if (options.provider === 'linkedin') {
+      const linkedInOptions = options.options as LinkedInLoginOptions;
+      if (linkedInOptions?.flow === 'redirect') {
+        markLinkedInRedirectPending();
+      }
       const response = await rawSocialLogin.login({
         provider: 'oauth2',
-        options: buildLinkedInLoginOptions(options.options as LinkedInLoginOptions),
+        options: buildLinkedInLoginOptions(linkedInOptions),
       });
       return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
     }
@@ -128,11 +132,7 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async handleRedirectCallback() {
-    const result = await rawSocialLogin.handleRedirectCallback();
-    if (result && isLinkedInOAuthResult(result)) {
-      return asLinkedInLoginResult(result);
-    }
-    return result;
+    return rawSocialLogin.handleRedirectCallback();
   }
 
   async decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }> {

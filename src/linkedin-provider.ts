@@ -9,6 +9,7 @@ import type {
 } from './definitions';
 
 export const LINKEDIN_PROVIDER_ID = 'linkedin';
+const LINKEDIN_REDIRECT_PENDING_KEY = 'capgo_social_login_linkedin_redirect';
 const LINKEDIN_AUTH_URL = 'https://www.linkedin.com/oauth/v2/authorization';
 const LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
 const LINKEDIN_RESOURCE_URL = 'https://api.linkedin.com/v2/userinfo';
@@ -60,3 +61,21 @@ export const asLinkedInLoginResult = (result: {
   provider: 'linkedin',
   result: result.result,
 });
+
+export const markLinkedInRedirectPending = (): void => {
+  try {
+    sessionStorage.setItem(LINKEDIN_REDIRECT_PENDING_KEY, '1');
+  } catch {
+    // sessionStorage may be unavailable
+  }
+};
+
+export const consumeLinkedInRedirectPending = (): boolean => {
+  try {
+    const pending = sessionStorage.getItem(LINKEDIN_REDIRECT_PENDING_KEY) === '1';
+    sessionStorage.removeItem(LINKEDIN_REDIRECT_PENDING_KEY);
+    return pending;
+  } catch {
+    return false;
+  }
+};
