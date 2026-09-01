@@ -196,8 +196,9 @@ export interface TikTokProviderConfig {
   redirectUrl: string;
   /**
    * TikTok client secret. Optional.
-   * Provide this only if you want the plugin to exchange the authorization code for tokens on-device.
-   * Omit it (recommended for web) and send the authorization code to your backend for token exchange.
+   * When set, the plugin includes it on token and refresh requests.
+   * On web this value is stored with the OAuth2 config.
+   * Login always exchanges the authorization code in the plugin; the raw code is not returned to the app.
    */
   clientSecret?: string;
   /**
