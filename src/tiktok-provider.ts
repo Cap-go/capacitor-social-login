@@ -29,7 +29,7 @@ export const buildTikTokOAuthConfig = (config: TikTokProviderConfig): OAuth2Prov
   redirectUrl: config.redirectUrl,
   responseType: 'code',
   pkceEnabled: config.pkceEnabled ?? true,
-  scope: normalizeScope(config.scopes ?? config.scope),
+  scope: normalizeScope(config.scope ?? config.scopes),
   clientIdParamName: 'client_key',
   clientSecretParamName: 'client_secret',
   logsEnabled: config.logsEnabled ?? false,
@@ -37,7 +37,7 @@ export const buildTikTokOAuthConfig = (config: TikTokProviderConfig): OAuth2Prov
 
 export const buildTikTokLoginOptions = (options: TikTokLoginOptions): OAuth2LoginOptions => ({
   providerId: TIKTOK_PROVIDER_ID,
-  scope: options.scope ?? options.scopes ?? TIKTOK_DEFAULT_SCOPE,
+  scope: normalizeScope(options.scope ?? options.scopes),
   state: options.state,
   codeVerifier: options.codeVerifier,
   redirectUrl: options.redirectUrl,

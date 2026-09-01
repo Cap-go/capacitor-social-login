@@ -12,6 +12,7 @@ import type {
   OpenSecureWindowResponse,
   OAuth2LoginResponse,
   ProviderResponseMap,
+  RefreshTokenOptions,
   ProviderSpecificCall,
   ProviderSpecificCallOptionsMap,
   ProviderSpecificCallResponseMap,
@@ -114,12 +115,7 @@ class SocialLoginClient implements SocialLoginPlugin {
     return rawSocialLogin.refresh(options);
   }
 
-  async refreshToken(options: {
-    provider: 'oauth2' | 'tiktok';
-    providerId: string;
-    refreshToken?: string;
-    additionalParameters?: Record<string, string>;
-  }): Promise<OAuth2LoginResponse> {
+  async refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse> {
     if (options.provider === 'tiktok') {
       return rawSocialLogin.refreshToken({
         provider: 'oauth2',

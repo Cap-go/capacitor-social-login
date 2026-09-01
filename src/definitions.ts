@@ -221,6 +221,20 @@ export interface TikTokProviderConfig {
   logsEnabled?: boolean;
 }
 
+export type RefreshTokenOptions =
+  | {
+      provider: 'oauth2';
+      providerId: string;
+      refreshToken?: string;
+      additionalParameters?: Record<string, string>;
+    }
+  | {
+      provider: 'tiktok';
+      providerId?: string;
+      refreshToken?: string;
+      additionalParameters?: Record<string, string>;
+    };
+
 export interface InitializeOptions {
   /**
    * OAuth2 provider configurations.
@@ -1335,12 +1349,7 @@ export interface SocialLoginPlugin {
    *
    * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
    */
-  refreshToken(options: {
-    provider: 'oauth2' | 'tiktok';
-    providerId: string;
-    refreshToken?: string;
-    additionalParameters?: Record<string, string>;
-  }): Promise<OAuth2LoginResponse>;
+  refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse>;
 
   /**
    * Web-only: handle the OAuth redirect callback and return the parsed result.

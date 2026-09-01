@@ -9,6 +9,14 @@ import type {
 } from './definitions';
 import { createUserCancelledError, inferUserCancelledError } from './errors';
 
+const normalizeOAuthParamName = (value: unknown, fallback: string): string => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+};
+
 interface OAuth2TokenResponse {
   token_type: string;
   expires_in?: number;
@@ -103,8 +111,8 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     return {
       appId,
       clientSecret: config.clientSecret,
-      clientIdParamName: config.clientIdParamName || 'client_id',
-      clientSecretParamName: config.clientSecretParamName || 'client_secret',
+      clientIdParamName: normalizeOAuthParamName(config.clientIdParamName, 'client_id'),
+      clientSecretParamName: normalizeOAuthParamName(config.clientSecretParamName, 'client_secret'),
       issuerUrl: config.issuerUrl,
       authorizationBaseUrl,
       accessTokenEndpoint,

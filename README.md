@@ -1013,7 +1013,7 @@ Refresh the access token
 ### refreshToken(...)
 
 ```typescript
-refreshToken(options: { provider: 'oauth2' | 'tiktok'; providerId: string; refreshToken?: string; additionalParameters?: Record<string, string>; }) => Promise<OAuth2LoginResponse>
+refreshToken(options: RefreshTokenOptions) => Promise<OAuth2LoginResponse>
 ```
 
 OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
@@ -1027,9 +1027,9 @@ Security note:
 
 If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
 
-| Param         | Type                                                                                                                                                                   |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'tiktok' \| 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code> |
+| Param         | Type                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| **`options`** | <code><a href="#refreshtokenoptions">RefreshTokenOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#oauth2loginresponse">OAuth2LoginResponse</a>&gt;</code>
 
@@ -1667,6 +1667,11 @@ TikTok login response (same shape as generic OAuth2).
 <a href="#extract">Extract</a> from T those types that are assignable to U
 
 <code>T extends U ? T : never</code>
+
+
+#### RefreshTokenOptions
+
+<code>{ provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; } | { provider: 'tiktok'; providerId?: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code>
 
 
 #### LoginResult

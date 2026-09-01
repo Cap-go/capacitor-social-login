@@ -22,6 +22,7 @@ import type {
   FacebookGetProfileOptions,
   TelegramLoginOptions,
   TikTokLoginOptions,
+  RefreshTokenOptions,
 } from './definitions';
 import { inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
@@ -386,12 +387,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
   }
 
-  async refreshToken(options: {
-    provider: 'oauth2' | 'tiktok';
-    providerId: string;
-    refreshToken?: string;
-    additionalParameters?: Record<string, string>;
-  }): Promise<OAuth2LoginResponse> {
+  async refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse> {
     if (options.provider === 'tiktok') {
       return this.oauth2Provider.refreshToken(TIKTOK_PROVIDER_ID, options.refreshToken, options.additionalParameters);
     }

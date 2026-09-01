@@ -147,10 +147,10 @@ public class OAuth2Provider implements SocialProvider {
             this.additionalLogoutParameters = additionalLogoutParameters;
             this.androidUseCustomTabs = androidUseCustomTabs;
             this.logsEnabled = logsEnabled;
-            this.clientIdParamName = clientIdParamName == null || clientIdParamName.isEmpty() ? "client_id" : clientIdParamName;
-            this.clientSecretParamName = clientSecretParamName == null || clientSecretParamName.isEmpty()
-                ? "client_secret"
-                : clientSecretParamName;
+            String trimmedClientIdParamName = clientIdParamName == null ? "" : clientIdParamName.trim();
+            String trimmedClientSecretParamName = clientSecretParamName == null ? "" : clientSecretParamName.trim();
+            this.clientIdParamName = trimmedClientIdParamName.isEmpty() ? "client_id" : trimmedClientIdParamName;
+            this.clientSecretParamName = trimmedClientSecretParamName.isEmpty() ? "client_secret" : trimmedClientSecretParamName;
         }
     }
 
