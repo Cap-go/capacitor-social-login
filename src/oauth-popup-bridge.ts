@@ -52,14 +52,15 @@ export function clearOAuthPopupMarker(): void {
 }
 
 export function hasOAuthRedirectParams(): boolean {
-  const { search, hash } = window.location;
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   return (
-    search.includes('code=') ||
-    search.includes('error=') ||
-    search.includes('hash=') ||
-    hash.includes('access_token=') ||
-    hash.includes('id_token=') ||
-    hash.includes('error=')
+    search.has('code') ||
+    search.has('error') ||
+    (search.has('hash') && search.has('auth_date')) ||
+    hash.has('access_token') ||
+    hash.has('id_token') ||
+    hash.has('error')
   );
 }
 
