@@ -52,6 +52,11 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     const state = options.state ?? this.generateState();
     const requestAccess = options.requestAccess ?? this.requestAccess;
     const origin = this.origin ?? this.getOriginFromRedirect(redirectUri);
+    if (!origin || (!origin.startsWith('https://') && !origin.startsWith('http://'))) {
+      throw new Error(
+        'Telegram origin is required when redirectUrl is not http(s). Pass origin matching the domain registered with BotFather.',
+      );
+    }
     const returnTo = this.appendStateToRedirect(redirectUri, state);
 
     this.persistPendingLogin(state, {
@@ -119,12 +124,6 @@ export class TelegramSocialLogin extends BaseSocialLogin {
         return false;
       };
 
-      if (broadcastChannel) {
-        broadcastChannel.onmessage = (event: MessageEvent) => {
-          handleOAuthMessage(event.data);
-        };
-      }
-
       const messageHandler = (event: MessageEvent) => {
         if (event.origin !== window.location.origin) {
           return;
@@ -154,6 +153,14 @@ export class TelegramSocialLogin extends BaseSocialLogin {
           clearInterval(popupClosedInterval);
         }
       }, 1000);
+
+      // Assign after messageHandler / timeoutHandle / popupClosedInterval exist so
+      // a fast BroadcastChannel delivery cannot hit a temporal dead zone.
+      if (broadcastChannel) {
+        broadcastChannel.onmessage = (event: MessageEvent) => {
+          handleOAuthMessage(event.data);
+        };
+      }
     });
   }
 
@@ -277,7 +284,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     }
   }
 
-  private getOriginFromRedirect(redirectUri: string): string {
+  private getOriginFromRedirect(redirectUri: string): string | undefined {
     try {
       const url = new URL(redirectUri);
       if (url.protocol === 'http:' || url.protocol === 'https:') {
@@ -286,7 +293,7 @@ export class TelegramSocialLogin extends BaseSocialLogin {
     } catch {
       // custom schemes and invalid URLs are not valid Telegram widget origins
     }
-    return window.location.origin;
+    return undefined;
   }
 
   private persistSession(session: TelegramStoredSession): void {

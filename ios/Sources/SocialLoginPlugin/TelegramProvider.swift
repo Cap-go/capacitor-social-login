@@ -212,6 +212,9 @@ class TelegramProvider: NSObject {
 
     private static func deriveOrigin(from redirect: String) -> String {
         if let url = URL(string: redirect), let host = url.host, let scheme = url.scheme {
+            if let port = url.port {
+                return "\(scheme)://\(host):\(port)"
+            }
             return "\(scheme)://\(host)"
         }
         return redirect

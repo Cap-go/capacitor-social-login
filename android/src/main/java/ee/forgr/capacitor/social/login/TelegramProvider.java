@@ -300,8 +300,14 @@ public class TelegramProvider implements SocialProvider {
     private static String deriveOrigin(String redirect) {
         try {
             Uri uri = Uri.parse(redirect);
-            if (uri.getScheme() != null && uri.getHost() != null) {
-                return uri.getScheme() + "://" + uri.getHost();
+            String scheme = uri.getScheme();
+            String host = uri.getHost();
+            if (scheme != null && host != null) {
+                int port = uri.getPort();
+                if (port != -1) {
+                    return scheme + "://" + host + ":" + port;
+                }
+                return scheme + "://" + host;
             }
         } catch (Exception ignored) {}
         return redirect;
