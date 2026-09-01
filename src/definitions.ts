@@ -956,7 +956,8 @@ export type ProviderSpecificCall =
 // Define the options and response types for each specific call
 export interface FacebookGetProfileOptions {
   /**
-   * Fields to retrieve from Facebook profile
+   * Fields to retrieve from Facebook profile.
+   * @default ['id', 'name', 'email', 'picture']
    * @example ["id", "name", "email", "picture"]
    */
   fields?: string[];

@@ -148,14 +148,12 @@ export class FacebookSocialLogin extends BaseSocialLogin {
     await this.login(options);
   }
 
-  async getProfile(fields: string[]): Promise<FacebookGetProfileResponse> {
+  async getProfile(fields?: string[]): Promise<FacebookGetProfileResponse> {
     if (!this.appId) {
       throw new Error('Facebook App ID not set. Call initialize() first.');
     }
 
-    if (!Array.isArray(fields) || fields.length === 0) {
-      throw new Error('At least one field is required for facebook#getProfile');
-    }
+    const requestedFields = Array.isArray(fields) && fields.length > 0 ? fields : ['id', 'name', 'email', 'picture'];
 
     return new Promise((resolve, reject) => {
       FB.getLoginStatus((statusResponse) => {
@@ -164,7 +162,7 @@ export class FacebookSocialLogin extends BaseSocialLogin {
           return;
         }
 
-        FB.api('/me', { fields: fields.join(',') }, (profile: any) => {
+        FB.api('/me', { fields: requestedFields.join(',') }, (profile: any) => {
           if (profile && !profile.error) {
             resolve({ profile } as FacebookGetProfileResponse);
           } else {

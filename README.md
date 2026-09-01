@@ -1465,9 +1465,9 @@ Response from `google#clearRestoreCredential`.
 
 #### FacebookGetProfileOptions
 
-| Prop         | Type                  | Description                              |
-| ------------ | --------------------- | ---------------------------------------- |
-| **`fields`** | <code>string[]</code> | Fields to retrieve from Facebook profile |
+| Prop         | Type                  | Description                               | Default                                         |
+| ------------ | --------------------- | ----------------------------------------- | ----------------------------------------------- |
+| **`fields`** | <code>string[]</code> | Fields to retrieve from Facebook profile. | <code>['id', 'name', 'email', 'picture']</code> |
 
 
 #### GoogleCreateRestoreCredentialOptions
