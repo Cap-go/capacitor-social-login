@@ -177,6 +177,9 @@ export class FacebookSocialLogin extends BaseSocialLogin {
   }
 
   async requestTracking(): Promise<FacebookRequestTrackingResponse> {
+    if (!this.appId) {
+      throw new Error('Facebook App ID not set. Call initialize() first.');
+    }
     // App Tracking Transparency is not applicable on web.
     return { status: 'authorized' };
   }

@@ -317,7 +317,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }): Promise<ProviderSpecificCallResponseMap[T]> {
     switch (options.call) {
       case 'facebook#getProfile': {
-        const { fields } = options.options as FacebookGetProfileOptions;
+        const fields = (options.options as FacebookGetProfileOptions | undefined)?.fields;
         if (!Array.isArray(fields) || fields.length === 0) {
           throw new Error('fields are required for facebook#getProfile');
         }
