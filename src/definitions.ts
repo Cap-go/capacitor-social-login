@@ -43,6 +43,18 @@ export interface OAuth2ProviderConfig {
    */
   clientSecret?: string;
   /**
+   * Override the client identifier parameter name used for authorization and token requests.
+   * Some providers (e.g. TikTok) expect `client_key` instead of the default `client_id`.
+   * @default 'client_id'
+   */
+  clientIdParamName?: string;
+  /**
+   * Override the client secret parameter name used for token requests.
+   * Useful for providers that expect a different parameter name.
+   * @default 'client_secret'
+   */
+  clientSecretParamName?: string;
+  /**
    * The URL to exchange the authorization code for tokens
    * Required for authorization code flow
    * @example 'https://accounts.example.com/oauth2/token'
@@ -165,6 +177,50 @@ export interface OAuth2ProviderConfig {
   logsEnabled?: boolean;
 }
 
+/**
+ * TikTok Login Kit configuration (convenience wrapper around the generic OAuth2 provider).
+ *
+ * Uses TikTok OAuth 2.0 endpoints and `client_key` instead of `client_id`.
+ * @see https://developers.tiktok.com/doc/login-kit-web
+ */
+export interface TikTokProviderConfig {
+  /**
+   * TikTok client key (also known as app key).
+   * @example 'aw3y*****'
+   */
+  clientKey: string;
+  /**
+   * Redirect URL registered in your TikTok developer app.
+   * @example 'myapp://auth/tiktok'
+   */
+  redirectUrl: string;
+  /**
+   * TikTok client secret. Provide this if you want the plugin to exchange the authorization code for tokens client-side.
+   * If omitted, only PKCE public-client token exchange will succeed.
+   */
+  clientSecret?: string;
+  /**
+   * Scopes to request during login.
+   * @default ['user.info.basic']
+   * @example ['user.info.basic','video.list']
+   */
+  scopes?: string[];
+  /**
+   * Alias for `scopes`.
+   */
+  scope?: string | string[];
+  /**
+   * Toggle PKCE usage during the authorization code flow.
+   * @default true
+   */
+  pkceEnabled?: boolean;
+  /**
+   * Enable verbose debug logging for the TikTok OAuth2 flow.
+   * @default false
+   */
+  logsEnabled?: boolean;
+}
+
 export interface InitializeOptions {
   /**
    * OAuth2 provider configurations.
@@ -209,6 +265,11 @@ export interface InitializeOptions {
      */
     languageCode?: string;
   };
+  /**
+   * TikTok Login Kit configuration.
+   * Convenience wrapper that maps to the OAuth2 provider using TikTok defaults (`client_key`).
+   */
+  tiktok?: TikTokProviderConfig;
   twitter?: {
     /**
      * The OAuth 2.0 client identifier issued by X (Twitter) Developer Portal
@@ -540,6 +601,30 @@ export interface OAuth2LoginOptions {
   flow?: 'popup' | 'redirect';
 }
 
+export interface TikTokLoginOptions {
+  /**
+   * Optional scopes to override the initialization scopes.
+   * @example ['user.info.basic']
+   */
+  scopes?: string[];
+  /**
+   * Alias for `scopes`.
+   */
+  scope?: string | string[];
+  /**
+   * Custom state parameter for CSRF protection.
+   */
+  state?: string;
+  /**
+   * Custom PKCE code verifier (mostly for testing).
+   */
+  codeVerifier?: string;
+  /**
+   * Override redirect URL for this login request.
+   */
+  redirectUrl?: string;
+}
+
 export interface OAuth2LoginResponse {
   /**
    * The provider ID that was used for this login
@@ -575,6 +660,11 @@ export interface OAuth2LoginResponse {
    */
   expiresIn: number | null;
 }
+
+/**
+ * TikTok login response (same shape as generic OAuth2).
+ */
+export type TikTokLoginResponse = OAuth2LoginResponse;
 
 export interface GoogleLoginOptions {
   /**
@@ -791,6 +881,10 @@ export type LoginOptions =
       options: TelegramLoginOptions;
     }
   | {
+      provider: 'tiktok';
+      options: TikTokLoginOptions;
+    }
+  | {
       provider: 'oauth2';
       options: OAuth2LoginOptions;
     };
@@ -815,6 +909,10 @@ export type LoginResult =
   | {
       provider: 'telegram';
       result: TelegramLoginResponse;
+    }
+  | {
+      provider: 'tiktok';
+      result: TikTokLoginResponse;
     }
   | {
       provider: 'oauth2';
@@ -943,7 +1041,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'tiktok' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -956,7 +1054,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'tiktok' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -1126,6 +1224,7 @@ export type ProviderResponseMap = {
   apple: AppleProviderResponse;
   twitter: TwitterLoginResponse;
   telegram: TelegramLoginResponse;
+  tiktok: TikTokLoginResponse;
   oauth2: OAuth2LoginResponse;
 };
 
@@ -1176,7 +1275,7 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void>;
   /**
@@ -1228,7 +1327,7 @@ export interface SocialLoginPlugin {
    * OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
    *
    * Scope:
-   * - Only applies to the built-in `oauth2` provider (not Google/Apple/Facebook/Twitter).
+   * - Applies to the built-in `oauth2` provider and the TikTok convenience wrapper.
    * - Requires a token endpoint (either `accessTokenEndpoint`/`tokenEndpoint` or `issuerUrl` discovery).
    *
    * Security note:
@@ -1237,7 +1336,7 @@ export interface SocialLoginPlugin {
    * If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
    */
   refreshToken(options: {
-    provider: 'oauth2';
+    provider: 'oauth2' | 'tiktok';
     providerId: string;
     refreshToken?: string;
     additionalParameters?: Record<string, string>;

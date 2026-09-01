@@ -37,6 +37,8 @@ interface OAuth2StoredTokens {
 interface OAuth2ConfigInternal {
   appId: string;
   clientSecret?: string;
+  clientIdParamName: string;
+  clientSecretParamName: string;
   issuerUrl?: string;
   authorizationBaseUrl?: string;
   accessTokenEndpoint?: string;
@@ -101,6 +103,8 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     return {
       appId,
       clientSecret: config.clientSecret,
+      clientIdParamName: config.clientIdParamName || 'client_id',
+      clientSecretParamName: config.clientSecretParamName || 'client_secret',
       issuerUrl: config.issuerUrl,
       authorizationBaseUrl,
       accessTokenEndpoint,
@@ -249,7 +253,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     // Build authorization URL
     const params = new URLSearchParams({
       response_type: config.responseType,
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
       redirect_uri: redirectUri,
       state,
     });
@@ -673,7 +677,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
       code,
       redirect_uri: pending.redirectUri,
     });
@@ -683,7 +687,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     }
 
     if (config.clientSecret) {
-      params.set('client_secret', config.clientSecret);
+      params.set(config.clientSecretParamName, config.clientSecret);
     }
 
     if (config.additionalTokenParameters) {
@@ -725,11 +729,11 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
     });
 
     if (config.clientSecret) {
-      params.set('client_secret', config.clientSecret);
+      params.set(config.clientSecretParamName, config.clientSecret);
     }
 
     if (config.additionalTokenParameters) {

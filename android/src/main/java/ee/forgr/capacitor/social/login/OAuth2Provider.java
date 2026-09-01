@@ -100,6 +100,8 @@ public class OAuth2Provider implements SocialProvider {
         final Map<String, String> additionalLogoutParameters;
         final boolean androidUseCustomTabs;
         final boolean logsEnabled;
+        final String clientIdParamName;
+        final String clientSecretParamName;
 
         OAuth2ProviderConfig(
             String appId,
@@ -121,7 +123,9 @@ public class OAuth2Provider implements SocialProvider {
             String postLogoutRedirectUrl,
             Map<String, String> additionalLogoutParameters,
             boolean androidUseCustomTabs,
-            boolean logsEnabled
+            boolean logsEnabled,
+            String clientIdParamName,
+            String clientSecretParamName
         ) {
             this.appId = appId;
             this.clientSecret = clientSecret;
@@ -143,6 +147,10 @@ public class OAuth2Provider implements SocialProvider {
             this.additionalLogoutParameters = additionalLogoutParameters;
             this.androidUseCustomTabs = androidUseCustomTabs;
             this.logsEnabled = logsEnabled;
+            this.clientIdParamName = clientIdParamName == null || clientIdParamName.isEmpty() ? "client_id" : clientIdParamName;
+            this.clientSecretParamName = clientSecretParamName == null || clientSecretParamName.isEmpty()
+                ? "client_secret"
+                : clientSecretParamName;
         }
     }
 
@@ -253,7 +261,9 @@ public class OAuth2Provider implements SocialProvider {
                                 config.postLogoutRedirectUrl,
                                 config.additionalLogoutParameters,
                                 config.androidUseCustomTabs,
-                                config.logsEnabled
+                                config.logsEnabled,
+                                config.clientIdParamName,
+                                config.clientSecretParamName
                             );
                             providers.put(providerId, resolved);
                             cb.onSuccess(resolved);
@@ -347,7 +357,9 @@ public class OAuth2Provider implements SocialProvider {
                 config.optString("postLogoutRedirectUrl", null),
                 additionalLogoutParameters,
                 config.optBoolean("androidUseCustomTabs", false),
-                config.optBoolean("logsEnabled", false)
+                config.optBoolean("logsEnabled", false),
+                config.optString("clientIdParamName", "client_id"),
+                config.optString("clientSecretParamName", "client_secret")
             );
 
             providers.put(providerId, providerConfig);
@@ -452,7 +464,7 @@ public class OAuth2Provider implements SocialProvider {
                     Uri.Builder builder = Uri.parse(resolved.authorizationBaseUrl)
                         .buildUpon()
                         .appendQueryParameter("response_type", resolved.responseType)
-                        .appendQueryParameter("client_id", resolved.appId)
+                        .appendQueryParameter(resolved.clientIdParamName, resolved.appId)
                         .appendQueryParameter("redirect_uri", finalRedirect)
                         .appendQueryParameter("state", finalState);
 
@@ -1071,7 +1083,7 @@ public class OAuth2Provider implements SocialProvider {
 
         FormBody.Builder bodyBuilder = new FormBody.Builder()
             .add("grant_type", "authorization_code")
-            .add("client_id", config.appId)
+            .add(config.clientIdParamName, config.appId)
             .add("code", code)
             .add("redirect_uri", pendingState.redirectUri);
 
@@ -1080,7 +1092,7 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         if (config.clientSecret != null) {
-            bodyBuilder.add("client_secret", config.clientSecret);
+            bodyBuilder.add(config.clientSecretParamName, config.clientSecret);
         }
 
         if (config.additionalTokenParameters != null) {
@@ -1167,10 +1179,10 @@ public class OAuth2Provider implements SocialProvider {
         FormBody.Builder bodyBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
             .add("refresh_token", refreshToken)
-            .add("client_id", config.appId);
+            .add(config.clientIdParamName, config.appId);
 
         if (config.clientSecret != null) {
-            bodyBuilder.add("client_secret", config.clientSecret);
+            bodyBuilder.add(config.clientSecretParamName, config.clientSecret);
         }
 
         if (config.additionalTokenParameters != null) {
