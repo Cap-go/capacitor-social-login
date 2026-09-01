@@ -69,7 +69,7 @@ class SocialLoginClient implements SocialLoginPlugin {
     options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
     if (options.provider === 'linkedin') {
-      const linkedInOptions = options.options as LinkedInLoginOptions;
+      const linkedInOptions = (options.options as LinkedInLoginOptions | undefined) ?? {};
       if (linkedInOptions?.flow === 'redirect') {
         markLinkedInRedirectPending();
       }
@@ -113,7 +113,7 @@ class SocialLoginClient implements SocialLoginPlugin {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.refresh({
         provider: 'oauth2',
-        options: buildLinkedInLoginOptions(options.options as LinkedInLoginOptions),
+        options: buildLinkedInLoginOptions((options.options as LinkedInLoginOptions | undefined) ?? {}),
       });
     }
     return rawSocialLogin.refresh(options);
@@ -171,5 +171,5 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 }
 
-export const SocialLoginBase = rawSocialLogin;
-export const SocialLogin = new SocialLoginClient();
+export const SocialLoginBase = new SocialLoginClient();
+export const SocialLogin = SocialLoginBase;

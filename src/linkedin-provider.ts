@@ -39,7 +39,7 @@ export const buildLinkedInOAuthConfig = (config: LinkedInProviderConfig): OAuth2
   };
 };
 
-export const buildLinkedInLoginOptions = (options: LinkedInLoginOptions): OAuth2LoginOptions => {
+export const buildLinkedInLoginOptions = (options: LinkedInLoginOptions = {}): OAuth2LoginOptions => {
   const scope = options.scope ?? options.scopes ?? LINKEDIN_DEFAULT_SCOPE;
 
   return {
