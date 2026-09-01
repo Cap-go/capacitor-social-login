@@ -164,7 +164,16 @@ export class FacebookSocialLogin extends BaseSocialLogin {
 
         FB.api('/me', { fields: requestedFields.join(',') }, (profile: any) => {
           if (profile && !profile.error) {
-            resolve({ profile } as FacebookGetProfileResponse);
+            resolve({
+              profile: {
+                ...profile,
+                id: profile.id ?? null,
+                name: profile.name ?? null,
+                email: profile.email ?? null,
+                first_name: profile.first_name ?? null,
+                last_name: profile.last_name ?? null,
+              },
+            });
           } else {
             const errorMessage = profile?.error?.message ?? 'Failed to fetch Facebook profile';
             reject(new Error(errorMessage));
