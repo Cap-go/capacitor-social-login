@@ -202,12 +202,20 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     }
   }
 
+  private normalizeStoredConfig(config: OAuth2ConfigInternal): OAuth2ConfigInternal {
+    return {
+      ...config,
+      clientIdParamName: normalizeOAuthParamName(config.clientIdParamName, 'client_id'),
+      clientSecretParamName: normalizeOAuthParamName(config.clientSecretParamName, 'client_secret'),
+    };
+  }
+
   private getProvider(providerId: string): OAuth2ConfigInternal {
     const config = this.providers.get(providerId);
     if (!config) {
       throw new Error(`OAuth2 provider '${providerId}' not configured. Call initialize() first.`);
     }
-    return config;
+    return this.normalizeStoredConfig(config);
   }
 
   private getTokensKey(providerId: string): string {
@@ -236,7 +244,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
         try {
           const raw = localStorage.getItem(key);
           if (raw) {
-            const config = JSON.parse(raw) as OAuth2ConfigInternal;
+            const config = this.normalizeStoredConfig(JSON.parse(raw) as OAuth2ConfigInternal);
             this.providers.set(providerId, config);
           }
         } catch (err) {

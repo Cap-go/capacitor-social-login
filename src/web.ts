@@ -392,7 +392,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       return this.oauth2Provider.refreshToken(TIKTOK_PROVIDER_ID, options.refreshToken, options.additionalParameters);
     }
     if (options.provider !== 'oauth2') {
-      throw new Error('refreshToken is only implemented for oauth2 on web');
+      throw new Error('refreshToken is only implemented for oauth2 and tiktok on web');
     }
     return this.oauth2Provider.refreshToken(options.providerId, options.refreshToken, options.additionalParameters);
   }
