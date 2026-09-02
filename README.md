@@ -935,13 +935,13 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login<T extends "apple" | "google" | "facebook" | "twitter" | "telegram" | "linkedin" | "oauth2">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
+login<T extends "apple" | "google" | "facebook" | "twitter" | "linkedin" | "oauth2" | "telegram">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
 
-| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'linkedin'; options: <a href="#linkedinloginoptions">LinkedInLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }, { provider: T; }&gt;</code> |
 
 **Returns:** <code>Promise&lt;{ provider: T; result: ProviderResponseMap[T]; }&gt;</code>
@@ -957,9 +957,9 @@ logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'teleg
 
 Logout
 
-| Param         | Type                                                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'telegram' \| 'linkedin' \| 'oauth2'; providerId?: string; }</code> |
+| Param         | Type                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'oauth2' \| 'telegram'; providerId?: string; }</code> |
 
 --------------------
 
@@ -1504,10 +1504,10 @@ Uses the OAuth2 engine with LinkedIn defaults:
 
 #### isLoggedInOptions
 
-| Prop             | Type                                                                                  | Description                                                           |
-| ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'telegram' \| 'linkedin' \| 'oauth2'</code> | Provider                                                              |
-| **`providerId`** | <code>string</code>                                                                   | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
+| Prop             | Type                                                                                                | Description                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'oauth2' \| 'telegram'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                                                 | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### AuthorizationCode
@@ -1627,9 +1627,7 @@ BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authenticati
 
 Construct a type with a set of properties K of type T
 
-<code>{
- [P in K]: T;
- }</code>
+<code>{ [P in K]: T; }</code>
 
 
 #### ProviderResponseMap
@@ -1673,9 +1671,7 @@ Construct a type with the properties of T except for those in type K.
 
 From T, pick a set of properties whose keys are in the union K
 
-<code>{
- [P in K]: T[P];
- }</code>
+<code>{ [P in K]: T[P]; }</code>
 
 
 #### Exclude
