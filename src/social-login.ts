@@ -7,6 +7,7 @@ import type {
   AuthorizationCode,
   AuthorizationCodeOptions,
   InitializeOptions,
+  LinkedInLoginOptions,
   LoginOptions,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
@@ -20,6 +21,13 @@ import type {
   TikTokLoginOptions,
   isLoggedInOptions,
 } from './definitions';
+import {
+  asLinkedInLoginResult,
+  buildLinkedInLoginOptions,
+  buildLinkedInOAuthConfig,
+  LINKEDIN_PROVIDER_ID,
+  markLinkedInRedirectPending,
+} from './linkedin-provider';
 import {
   asTikTokLoginResult,
   buildTikTokLoginOptions,
@@ -39,23 +47,36 @@ class SocialLoginClient implements SocialLoginPlugin {
   private initializeOptions?: InitializeOptions;
 
   private normalizeInitializeOptions(options: InitializeOptions): InitializeOptions {
-    if (!options.tiktok) {
-      return options;
+    let next = options;
+
+    if (next.linkedin) {
+      const { linkedin, oauth2, ...rest } = next;
+      next = {
+        ...rest,
+        linkedin,
+        oauth2: {
+          ...(oauth2 ?? {}),
+          [LINKEDIN_PROVIDER_ID]: oauth2?.[LINKEDIN_PROVIDER_ID] ?? buildLinkedInOAuthConfig(linkedin),
+        },
+      };
     }
 
-    if (!options.tiktok.clientKey || !options.tiktok.redirectUrl) {
-      throw new Error('tiktok.clientKey and tiktok.redirectUrl are required');
+    if (next.tiktok) {
+      if (!next.tiktok.clientKey || !next.tiktok.redirectUrl) {
+        throw new Error('tiktok.clientKey and tiktok.redirectUrl are required');
+      }
+      const { tiktok, oauth2, ...rest } = next;
+      next = {
+        ...rest,
+        tiktok,
+        oauth2: {
+          ...(oauth2 ?? {}),
+          [TIKTOK_PROVIDER_ID]: oauth2?.[TIKTOK_PROVIDER_ID] ?? buildTikTokOAuthConfig(tiktok),
+        },
+      };
     }
 
-    const { tiktok, oauth2, ...rest } = options;
-    return {
-      ...rest,
-      tiktok,
-      oauth2: {
-        ...(oauth2 ?? {}),
-        [TIKTOK_PROVIDER_ID]: oauth2?.[TIKTOK_PROVIDER_ID] ?? buildTikTokOAuthConfig(tiktok),
-      },
-    };
+    return next;
   }
 
   constructor() {
@@ -72,6 +93,18 @@ class SocialLoginClient implements SocialLoginPlugin {
   async login<T extends LoginOptions['provider']>(
     options: Extract<LoginOptions, { provider: T }>,
   ): Promise<{ provider: T; result: ProviderResponseMap[T] }> {
+    if (options.provider === 'linkedin') {
+      const linkedInOptions = (options.options as LinkedInLoginOptions | undefined) ?? {};
+      const oauthOptions = buildLinkedInLoginOptions(linkedInOptions);
+      if (oauthOptions.flow === 'redirect' && oauthOptions.state) {
+        markLinkedInRedirectPending(oauthOptions.state);
+      }
+      const response = await rawSocialLogin.login({
+        provider: 'oauth2',
+        options: oauthOptions,
+      });
+      return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
+    }
     if (options.provider === 'tiktok') {
       const response = await rawSocialLogin.login({
         provider: 'oauth2',
@@ -83,9 +116,12 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'tiktok' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.logout({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
     if (options.provider === 'tiktok') {
       return rawSocialLogin.logout({ provider: 'oauth2', providerId: TIKTOK_PROVIDER_ID });
     }
@@ -93,6 +129,9 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async isLoggedIn(options: isLoggedInOptions): Promise<{ isLoggedIn: boolean }> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.isLoggedIn({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
     if (options.provider === 'tiktok') {
       return rawSocialLogin.isLoggedIn({ provider: 'oauth2', providerId: TIKTOK_PROVIDER_ID });
     }
@@ -100,6 +139,9 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.getAuthorizationCode({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
     if (options.provider === 'tiktok') {
       return rawSocialLogin.getAuthorizationCode({ provider: 'oauth2', providerId: TIKTOK_PROVIDER_ID });
     }
@@ -109,6 +151,12 @@ class SocialLoginClient implements SocialLoginPlugin {
   async refresh(options: LoginOptions): Promise<void> {
     if (options.provider === 'google' && this.initializeOptions?.google?.mode === 'offline') {
       console.warn(`[SocialLogin] ${GOOGLE_OFFLINE_REFRESH_MESSAGE}`);
+    }
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.refresh({
+        provider: 'oauth2',
+        options: buildLinkedInLoginOptions((options.options as LinkedInLoginOptions | undefined) ?? {}),
+      });
     }
     if (options.provider === 'tiktok') {
       return rawSocialLogin.refresh({
@@ -120,6 +168,14 @@ class SocialLoginClient implements SocialLoginPlugin {
   }
 
   async refreshToken(options: RefreshTokenOptions): Promise<OAuth2LoginResponse> {
+    if (options.provider === 'linkedin') {
+      return rawSocialLogin.refreshToken({
+        provider: 'oauth2',
+        providerId: LINKEDIN_PROVIDER_ID,
+        refreshToken: options.refreshToken,
+        additionalParameters: options.additionalParameters,
+      });
+    }
     if (options.provider === 'tiktok') {
       return rawSocialLogin.refreshToken({
         provider: 'oauth2',
