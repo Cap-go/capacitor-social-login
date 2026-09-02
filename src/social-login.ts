@@ -18,6 +18,7 @@ import type {
   ProviderSpecificCallOptionsMap,
   ProviderSpecificCallResponseMap,
   SocialLoginPlugin,
+  TikTokLoginOptions,
   isLoggedInOptions,
 } from './definitions';
 import {
@@ -27,6 +28,13 @@ import {
   LINKEDIN_PROVIDER_ID,
   markLinkedInRedirectPending,
 } from './linkedin-provider';
+import {
+  asTikTokLoginResult,
+  buildTikTokLoginOptions,
+  buildTikTokOAuthConfig,
+  isTikTokOAuthResult,
+  TIKTOK_PROVIDER_ID,
+} from './tiktok-provider';
 
 const GOOGLE_OFFLINE_REFRESH_MESSAGE =
   "Google refresh() is not available when using offline mode. Offline mode only returns serverAuthCode for backend token exchange. Send serverAuthCode to your backend and refresh tokens there, or switch google.mode to 'online' for client-side refresh.";
@@ -39,19 +47,36 @@ class SocialLoginClient implements SocialLoginPlugin {
   private initializeOptions?: InitializeOptions;
 
   private normalizeInitializeOptions(options: InitializeOptions): InitializeOptions {
-    if (!options.linkedin) {
-      return options;
+    let next = options;
+
+    if (next.linkedin) {
+      const { linkedin, oauth2, ...rest } = next;
+      next = {
+        ...rest,
+        linkedin,
+        oauth2: {
+          ...(oauth2 ?? {}),
+          [LINKEDIN_PROVIDER_ID]: oauth2?.[LINKEDIN_PROVIDER_ID] ?? buildLinkedInOAuthConfig(linkedin),
+        },
+      };
     }
 
-    const { linkedin, oauth2, ...rest } = options;
-    return {
-      ...rest,
-      linkedin,
-      oauth2: {
-        ...(oauth2 ?? {}),
-        [LINKEDIN_PROVIDER_ID]: oauth2?.[LINKEDIN_PROVIDER_ID] ?? buildLinkedInOAuthConfig(linkedin),
-      },
-    };
+    if (next.tiktok) {
+      if (!next.tiktok.clientKey || !next.tiktok.redirectUrl) {
+        throw new Error('tiktok.clientKey and tiktok.redirectUrl are required');
+      }
+      const { tiktok, oauth2, ...rest } = next;
+      next = {
+        ...rest,
+        tiktok,
+        oauth2: {
+          ...(oauth2 ?? {}),
+          [TIKTOK_PROVIDER_ID]: oauth2?.[TIKTOK_PROVIDER_ID] ?? buildTikTokOAuthConfig(tiktok),
+        },
+      };
+    }
+
+    return next;
   }
 
   constructor() {
@@ -80,15 +105,25 @@ class SocialLoginClient implements SocialLoginPlugin {
       });
       return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
     }
+    if (options.provider === 'tiktok') {
+      const response = await rawSocialLogin.login({
+        provider: 'oauth2',
+        options: buildTikTokLoginOptions(options.options as TikTokLoginOptions),
+      });
+      return asTikTokLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
+    }
     return rawSocialLogin.login(options);
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.logout({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
+    if (options.provider === 'tiktok') {
+      return rawSocialLogin.logout({ provider: 'oauth2', providerId: TIKTOK_PROVIDER_ID });
     }
     return rawSocialLogin.logout(options);
   }
@@ -97,12 +132,18 @@ class SocialLoginClient implements SocialLoginPlugin {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.isLoggedIn({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
     }
+    if (options.provider === 'tiktok') {
+      return rawSocialLogin.isLoggedIn({ provider: 'oauth2', providerId: TIKTOK_PROVIDER_ID });
+    }
     return rawSocialLogin.isLoggedIn(options);
   }
 
   async getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode> {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.getAuthorizationCode({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
+    }
+    if (options.provider === 'tiktok') {
+      return rawSocialLogin.getAuthorizationCode({ provider: 'oauth2', providerId: TIKTOK_PROVIDER_ID });
     }
     return rawSocialLogin.getAuthorizationCode(options);
   }
@@ -117,6 +158,12 @@ class SocialLoginClient implements SocialLoginPlugin {
         options: buildLinkedInLoginOptions((options.options as LinkedInLoginOptions | undefined) ?? {}),
       });
     }
+    if (options.provider === 'tiktok') {
+      return rawSocialLogin.refresh({
+        provider: 'oauth2',
+        options: buildTikTokLoginOptions(options.options as TikTokLoginOptions),
+      });
+    }
     return rawSocialLogin.refresh(options);
   }
 
@@ -129,11 +176,23 @@ class SocialLoginClient implements SocialLoginPlugin {
         additionalParameters: options.additionalParameters,
       });
     }
+    if (options.provider === 'tiktok') {
+      return rawSocialLogin.refreshToken({
+        provider: 'oauth2',
+        providerId: TIKTOK_PROVIDER_ID,
+        refreshToken: options.refreshToken,
+        additionalParameters: options.additionalParameters,
+      });
+    }
     return rawSocialLogin.refreshToken(options);
   }
 
   async handleRedirectCallback() {
-    return rawSocialLogin.handleRedirectCallback();
+    const result = await rawSocialLogin.handleRedirectCallback();
+    if (result && isTikTokOAuthResult(result)) {
+      return asTikTokLoginResult(result);
+    }
+    return result;
   }
 
   async decodeIdToken(options: { idToken?: string; token?: string }): Promise<{ claims: Record<string, any> }> {

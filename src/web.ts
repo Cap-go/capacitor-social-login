@@ -22,6 +22,7 @@ import type {
   FacebookGetProfileOptions,
   TelegramLoginOptions,
   LinkedInLoginOptions,
+  TikTokLoginOptions,
   RefreshTokenOptions,
 } from './definitions';
 import { inferUserCancelledError } from './errors';
@@ -45,6 +46,13 @@ import {
 } from './oauth-popup-bridge';
 import { OAuth2SocialLogin } from './oauth2-provider';
 import { TelegramSocialLogin } from './telegram-provider';
+import {
+  asTikTokLoginResult,
+  buildTikTokLoginOptions,
+  buildTikTokOAuthConfig,
+  isTikTokOAuthResult,
+  TIKTOK_PROVIDER_ID,
+} from './tiktok-provider';
 import { TwitterSocialLogin } from './twitter-provider';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
@@ -218,6 +226,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (options.linkedin && !oauth2Configs[LINKEDIN_PROVIDER_ID]) {
       oauth2Configs[LINKEDIN_PROVIDER_ID] = buildLinkedInOAuthConfig(options.linkedin);
     }
+    if (options.tiktok) {
+      if (!options.tiktok.clientKey || !options.tiktok.redirectUrl) {
+        throw new Error('tiktok.clientKey and tiktok.redirectUrl are required');
+      }
+      if (!oauth2Configs[TIKTOK_PROVIDER_ID]) {
+        oauth2Configs[TIKTOK_PROVIDER_ID] = buildTikTokOAuthConfig(options.tiktok);
+      }
+    }
     if (Object.keys(oauth2Configs).length > 0) {
       initPromises.push(this.oauth2Provider.initializeProviders(oauth2Configs));
     }
@@ -263,6 +279,12 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         const response = await this.oauth2Provider.login(oauthOptions);
         return asLinkedInLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
       }
+      case 'tiktok': {
+        const response = await this.oauth2Provider.login(
+          buildTikTokLoginOptions(options.options as TikTokLoginOptions),
+        );
+        return asTikTokLoginResult(response) as { provider: T; result: ProviderResponseMap[T] };
+      }
       case 'oauth2':
         return this.oauth2Provider.login(options.options as OAuth2LoginOptions) as Promise<{
           provider: T;
@@ -274,7 +296,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void> {
     switch (options.provider) {
@@ -290,6 +312,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.telegramProvider.logout();
       case 'linkedin':
         return this.oauth2Provider.logout(LINKEDIN_PROVIDER_ID);
+      case 'tiktok':
+        return this.oauth2Provider.logout(TIKTOK_PROVIDER_ID);
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 logout');
@@ -314,6 +338,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.telegramProvider.isLoggedIn();
       case 'linkedin':
         return this.oauth2Provider.isLoggedIn(LINKEDIN_PROVIDER_ID);
+      case 'tiktok':
+        return this.oauth2Provider.isLoggedIn(TIKTOK_PROVIDER_ID);
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 isLoggedIn');
@@ -336,6 +362,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.twitterProvider.getAuthorizationCode();
       case 'linkedin':
         return this.oauth2Provider.getAuthorizationCode(LINKEDIN_PROVIDER_ID);
+      case 'tiktok':
+        return this.oauth2Provider.getAuthorizationCode(TIKTOK_PROVIDER_ID);
       case 'oauth2':
         if (!options.providerId) {
           throw new Error('providerId is required for oauth2 getAuthorizationCode');
@@ -360,6 +388,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         return this.telegramProvider.refresh();
       case 'linkedin':
         return this.oauth2Provider.refresh(LINKEDIN_PROVIDER_ID);
+      case 'tiktok':
+        return this.oauth2Provider.refresh(TIKTOK_PROVIDER_ID);
       case 'oauth2': {
         const oauth2Options = options.options as OAuth2LoginOptions;
         if (!oauth2Options?.providerId) {
@@ -396,8 +426,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     if (options.provider === 'linkedin') {
       return this.oauth2Provider.refreshToken(LINKEDIN_PROVIDER_ID, options.refreshToken, options.additionalParameters);
     }
+    if (options.provider === 'tiktok') {
+      return this.oauth2Provider.refreshToken(TIKTOK_PROVIDER_ID, options.refreshToken, options.additionalParameters);
+    }
     if (options.provider !== 'oauth2') {
-      throw new Error('refreshToken is only implemented for oauth2 and linkedin on web');
+      throw new Error('refreshToken is only implemented for oauth2, linkedin, and tiktok on web');
     }
     return this.oauth2Provider.refreshToken(options.providerId, options.refreshToken, options.additionalParameters);
   }
@@ -413,6 +446,9 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
     if (pendingLinkedInRedirect && isLinkedInOAuthResult(result)) {
       return asLinkedInLoginResult(result);
+    }
+    if (isTikTokOAuthResult(result)) {
+      return asTikTokLoginResult(result);
     }
     return result;
   }

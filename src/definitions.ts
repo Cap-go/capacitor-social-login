@@ -39,9 +39,21 @@ export interface OAuth2ProviderConfig {
   authorizationEndpoint?: string;
   /**
    * OAuth 2.0 client secret for token requests (e.g., when exchanging the code).
-   * This value is sent as `client_secret` in token/refresh requests when provided.
+   * When provided, this value is sent using `clientSecretParamName` (default `client_secret`).
    */
   clientSecret?: string;
+  /**
+   * Override the client identifier parameter name used for authorization and token requests.
+   * Some providers (e.g. TikTok) expect `client_key` instead of the default `client_id`.
+   * @default 'client_id'
+   */
+  clientIdParamName?: string;
+  /**
+   * Override the client secret parameter name used for token requests.
+   * Useful for providers that expect a different parameter name.
+   * @default 'client_secret'
+   */
+  clientSecretParamName?: string;
   /**
    * The URL to exchange the authorization code for tokens
    * Required for authorization code flow
@@ -195,8 +207,54 @@ export interface LinkedInProviderConfig extends OAuth2ProviderConfig {
 }
 
 /**
+ * TikTok Login Kit configuration (convenience wrapper around the generic OAuth2 provider).
+ *
+ * Uses TikTok OAuth 2.0 endpoints and `client_key` instead of `client_id`.
+ * @see https://developers.tiktok.com/doc/login-kit-web
+ */
+export interface TikTokProviderConfig {
+  /**
+   * TikTok client key (also known as app key).
+   * @example 'aw3y*****'
+   */
+  clientKey: string;
+  /**
+   * Redirect URL registered in your TikTok developer app.
+   * @example 'myapp://auth/tiktok'
+   */
+  redirectUrl: string;
+  /**
+   * TikTok client secret. Optional.
+   * When set, the plugin includes it on token and refresh requests.
+   * On web this value is stored with the OAuth2 config.
+   * Login always exchanges the authorization code in the plugin; the raw code is not returned to the app.
+   */
+  clientSecret?: string;
+  /**
+   * Scopes to request during login. Arrays are sent as a comma-separated string (TikTok Login Kit).
+   * @default ['user.info.basic']
+   * @example ['user.info.basic','video.list']
+   */
+  scopes?: string[];
+  /**
+   * Alias for `scopes`.
+   */
+  scope?: string | string[];
+  /**
+   * Toggle PKCE usage during the authorization code flow.
+   * @default true
+   */
+  pkceEnabled?: boolean;
+  /**
+   * Enable verbose debug logging for the TikTok OAuth2 flow.
+   * @default false
+   */
+  logsEnabled?: boolean;
+}
+
+/**
  * Options for `refreshToken()`.
- * `providerId` is required for generic `oauth2` and ignored for LinkedIn.
+ * `providerId` is required for generic `oauth2` and ignored for LinkedIn and TikTok.
  */
 export type RefreshTokenOptions =
   | {
@@ -207,6 +265,12 @@ export type RefreshTokenOptions =
     }
   | {
       provider: 'linkedin';
+      providerId?: string;
+      refreshToken?: string;
+      additionalParameters?: Record<string, string>;
+    }
+  | {
+      provider: 'tiktok';
       providerId?: string;
       refreshToken?: string;
       additionalParameters?: Record<string, string>;
@@ -261,6 +325,11 @@ export interface InitializeOptions {
    * Convenience wrapper that maps to the OAuth2 provider using LinkedIn defaults.
    */
   linkedin?: LinkedInProviderConfig;
+  /**
+   * TikTok Login Kit configuration.
+   * Convenience wrapper that maps to the OAuth2 provider using TikTok defaults (`client_key`).
+   */
+  tiktok?: TikTokProviderConfig;
   twitter?: {
     /**
      * The OAuth 2.0 client identifier issued by X (Twitter) Developer Portal
@@ -598,6 +667,30 @@ export interface OAuth2LoginOptions {
  */
 export type LinkedInLoginOptions = Omit<OAuth2LoginOptions, 'providerId'>;
 
+export interface TikTokLoginOptions {
+  /**
+   * Optional scopes to override the initialization scopes.
+   * @example ['user.info.basic']
+   */
+  scopes?: string[];
+  /**
+   * Alias for `scopes`.
+   */
+  scope?: string | string[];
+  /**
+   * Custom state parameter for CSRF protection.
+   */
+  state?: string;
+  /**
+   * Custom PKCE code verifier (mostly for testing).
+   */
+  codeVerifier?: string;
+  /**
+   * Override redirect URL for this login request.
+   */
+  redirectUrl?: string;
+}
+
 export interface OAuth2LoginResponse {
   /**
    * The provider ID that was used for this login
@@ -638,6 +731,11 @@ export interface OAuth2LoginResponse {
  * LinkedIn login response (returned when using the LinkedIn convenience API).
  */
 export type LinkedInLoginResponse = OAuth2LoginResponse;
+
+/**
+ * TikTok login response (same shape as generic OAuth2).
+ */
+export type TikTokLoginResponse = OAuth2LoginResponse;
 
 export interface GoogleLoginOptions {
   /**
@@ -858,6 +956,10 @@ export type LoginOptions =
       options: LinkedInLoginOptions;
     }
   | {
+      provider: 'tiktok';
+      options: TikTokLoginOptions;
+    }
+  | {
       provider: 'oauth2';
       options: OAuth2LoginOptions;
     };
@@ -886,6 +988,10 @@ export type LoginResult =
   | {
       provider: 'linkedin';
       result: LinkedInLoginResponse;
+    }
+  | {
+      provider: 'tiktok';
+      result: TikTokLoginResponse;
     }
   | {
       provider: 'oauth2';
@@ -1014,7 +1120,7 @@ export interface AuthorizationCodeOptions {
    * Provider
    * @description Provider for the authorization code
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'linkedin' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'linkedin' | 'tiktok' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -1027,7 +1133,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -1198,6 +1304,7 @@ export type ProviderResponseMap = {
   twitter: TwitterLoginResponse;
   telegram: TelegramLoginResponse;
   linkedin: LinkedInLoginResponse;
+  tiktok: TikTokLoginResponse;
   oauth2: OAuth2LoginResponse;
 };
 
@@ -1248,7 +1355,7 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
   }): Promise<void>;
   /**
@@ -1300,7 +1407,7 @@ export interface SocialLoginPlugin {
    * OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
    *
    * Scope:
-   * - Applies to the built-in `oauth2` provider and the LinkedIn convenience wrapper.
+   * - Applies to the built-in `oauth2` provider and the LinkedIn and TikTok convenience wrappers.
    * - Requires a token endpoint (either `accessTokenEndpoint`/`tokenEndpoint` or `issuerUrl` discovery).
    *
    * Security note:

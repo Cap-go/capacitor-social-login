@@ -9,6 +9,14 @@ import type {
 } from './definitions';
 import { createUserCancelledError, inferUserCancelledError } from './errors';
 
+const normalizeOAuthParamName = (value: unknown, fallback: string): string => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+};
+
 interface OAuth2TokenResponse {
   token_type: string;
   expires_in?: number;
@@ -37,6 +45,8 @@ interface OAuth2StoredTokens {
 interface OAuth2ConfigInternal {
   appId: string;
   clientSecret?: string;
+  clientIdParamName: string;
+  clientSecretParamName: string;
   issuerUrl?: string;
   authorizationBaseUrl?: string;
   accessTokenEndpoint?: string;
@@ -101,6 +111,8 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     return {
       appId,
       clientSecret: config.clientSecret,
+      clientIdParamName: normalizeOAuthParamName(config.clientIdParamName, 'client_id'),
+      clientSecretParamName: normalizeOAuthParamName(config.clientSecretParamName, 'client_secret'),
       issuerUrl: config.issuerUrl,
       authorizationBaseUrl,
       accessTokenEndpoint,
@@ -190,11 +202,22 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     }
   }
 
+  private normalizeStoredConfig(config: OAuth2ConfigInternal): OAuth2ConfigInternal {
+    return {
+      ...config,
+      clientIdParamName: normalizeOAuthParamName(config.clientIdParamName, 'client_id'),
+      clientSecretParamName: normalizeOAuthParamName(config.clientSecretParamName, 'client_secret'),
+    };
+  }
+
   private getProvider(providerId: string): OAuth2ConfigInternal {
     const config = this.providers.get(providerId);
     if (!config) {
       throw new Error(`OAuth2 provider '${providerId}' not configured. Call initialize() first.`);
     }
+    // Mutate in place so later discovery writes are visible to the same config object.
+    config.clientIdParamName = normalizeOAuthParamName(config.clientIdParamName, 'client_id');
+    config.clientSecretParamName = normalizeOAuthParamName(config.clientSecretParamName, 'client_secret');
     return config;
   }
 
@@ -224,7 +247,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
         try {
           const raw = localStorage.getItem(key);
           if (raw) {
-            const config = JSON.parse(raw) as OAuth2ConfigInternal;
+            const config = this.normalizeStoredConfig(JSON.parse(raw) as OAuth2ConfigInternal);
             this.providers.set(providerId, config);
           }
         } catch (err) {
@@ -249,7 +272,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     // Build authorization URL
     const params = new URLSearchParams({
       response_type: config.responseType,
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
       redirect_uri: redirectUri,
       state,
     });
@@ -673,7 +696,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
 
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
       code,
       redirect_uri: pending.redirectUri,
     });
@@ -683,7 +706,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     }
 
     if (config.clientSecret) {
-      params.set('client_secret', config.clientSecret);
+      params.set(config.clientSecretParamName, config.clientSecret);
     }
 
     if (config.additionalTokenParameters) {
@@ -725,11 +748,11 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     const params = new URLSearchParams({
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
-      client_id: config.appId,
+      [config.clientIdParamName]: config.appId,
     });
 
     if (config.clientSecret) {
-      params.set('client_secret', config.clientSecret);
+      params.set(config.clientSecretParamName, config.clientSecret);
     }
 
     if (config.additionalTokenParameters) {

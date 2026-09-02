@@ -42,6 +42,8 @@ struct OAuth2AccessToken {
 struct OAuth2ProviderConfig {
     let appId: String
     let clientSecret: String?
+    let clientIdParamName: String
+    let clientSecretParamName: String
     let issuerUrl: String?
     var authorizationBaseUrl: String?
     var accessTokenEndpoint: String?
@@ -79,6 +81,14 @@ class OAuth2Provider: NSObject {
         return ""
     }
 
+    private func stringParam(_ value: Any?, fallback: String) -> String {
+        let trimmed = (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmed, !trimmed.isEmpty {
+            return trimmed
+        }
+        return fallback
+    }
+
     func initializeProviders(configs: [String: [String: Any]]) -> [String] {
         var errors: [String] = []
 
@@ -105,6 +115,8 @@ class OAuth2Provider: NSObject {
             let providerConfig = OAuth2ProviderConfig(
                 appId: resolvedAppId,
                 clientSecret: config["clientSecret"] as? String,
+                clientIdParamName: stringParam(config["clientIdParamName"], fallback: "client_id"),
+                clientSecretParamName: stringParam(config["clientSecretParamName"], fallback: "client_secret"),
                 issuerUrl: issuerUrl,
                 authorizationBaseUrl: (authorizationBaseUrl?.isEmpty == false ? authorizationBaseUrl : nil),
                 accessTokenEndpoint:
@@ -239,7 +251,7 @@ class OAuth2Provider: NSObject {
                 var components = URLComponents(string: authorizationBaseUrl)
                 var queryItems: [URLQueryItem] = [
                     URLQueryItem(name: "response_type", value: config.responseType),
-                    URLQueryItem(name: "client_id", value: config.appId),
+                    URLQueryItem(name: config.clientIdParamName, value: config.appId),
                     URLQueryItem(name: "redirect_uri", value: redirect),
                     URLQueryItem(name: "state", value: state)
                 ]
@@ -459,7 +471,7 @@ class OAuth2Provider: NSObject {
 
         var body: [String: String] = [
             "grant_type": "authorization_code",
-            "client_id": config.appId,
+            config.clientIdParamName: config.appId,
             "code": code,
             "redirect_uri": redirectUri
         ]
@@ -469,7 +481,7 @@ class OAuth2Provider: NSObject {
         }
 
         if let secret = config.clientSecret {
-            body["client_secret"] = secret
+            body[config.clientSecretParamName] = secret
         }
 
         if let extra = config.additionalTokenParameters {
@@ -499,11 +511,11 @@ class OAuth2Provider: NSObject {
         var body: [String: String] = [
             "grant_type": "refresh_token",
             "refresh_token": refreshToken,
-            "client_id": config.appId
+            config.clientIdParamName: config.appId
         ]
 
         if let secret = config.clientSecret {
-            body["client_secret"] = secret
+            body[config.clientSecretParamName] = secret
         }
         if let extra = config.additionalTokenParameters {
             for (k, v) in extra { body[k] = v }
