@@ -17,6 +17,7 @@ import {
   type OAuthBridgeMessage,
 } from './oauth-popup-bridge';
 import { OAuth2SocialLogin } from './oauth2-provider';
+import { TelegramSocialLogin } from './telegram-provider';
 import { TwitterSocialLogin } from './twitter-provider';
 
 async function parseRedirectResult(): Promise<{
@@ -45,12 +46,16 @@ async function parseRedirectResult(): Promise<{
   const googleProvider = new GoogleSocialLogin();
   const oauth2Provider = new OAuth2SocialLogin();
   const twitterProvider = new TwitterSocialLogin();
+  const telegramProvider = new TelegramSocialLogin();
 
   let result: LoginResult | { error: string } | null = null;
 
   switch (provider) {
     case 'twitter':
       result = await twitterProvider.handleOAuthRedirect(url, state);
+      break;
+    case 'telegram':
+      result = await telegramProvider.handleOAuthRedirect(url, state);
       break;
     case 'oauth2':
       result = await oauth2Provider.handleOAuthRedirect(url, state);

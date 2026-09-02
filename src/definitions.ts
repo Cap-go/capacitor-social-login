@@ -176,6 +176,39 @@ export interface InitializeOptions {
    * }
    */
   oauth2?: Record<string, OAuth2ProviderConfig>;
+  /**
+   * Telegram Login Widget configuration.
+   * Uses Telegram's OAuth widget (`oauth.telegram.org`), not standard OAuth2.
+   */
+  telegram?: {
+    /**
+     * Telegram bot ID (numeric, not the bot token).
+     * @example '123456789'
+     */
+    botId: string;
+    /**
+     * Default redirect URL that will receive Telegram auth data.
+     * For mobile apps, prefer a custom scheme (e.g. `myapp://telegram-auth`).
+     * On iOS/Android this must be set here or per login; native login rejects if it is missing.
+     */
+    redirectUrl?: string;
+    /**
+     * Origin/domain registered for the Telegram login widget.
+     * Required when `redirectUrl` is not `http`/`https` (for example a custom scheme like `myapp://telegram-auth`).
+     * Defaults to the origin of `redirectUrl` only when that URL is already http(s).
+     * @example 'https://example.com'
+     */
+    origin?: string;
+    /**
+     * Requested access level.
+     * @default 'write'
+     */
+    requestAccess?: 'read' | 'write';
+    /**
+     * Optional language code passed to Telegram (e.g. 'en', 'fr').
+     */
+    languageCode?: string;
+  };
   twitter?: {
     /**
      * The OAuth 2.0 client identifier issued by X (Twitter) Developer Portal
@@ -428,6 +461,26 @@ export interface TwitterLoginOptions {
    * Force the consent screen on every attempt, maps to `force_login=true`.
    */
   forceLogin?: boolean;
+}
+
+export interface TelegramLoginOptions {
+  /**
+   * Override the redirect URL for this login attempt.
+   * Defaults to the redirect configured during initialize().
+   * Required on iOS/Android when initialize() did not set `redirectUrl`.
+   */
+  redirectUrl?: string;
+  /**
+   * Optional state parameter for CSRF protection.
+   * If omitted, a secure random value is generated automatically.
+   */
+  state?: string;
+  /**
+   * Override requested access level for this login.
+   * Defaults to the value configured during initialize().
+   * @default 'write'
+   */
+  requestAccess?: 'read' | 'write';
 }
 
 export interface OAuth2LoginOptions {
@@ -734,6 +787,10 @@ export type LoginOptions =
       options: TwitterLoginOptions;
     }
   | {
+      provider: 'telegram';
+      options: TelegramLoginOptions;
+    }
+  | {
       provider: 'oauth2';
       options: OAuth2LoginOptions;
     };
@@ -754,6 +811,10 @@ export type LoginResult =
   | {
       provider: 'twitter';
       result: TwitterLoginResponse;
+    }
+  | {
+      provider: 'telegram';
+      result: TelegramLoginResponse;
     }
   | {
       provider: 'oauth2';
@@ -840,6 +901,30 @@ export interface TwitterLoginResponse {
   profile: TwitterProfile;
 }
 
+export interface TelegramProfile {
+  id: string;
+  firstName: string;
+  lastName?: string | null;
+  username?: string | null;
+  photoUrl?: string | null;
+}
+
+export interface TelegramLoginResponse {
+  profile: TelegramProfile;
+  /**
+   * Unix timestamp (seconds) when the user authorized the login.
+   */
+  authDate: number;
+  /**
+   * Telegram-provided hash for server-side verification.
+   */
+  hash: string;
+  /**
+   * Requested access level that was used for this login.
+   */
+  requestAccess: 'read' | 'write';
+}
+
 export interface AuthorizationCode {
   /**
    * Jwt
@@ -871,7 +956,7 @@ export interface isLoggedInOptions {
    * Provider
    * @description Provider for the isLoggedIn
    */
-  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+  provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
   /**
    * Provider ID for OAuth2 providers (required when provider is 'oauth2')
    * @description The ID used when configuring the OAuth2 provider in initialize()
@@ -1040,6 +1125,7 @@ export type ProviderResponseMap = {
   google: GoogleLoginResponse;
   apple: AppleProviderResponse;
   twitter: TwitterLoginResponse;
+  telegram: TelegramLoginResponse;
   oauth2: OAuth2LoginResponse;
 };
 
@@ -1090,7 +1176,7 @@ export interface SocialLoginPlugin {
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
-    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2';
+    provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2';
     providerId?: string;
   }): Promise<void>;
   /**
@@ -1114,6 +1200,8 @@ export interface SocialLoginPlugin {
    * It will reject with error: "getAuthorizationCode is not implemented when using offline mode"
    *
    * In offline mode, the authorization code (serverAuthCode) is already returned by the `login()` method.
+   *
+   * Telegram login does not produce an authorization code; use the `hash` from `login()` and verify it on your backend.
    *
    * @throws Error if Google provider is in offline mode
    */

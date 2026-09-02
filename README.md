@@ -19,6 +19,7 @@ This plugin implements social auth for:
 - Apple (with OAuth on android)
 - Facebook (with latest SDK)
 - Twitter/X (OAuth 2.0)
+- Telegram (Login Widget)
 - Generic OAuth2 (supports multiple providers: GitHub, Azure AD, Auth0, Okta, and any OAuth2-compliant server)
 
 This plugin is the all-in-one solution for social authentication on Web, iOS, and Android.
@@ -558,6 +559,32 @@ Initialize method to create a script tag with Google lib. We cannot know when it
 
 On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`. Call `SocialLogin.login({ provider: 'google', ... })` again to obtain a fresh token.
 
+## Telegram
+
+Telegram uses the [Login Widget](https://core.telegram.org/widgets/login) (`oauth.telegram.org`), not standard OAuth2. Create a bot with [@BotFather](https://t.me/BotFather), set the domain for the widget, and pass the **bot id** (not the bot token):
+
+```typescript
+await SocialLogin.initialize({
+  telegram: {
+    botId: '123456789',
+    redirectUrl: 'https://your-app.example/auth/telegram', // or myapp://telegram-auth on native
+    // Required on native when redirectUrl is a custom scheme
+    origin: 'https://your-app.example',
+    requestAccess: 'write',
+  },
+});
+
+const res = await SocialLogin.login({
+  provider: 'telegram',
+  options: {},
+});
+
+// Verify `res.result.hash` on your backend with the bot token.
+// Reject stale or future `res.result.authDate` values before creating a session.
+// Never ship the bot token in the app.
+console.log(res.result.profile.id, res.result.hash);
+```
+
 ## OAuth2 (Generic)
 
 The plugin supports generic OAuth2 authentication, allowing you to integrate with any OAuth2-compliant provider (GitHub, Azure AD, Auth0, Okta, Keycloak, custom servers, etc.). You can configure multiple OAuth2 providers simultaneously.
@@ -878,14 +905,14 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login<T extends "apple" | "google" | "facebook" | "twitter" | "oauth2">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
+login<T extends "apple" | "google" | "facebook" | "twitter" | "oauth2" | "telegram">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
 
-| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }, { provider: T; }&gt;</code> |
+| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }, { provider: T; }&gt;</code> |
 
 **Returns:** <code>Promise&lt;{ provider: T; result: ProviderResponseMap[T]; }&gt;</code>
 
@@ -895,14 +922,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'oauth2'; providerId?: string; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2'; providerId?: string; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                                                                                        |
-| ------------- | ----------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'; providerId?: string; }</code> |
+| Param         | Type                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2' \| 'telegram'; providerId?: string; }</code> |
 
 --------------------
 
@@ -1201,6 +1228,7 @@ And in the AndroidManifest.xml file:
 | Prop           | Type                                                                                                                                                                | Description                                                                                                                    |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **`oauth2`**   | <code><a href="#record">Record</a>&lt;string, <a href="#oauth2providerconfig">OAuth2ProviderConfig</a>&gt;</code>                                                   | OAuth2 provider configurations. Supports multiple providers by using a <a href="#record">Record</a> with provider IDs as keys. |
+| **`telegram`** | <code>{ botId: string; redirectUrl?: string; origin?: string; requestAccess?: 'read' \| 'write'; languageCode?: string; }</code>                                    | Telegram Login Widget configuration. Uses Telegram's OAuth widget (`oauth.telegram.org`), not standard OAuth2.                 |
 | **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                          |                                                                                                                                |
 | **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |                                                                                                                                |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |                                                                                                                                |
@@ -1320,6 +1348,27 @@ Configuration for a single OAuth2 provider instance
 | **`email`**           | <code>string \| null</code> |
 
 
+#### TelegramLoginResponse
+
+| Prop                | Type                                                        | Description                                                  |
+| ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
+| **`profile`**       | <code><a href="#telegramprofile">TelegramProfile</a></code> |                                                              |
+| **`authDate`**      | <code>number</code>                                         | Unix timestamp (seconds) when the user authorized the login. |
+| **`hash`**          | <code>string</code>                                         | Telegram-provided hash for server-side verification.         |
+| **`requestAccess`** | <code>'read' \| 'write'</code>                              | Requested access level that was used for this login.         |
+
+
+#### TelegramProfile
+
+| Prop            | Type                        |
+| --------------- | --------------------------- |
+| **`id`**        | <code>string</code>         |
+| **`firstName`** | <code>string</code>         |
+| **`lastName`**  | <code>string \| null</code> |
+| **`username`**  | <code>string \| null</code> |
+| **`photoUrl`**  | <code>string \| null</code> |
+
+
 #### OAuth2LoginResponse
 
 | Prop               | Type                                                                     | Description                                                                                                    |
@@ -1378,6 +1427,15 @@ Configuration for a single OAuth2 provider instance
 | **`forceLogin`**   | <code>boolean</code>  | Force the consent screen on every attempt, maps to `force_login=true`.                                                                  |
 
 
+#### TelegramLoginOptions
+
+| Prop                | Type                           | Description                                                                                                                                                                     | Default              |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| **`redirectUrl`**   | <code>string</code>            | Override the redirect URL for this login attempt. Defaults to the redirect configured during initialize(). Required on iOS/Android when initialize() did not set `redirectUrl`. |                      |
+| **`state`**         | <code>string</code>            | Optional state parameter for CSRF protection. If omitted, a secure random value is generated automatically.                                                                     |                      |
+| **`requestAccess`** | <code>'read' \| 'write'</code> | Override requested access level for this login. Defaults to the value configured during initialize().                                                                           | <code>'write'</code> |
+
+
 #### OAuth2LoginOptions
 
 | Prop                       | Type                                                            | Description                                                                                                                                                                                                                                                                                                                | Default              |
@@ -1396,10 +1454,10 @@ Configuration for a single OAuth2 provider instance
 
 #### isLoggedInOptions
 
-| Prop             | Type                                                                    | Description                                                           |
-| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'</code> | Provider                                                              |
-| **`providerId`** | <code>string</code>                                                     | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
+| Prop             | Type                                                                                  | Description                                                           |
+| ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2' \| 'telegram'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                                   | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### AuthorizationCode
@@ -1524,7 +1582,7 @@ Construct a type with a set of properties K of type T
 
 #### ProviderResponseMap
 
-<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; oauth2: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
+<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; telegram: <a href="#telegramloginresponse">TelegramLoginResponse</a>; oauth2: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
 
 
 #### GoogleLoginResponse
@@ -1534,7 +1592,7 @@ Construct a type with a set of properties K of type T
 
 #### LoginOptions
 
-<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; } | { provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }</code>
+<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; } | { provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; } | { provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }</code>
 
 
 #### Extract
@@ -1546,7 +1604,7 @@ Construct a type with a set of properties K of type T
 
 #### LoginResult
 
-<code>{ provider: 'facebook'; result: <a href="#facebookloginresponse">FacebookLoginResponse</a>; } | { provider: 'google'; result: <a href="#googleloginresponse">GoogleLoginResponse</a>; } | { provider: 'apple'; result: <a href="#appleproviderresponse">AppleProviderResponse</a>; } | { provider: 'twitter'; result: <a href="#twitterloginresponse">TwitterLoginResponse</a>; } | { provider: 'oauth2'; result: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
+<code>{ provider: 'facebook'; result: <a href="#facebookloginresponse">FacebookLoginResponse</a>; } | { provider: 'google'; result: <a href="#googleloginresponse">GoogleLoginResponse</a>; } | { provider: 'apple'; result: <a href="#appleproviderresponse">AppleProviderResponse</a>; } | { provider: 'twitter'; result: <a href="#twitterloginresponse">TwitterLoginResponse</a>; } | { provider: 'telegram'; result: <a href="#telegramloginresponse">TelegramLoginResponse</a>; } | { provider: 'oauth2'; result: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
 
 
 #### ProviderSpecificCallResponseMap

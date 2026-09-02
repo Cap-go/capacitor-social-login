@@ -11,7 +11,13 @@ export const OAUTH_POPUP_SESSION_KEY = 'social_login_oauth_popup';
 export const OAUTH_RESULT_KEY_PREFIX = 'social_login_oauth_result_';
 export const OAUTH_DELIVERED_KEY = 'social_login_oauth_delivered';
 
-export const POPUP_WINDOW_NAMES = new Set(['OAuth2Login', 'XLogin', 'Google Sign In', 'Authorization']);
+export const POPUP_WINDOW_NAMES = new Set([
+  'OAuth2Login',
+  'XLogin',
+  'Google Sign In',
+  'Authorization',
+  'TelegramLogin',
+]);
 
 export type OAuthBridgeMessage = Record<string, unknown> & {
   type: 'oauth-response' | 'oauth-error';
@@ -24,6 +30,7 @@ export function getOAuthResultKey(nonce: string): string {
 export function getBroadcastChannelName(provider: string, nonceOrState: string): string {
   if (provider === 'oauth2') return `oauth2_${nonceOrState}`;
   if (provider === 'twitter') return `twitter_oauth_${nonceOrState}`;
+  if (provider === 'telegram') return `telegram_oauth_${nonceOrState}`;
   return `google_oauth_${nonceOrState}`;
 }
 
@@ -45,13 +52,15 @@ export function clearOAuthPopupMarker(): void {
 }
 
 export function hasOAuthRedirectParams(): boolean {
-  const { search, hash } = window.location;
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   return (
-    search.includes('code=') ||
-    search.includes('error=') ||
-    hash.includes('access_token=') ||
-    hash.includes('id_token=') ||
-    hash.includes('error=')
+    search.has('code') ||
+    search.has('error') ||
+    (search.has('hash') && search.has('auth_date')) ||
+    hash.has('access_token') ||
+    hash.has('id_token') ||
+    hash.has('error')
   );
 }
 

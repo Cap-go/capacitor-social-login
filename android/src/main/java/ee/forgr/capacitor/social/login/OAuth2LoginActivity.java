@@ -76,6 +76,13 @@ public class OAuth2LoginActivity extends Activity {
             data.putExtra("error", uri.getQueryParameter("error"));
             data.putExtra("error_description", uri.getQueryParameter("error_description"));
 
+            for (String name : uri.getQueryParameterNames()) {
+                if (data.hasExtra(name)) {
+                    continue;
+                }
+                data.putExtra(name, uri.getQueryParameter(name));
+            }
+
             // Handle implicit flow (fragment parameters)
             String fragment = uri.getFragment();
             if (fragment != null && !fragment.isEmpty()) {
