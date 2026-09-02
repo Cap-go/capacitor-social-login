@@ -20,6 +20,7 @@ This plugin implements social auth for:
 - Facebook (with latest SDK)
 - Twitter/X (OAuth 2.0)
 - Telegram (Login Widget)
+- LinkedIn (OAuth 2.0 / OpenID Connect)
 - Generic OAuth2 (supports multiple providers: GitHub, Azure AD, Auth0, Okta, and any OAuth2-compliant server)
 
 This plugin is the all-in-one solution for social authentication on Web, iOS, and Android.
@@ -585,6 +586,35 @@ const res = await SocialLogin.login({
 console.log(res.result.profile.id, res.result.hash);
 ```
 
+## LinkedIn
+
+LinkedIn is a convenience wrapper around the generic OAuth2 engine (OpenID Connect `userinfo`).
+
+Register a web app in the [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps) with the **Sign In with LinkedIn using OpenID Connect** product, then:
+
+```typescript
+await SocialLogin.initialize({
+  linkedin: {
+    clientId: 'your-linkedin-client-id',
+    redirectUrl: 'https://your-app.example/auth/linkedin',
+    // Optional: only if your LinkedIn app is a confidential client
+    // clientSecret: 'your-linkedin-client-secret',
+  },
+});
+
+const res = await SocialLogin.login({
+  provider: 'linkedin',
+  options: {
+    // defaults to 'openid profile email'
+  },
+});
+
+console.log(res.result.accessToken?.token);
+console.log(res.result.resourceData); // LinkedIn userinfo payload
+```
+
+You can still configure LinkedIn yourself via `oauth2.linkedin` if you need custom endpoints.
+
 ## OAuth2 (Generic)
 
 The plugin supports generic OAuth2 authentication, allowing you to integrate with any OAuth2-compliant provider (GitHub, Azure AD, Auth0, Okta, Keycloak, custom servers, etc.). You can configure multiple OAuth2 providers simultaneously.
@@ -905,14 +935,14 @@ Initialize the plugin
 ### login(...)
 
 ```typescript
-login<T extends "apple" | "google" | "facebook" | "twitter" | "oauth2" | "telegram">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
+login<T extends "apple" | "google" | "facebook" | "twitter" | "linkedin" | "oauth2" | "telegram">(options: Extract<LoginOptions, { provider: T; }>) => Promise<{ provider: T; result: ProviderResponseMap[T]; }>
 ```
 
 Login with the selected provider
 
-| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }, { provider: T; }&gt;</code> |
+| Param         | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#extract">Extract</a>&lt;{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'linkedin'; options: <a href="#linkedinloginoptions">LinkedInLoginOptions</a>; }, { provider: T; }&gt; \| <a href="#extract">Extract</a>&lt;{ provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }, { provider: T; }&gt;</code> |
 
 **Returns:** <code>Promise&lt;{ provider: T; result: ProviderResponseMap[T]; }&gt;</code>
 
@@ -922,14 +952,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'oauth2'; providerId?: string; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'oauth2'; providerId?: string; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                                                                                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2' \| 'telegram'; providerId?: string; }</code> |
+| Param         | Type                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'oauth2' \| 'telegram'; providerId?: string; }</code> |
 
 --------------------
 
@@ -986,13 +1016,13 @@ Refresh the access token
 ### refreshToken(...)
 
 ```typescript
-refreshToken(options: { provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: Record<string, string>; }) => Promise<OAuth2LoginResponse>
+refreshToken(options: RefreshTokenOptions) => Promise<OAuth2LoginResponse>
 ```
 
 OAuth2 refresh-token helper (feature parity with Capawesome OAuth).
 
 Scope:
-- Only applies to the built-in `oauth2` provider (not Google/Apple/Facebook/Twitter).
+- Applies to the built-in `oauth2` provider and the LinkedIn convenience wrapper.
 - Requires a token endpoint (either `accessTokenEndpoint`/`tokenEndpoint` or `issuerUrl` discovery).
 
 Security note:
@@ -1000,9 +1030,9 @@ Security note:
 
 If `refreshToken` is omitted, the plugin will attempt to use the stored refresh token (if available).
 
-| Param         | Type                                                                                                                                                       |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code> |
+| Param         | Type                                                                |
+| ------------- | ------------------------------------------------------------------- |
+| **`options`** | <code><a href="#refreshtokenoptions">RefreshTokenOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#oauth2loginresponse">OAuth2LoginResponse</a>&gt;</code>
 
@@ -1020,6 +1050,8 @@ Web-only: handle the OAuth redirect callback and return the parsed result.
 Notes:
 - This is only meaningful on Web. iOS/Android implementations will reject.
 - Intended for redirect-based flows (e.g. `oauth2` with `flow: 'redirect'`) where the page navigates away.
+- LinkedIn convenience logins (`provider: 'linkedin'`, `flow: 'redirect'`) return `provider: 'linkedin'`.
+  The same app used as `oauth2` with `providerId: 'linkedin'` keeps `provider: 'oauth2'`.
 
 **Returns:** <code>Promise&lt;<a href="#loginresult">LoginResult</a> | null&gt;</code>
 
@@ -1229,6 +1261,7 @@ And in the AndroidManifest.xml file:
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **`oauth2`**   | <code><a href="#record">Record</a>&lt;string, <a href="#oauth2providerconfig">OAuth2ProviderConfig</a>&gt;</code>                                                   | OAuth2 provider configurations. Supports multiple providers by using a <a href="#record">Record</a> with provider IDs as keys. |
 | **`telegram`** | <code>{ botId: string; redirectUrl?: string; origin?: string; requestAccess?: 'read' \| 'write'; languageCode?: string; }</code>                                    | Telegram Login Widget configuration. Uses Telegram's OAuth widget (`oauth.telegram.org`), not standard OAuth2.                 |
+| **`linkedin`** | <code><a href="#linkedinproviderconfig">LinkedInProviderConfig</a></code>                                                                                           | LinkedIn configuration. Convenience wrapper that maps to the OAuth2 provider using LinkedIn defaults.                          |
 | **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                          |                                                                                                                                |
 | **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |                                                                                                                                |
 | **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |                                                                                                                                |
@@ -1268,6 +1301,23 @@ Configuration for a single OAuth2 provider instance
 | **`iosPrefersEphemeralSession`**           | <code>boolean</code>                                            | Alias for `iosPrefersEphemeralWebBrowserSession` (to match Capawesome OAuth naming).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |                     |
 | **`androidUseCustomTabs`**                 | <code>boolean</code>                                            | Android-only: Use Chrome Custom Tabs (system browser) instead of an embedded WebView for the authorization request. Custom Tabs follow RFC 8252 (OAuth 2.0 for Native Apps) and fix issues with brokered IdPs (Microsoft Entra Conditional Access / Authenticator, passkeys/WebAuthn, Google `disallowed_useragent`, SSO cookie sharing, password managers). Requires a custom-scheme or App Link `redirectUrl` with a matching intent filter in your app's `AndroidManifest.xml` (same setup as `openSecureWindow()` / Apple on Android). Defaults to `false` to preserve the historical WebView flow. | <code>false</code>  |
 | **`logsEnabled`**                          | <code>boolean</code>                                            | Enable debug logging                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | <code>false</code>  |
+
+
+#### LinkedInProviderConfig
+
+LinkedIn provider configuration (convenience wrapper around the generic OAuth2 provider).
+
+Uses the OAuth2 engine with LinkedIn defaults:
+- Authorization URL: https://www.linkedin.com/oauth/v2/authorization
+- Token URL: https://www.linkedin.com/oauth/v2/accessToken
+- Resource URL: https://api.linkedin.com/v2/userinfo
+- Default scopes: `openid profile email`
+
+| Prop               | Type                | Description                                                                                                                                                            |
+| ------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`clientId`**     | <code>string</code> | LinkedIn Client ID from the LinkedIn Developer Portal.                                                                                                                 |
+| **`redirectUrl`**  | <code>string</code> | Redirect URL that receives the OAuth callback. Must match a redirect URL configured in the LinkedIn Developer Portal.                                                  |
+| **`clientSecret`** | <code>string</code> | LinkedIn Client Secret. Prefer exchanging the authorization code on a backend when possible. Needed for confidential clients that do not use PKCE-only token exchange. |
 
 
 #### FacebookLoginResponse
@@ -1454,10 +1504,10 @@ Configuration for a single OAuth2 provider instance
 
 #### isLoggedInOptions
 
-| Prop             | Type                                                                                  | Description                                                           |
-| ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2' \| 'telegram'</code> | Provider                                                              |
-| **`providerId`** | <code>string</code>                                                                   | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
+| Prop             | Type                                                                                                | Description                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'oauth2' \| 'telegram'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                                                 | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### AuthorizationCode
@@ -1470,10 +1520,10 @@ Configuration for a single OAuth2 provider instance
 
 #### AuthorizationCodeOptions
 
-| Prop             | Type                                                                    | Description                                                           |
-| ---------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'oauth2'</code> | Provider                                                              |
-| **`providerId`** | <code>string</code>                                                     | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
+| Prop             | Type                                                                                  | Description                                                           |
+| ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`provider`**   | <code>'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'oauth2'</code> | Provider                                                              |
+| **`providerId`** | <code>string</code>                                                                   | Provider ID for OAuth2 providers (required when provider is 'oauth2') |
 
 
 #### FacebookGetProfileResponse
@@ -1582,7 +1632,7 @@ Construct a type with a set of properties K of type T
 
 #### ProviderResponseMap
 
-<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; telegram: <a href="#telegramloginresponse">TelegramLoginResponse</a>; oauth2: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
+<code>{ facebook: <a href="#facebookloginresponse">FacebookLoginResponse</a>; google: <a href="#googleloginresponse">GoogleLoginResponse</a>; apple: <a href="#appleproviderresponse">AppleProviderResponse</a>; twitter: <a href="#twitterloginresponse">TwitterLoginResponse</a>; telegram: <a href="#telegramloginresponse">TelegramLoginResponse</a>; linkedin: <a href="#linkedinloginresponse">LinkedInLoginResponse</a>; oauth2: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
 
 
 #### GoogleLoginResponse
@@ -1590,9 +1640,45 @@ Construct a type with a set of properties K of type T
 <code><a href="#googleloginresponseonline">GoogleLoginResponseOnline</a> | <a href="#googleloginresponseoffline">GoogleLoginResponseOffline</a></code>
 
 
+#### LinkedInLoginResponse
+
+LinkedIn login response (returned when using the LinkedIn convenience API).
+
+<code><a href="#oauth2loginresponse">OAuth2LoginResponse</a></code>
+
+
 #### LoginOptions
 
-<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; } | { provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; } | { provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }</code>
+<code>{ provider: 'facebook'; options: <a href="#facebookloginoptions">FacebookLoginOptions</a>; } | { provider: 'google'; options: <a href="#googleloginoptions">GoogleLoginOptions</a>; } | { provider: 'apple'; options: <a href="#appleprovideroptions">AppleProviderOptions</a>; } | { provider: 'twitter'; options: <a href="#twitterloginoptions">TwitterLoginOptions</a>; } | { provider: 'telegram'; options: <a href="#telegramloginoptions">TelegramLoginOptions</a>; } | { provider: 'linkedin'; options: <a href="#linkedinloginoptions">LinkedInLoginOptions</a>; } | { provider: 'oauth2'; options: <a href="#oauth2loginoptions">OAuth2LoginOptions</a>; }</code>
+
+
+#### LinkedInLoginOptions
+
+LinkedIn login options (maps to the OAuth2 provider internally).
+`providerId` is set to `linkedin` automatically.
+
+<code><a href="#omit">Omit</a>&lt;<a href="#oauth2loginoptions">OAuth2LoginOptions</a>, 'providerId'&gt;</code>
+
+
+#### Omit
+
+Construct a type with the properties of T except for those in type K.
+
+<code><a href="#pick">Pick</a>&lt;T, <a href="#exclude">Exclude</a>&lt;keyof T, K&gt;&gt;</code>
+
+
+#### Pick
+
+From T, pick a set of properties whose keys are in the union K
+
+<code>{ [P in K]: T[P]; }</code>
+
+
+#### Exclude
+
+<a href="#exclude">Exclude</a> from T those types that are assignable to U
+
+<code>T extends U ? never : T</code>
 
 
 #### Extract
@@ -1602,9 +1688,17 @@ Construct a type with a set of properties K of type T
 <code>T extends U ? T : never</code>
 
 
+#### RefreshTokenOptions
+
+Options for `refreshToken()`.
+`providerId` is required for generic `oauth2` and ignored for LinkedIn.
+
+<code>{ provider: 'oauth2'; providerId: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; } | { provider: 'linkedin'; providerId?: string; refreshToken?: string; additionalParameters?: <a href="#record">Record</a>&lt;string, string&gt;; }</code>
+
+
 #### LoginResult
 
-<code>{ provider: 'facebook'; result: <a href="#facebookloginresponse">FacebookLoginResponse</a>; } | { provider: 'google'; result: <a href="#googleloginresponse">GoogleLoginResponse</a>; } | { provider: 'apple'; result: <a href="#appleproviderresponse">AppleProviderResponse</a>; } | { provider: 'twitter'; result: <a href="#twitterloginresponse">TwitterLoginResponse</a>; } | { provider: 'telegram'; result: <a href="#telegramloginresponse">TelegramLoginResponse</a>; } | { provider: 'oauth2'; result: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
+<code>{ provider: 'facebook'; result: <a href="#facebookloginresponse">FacebookLoginResponse</a>; } | { provider: 'google'; result: <a href="#googleloginresponse">GoogleLoginResponse</a>; } | { provider: 'apple'; result: <a href="#appleproviderresponse">AppleProviderResponse</a>; } | { provider: 'twitter'; result: <a href="#twitterloginresponse">TwitterLoginResponse</a>; } | { provider: 'telegram'; result: <a href="#telegramloginresponse">TelegramLoginResponse</a>; } | { provider: 'linkedin'; result: <a href="#linkedinloginresponse">LinkedInLoginResponse</a>; } | { provider: 'oauth2'; result: <a href="#oauth2loginresponse">OAuth2LoginResponse</a>; }</code>
 
 
 #### ProviderSpecificCallResponseMap

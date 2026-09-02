@@ -11,7 +11,7 @@ import type {
   ProviderResponseMap,
   SocialLoginPlugin,
 } from './definitions';
-import { SocialLoginBase } from './social-login';
+import { SocialLogin } from './social-login';
 
 type AuthConnectProviderId = 'auth0' | 'azure' | 'cognito' | 'okta' | 'onelogin';
 
@@ -366,7 +366,7 @@ const createAuthConnectClient = (client: SocialLoginPlugin): AuthConnectClient =
   getPluginVersion: async (): Promise<{ version: string }> => client.getPluginVersion(),
 });
 
-const SocialLoginAuthConnect = createAuthConnectClient(SocialLoginBase);
+const SocialLoginAuthConnect = createAuthConnectClient(SocialLogin);
 
 export type {
   AuthConnectInitializeOptions,
