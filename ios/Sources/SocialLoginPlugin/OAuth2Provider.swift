@@ -385,6 +385,7 @@ class OAuth2Provider: NSObject {
     }
 
     func logout(providerId: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        let storedIdToken = loadTokens(for: providerId)?.idToken
         UserDefaults.standard.removeObject(forKey: tokenStorageKey(for: providerId))
         ensureDiscovered(providerId: providerId) { [weak self] res in
             guard let self = self else {
@@ -395,7 +396,7 @@ class OAuth2Provider: NSObject {
                 var url = base
                 if var components = URLComponents(url: base, resolvingAgainstBaseURL: false) {
                     var items = components.queryItems ?? []
-                    if let idToken = self.loadTokens(for: providerId)?.idToken, !idToken.isEmpty {
+                    if let idToken = storedIdToken, !idToken.isEmpty {
                         items.append(URLQueryItem(name: "id_token_hint", value: idToken))
                     }
                     if let post = config.postLogoutRedirectUrl, !post.isEmpty {
