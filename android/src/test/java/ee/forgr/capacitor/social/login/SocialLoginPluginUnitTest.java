@@ -2,6 +2,7 @@ package ee.forgr.capacitor.social.login;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
@@ -62,5 +63,17 @@ public class SocialLoginPluginUnitTest {
         PluginCall call = new PluginCall(null, "SocialLogin", "test-callback", "getAccessTokenExpirationDate", data);
 
         assertNull(SocialLoginPlugin.longOptionFromCall(call, "accessTokenExpirationDate"));
+    }
+
+    @Test
+    public void decodeJwtClaimsParsesPayloadBetweenDotSeparators() throws JSONException {
+        String idToken = "e30.eyJzdWIiOiJ0ZXN0LXVzZXIifQ.signature";
+
+        assertEquals("test-user", SocialLoginPlugin.decodeJwtClaims(idToken).getString("sub"));
+    }
+
+    @Test
+    public void decodeJwtClaimsRejectsTokenWithoutDotSeparator() {
+        assertThrows(JSONException.class, () -> SocialLoginPlugin.decodeJwtClaims("not-a-jwt"));
     }
 }
