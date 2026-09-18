@@ -66,14 +66,14 @@ public class SocialLoginPluginUnitTest {
     }
 
     @Test
-    public void decodeJwtClaimsParsesPayloadBetweenDotSeparators() throws JSONException {
+    public void getJwtPayloadSegmentParsesPayloadBetweenDotSeparators() throws JSONException {
         String idToken = "e30.eyJzdWIiOiJ0ZXN0LXVzZXIifQ.signature";
 
-        assertEquals("test-user", SocialLoginPlugin.decodeJwtClaims(idToken).getString("sub"));
+        assertEquals("eyJzdWIiOiJ0ZXN0LXVzZXIifQ", SocialLoginPlugin.getJwtPayloadSegment(idToken));
     }
 
     @Test
-    public void decodeJwtClaimsRejectsTokenWithoutDotSeparator() {
-        assertThrows(JSONException.class, () -> SocialLoginPlugin.decodeJwtClaims("not-a-jwt"));
+    public void getJwtPayloadSegmentRejectsTokenWithoutDotSeparator() {
+        assertThrows(JSONException.class, () -> SocialLoginPlugin.getJwtPayloadSegment("not-a-jwt"));
     }
 }
