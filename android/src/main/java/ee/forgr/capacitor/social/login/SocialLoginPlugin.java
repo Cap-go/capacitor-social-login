@@ -575,20 +575,29 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
         try {
-            String[] parts = idToken.split("\\\\.");
-            if (parts.length < 2) {
-                call.reject("Invalid JWT");
-                return;
-            }
-            byte[] decoded = Base64.decode(parts[1], Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
-            String json = new String(decoded, StandardCharsets.UTF_8);
-            JSONObject claims = new JSONObject(json);
+            JSONObject claims = decodeJwtClaims(idToken);
             JSObject ret = new JSObject();
             ret.put("claims", claims);
             call.resolve(ret);
+        } catch (JSONException e) {
+            call.reject("Invalid JWT");
         } catch (Exception e) {
             call.reject("Failed to decode idToken", e);
         }
+    }
+
+    static JSONObject decodeJwtClaims(String idToken) throws JSONException {
+        byte[] decoded = Base64.decode(getJwtPayloadSegment(idToken), Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
+        String json = new String(decoded, StandardCharsets.UTF_8);
+        return new JSONObject(json);
+    }
+
+    static String getJwtPayloadSegment(String idToken) throws JSONException {
+        String[] parts = idToken.split("\\.");
+        if (parts.length < 2) {
+            throw new JSONException("Invalid JWT");
+        }
+        return parts[1];
     }
 
     // Capacitor's PluginCall.getLong() only reads Java Long values. JS numbers that
