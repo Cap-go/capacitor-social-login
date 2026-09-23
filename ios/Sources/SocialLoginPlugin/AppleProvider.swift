@@ -201,23 +201,30 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
         self.completion = completion
 
-        let appleIDProvider = ASAuthorizationAppleIDProvider()
-        let request = appleIDProvider.createRequest()
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else {
+                completion(.failure(NSError(domain: "AppleProvider", code: -1, userInfo: [NSLocalizedDescriptionKey: "AppleProvider was deallocated before login could run."])))
+                return
+            }
 
-        if let scopes = payload["scopes"] as? [ASAuthorization.Scope] {
-            request.requestedScopes = scopes
-        } else {
-            request.requestedScopes = [.fullName, .email]
+            let appleIDProvider = ASAuthorizationAppleIDProvider()
+            let request = appleIDProvider.createRequest()
+
+            if let scopes = payload["scopes"] as? [ASAuthorization.Scope] {
+                request.requestedScopes = scopes
+            } else {
+                request.requestedScopes = [.fullName, .email]
+            }
+
+            if let nonce = payload["nonce"] as? String {
+                request.nonce = nonce
+            }
+
+            let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+            authorizationController.delegate = self
+            authorizationController.presentationContextProvider = self
+            authorizationController.performRequests()
         }
-
-        if let nonce = payload["nonce"] as? String {
-            request.nonce = nonce
-        }
-
-        let authorizationController = ASAuthorizationController(authorizationRequests: [request])
-        authorizationController.delegate = self
-        authorizationController.presentationContextProvider = self
-        authorizationController.performRequests()
     }
 
     func logout(completion: @escaping (Result<Void, Error>) -> Void) {
@@ -608,7 +615,11 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
     // MARK: - ASAuthorizationControllerPresentationContextProviding
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        return UIApplication.shared.windows.first!
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }
+            .flatMap { $0.windows }
+        return windows.first { $0.isKeyWindow } ?? windows.first ?? UIApplication.shared.windows.first ?? ASPresentationAnchor()
     }
 
     private func persistName(userId: String, givenName: String?, familyName: String?) {
