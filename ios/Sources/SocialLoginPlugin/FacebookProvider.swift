@@ -99,10 +99,12 @@ class FacebookProvider {
     }
 
     private func isLimitedLoginSession() -> Bool {
-        guard let authToken = AuthenticationToken.current else {
-            return false
-        }
-        return !authToken.tokenString.isEmpty
+        // A classic (.enabled) login also yields an AuthenticationToken: FBSDK always inserts
+        // `openid` into the requested permissions and asks for an id_token in response_type,
+        // so the presence of that token says nothing about the tracking mode.
+        // Only the absence of a Graph access token identifies a Limited Login session -
+        // including when Facebook forces limited because ATT was not granted.
+        return AccessToken.current == nil
     }
 
     private func createLoginResponse() -> FacebookLoginResponse {
@@ -218,10 +220,13 @@ class FacebookProvider {
     }
 
     func getAuthorizationCode(completion: @escaping (Result<(accessToken: String?, jwt: String?), Error>) -> Void) {
-        if let authToken = AuthenticationToken.current, !authToken.tokenString.isEmpty {
-            completion(.success((accessToken: nil, jwt: authToken.tokenString)))
-        } else if let accessToken = AccessToken.current, !accessToken.isExpired {
+        // Prefer the Graph access token: a classic login populates both tokens, and callers
+        // asking for an authorization code need the Graph one. Falling through to the OIDC
+        // token first hands out a JWT that cannot read pages or mint page tokens.
+        if let accessToken = AccessToken.current, !accessToken.isExpired {
             completion(.success((accessToken: accessToken.tokenString, jwt: nil)))
+        } else if let authToken = AuthenticationToken.current, !authToken.tokenString.isEmpty {
+            completion(.success((accessToken: nil, jwt: authToken.tokenString)))
         } else {
             completion(.failure(NSError(domain: "FacebookProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No Facebook authorization code available"])))
         }
