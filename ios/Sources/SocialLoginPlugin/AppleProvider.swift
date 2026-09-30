@@ -127,8 +127,12 @@ private enum AppleProviderHTTP {
         return pairs.joined(separator: "&").data(using: .utf8)
     }
 
-    static func sharedSession() -> URLSession {
+    private static let sharedTokenExchangeSession: URLSession = {
         URLSession(configuration: .default)
+    }()
+
+    static func tokenExchangeSession() -> URLSession {
+        sharedTokenExchangeSession
     }
 
     static func noRedirectSession() -> (session: URLSession, keeper: NoRedirectURLSessionDelegate) {
@@ -550,6 +554,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
             }
             _ = redirectSession.keeper
         }.resume()
+        redirectSession.session.finishTasksAndInvalidate()
     }
 
     func exchangeCodeForTokens(clientSecret: String, code: String, completion: @escaping ((Result<AppleProviderResponse, AppleProviderError>) -> Void)) {
@@ -574,7 +579,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         request.httpBody = body
         request.setValue("application/x-www-form-urlencoded; charset=utf-8", forHTTPHeaderField: "Content-Type")
 
-        AppleProviderHTTP.sharedSession().dataTask(with: request) { data, response, error in
+        AppleProviderHTTP.tokenExchangeSession().dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(.responseError(error)))
@@ -601,8 +606,7 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                 do {
                     tokenResponse = try JSONDecoder().decode(TokenResponse.self, from: data)
                 } catch {
-                    print("error", HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode))
-                    completion(.failure(.invalidResponseCode(statusCode: httpResponse.statusCode)))
+                    completion(.failure(.jsonParsingError))
                     return
                 }
 
