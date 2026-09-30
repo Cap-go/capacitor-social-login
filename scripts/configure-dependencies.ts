@@ -169,6 +169,24 @@ function getProviderConfig(): ProviderConfig {
   }
 }
 
+/**
+ * Alamofire only serves Apple's `redirectUrl` / backend token exchange flow.
+ * Native Sign in with Apple uses AuthenticationServices and builds without it,
+ * so `SocialLogin.alamofire: false` drops Alamofire while keeping Apple enabled.
+ * Unset, it follows the Apple provider, as before.
+ */
+function getAlamofireDependencyType(providerConfig: ProviderConfig): string | boolean {
+  try {
+    if (CONFIG_JSON && JSON.parse(CONFIG_JSON).plugins?.SocialLogin?.alamofire === false) {
+      return 'compileOnly';
+    }
+  } catch {
+    // getProviderConfig() has already reported an unreadable config.
+  }
+
+  return providerConfig.apple;
+}
+
 // ============================================================================
 // Android: Gradle Configuration
 // ============================================================================
@@ -308,7 +326,7 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
       // Alamofire (for Apple) - handle both active and commented (including existing disabled comments)
       old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'Alamofire',\\s*'~>\\s*5\\.10\\.2'${podspecTrailingComment}`),
       new:
-        providerConfig.apple === 'implementation'
+        getAlamofireDependencyType(providerConfig) === 'implementation'
           ? `s.dependency 'Alamofire', '~> 5.10.2'`
           : `# s.dependency 'Alamofire', '~> 5.10.2'  # Disabled via config (compileOnly)`,
     },
@@ -343,7 +361,7 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
         `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/Alamofire\\/Alamofire\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\)${swiftTrailingComment}`,
       ),
       new:
-        providerConfig.apple === 'implementation'
+        getAlamofireDependencyType(providerConfig) === 'implementation'
           ? `.package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))`
           : `// .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))  // Disabled via config (compileOnly)`,
     },
@@ -379,7 +397,7 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
         `${swiftCommentPrefix}\\.product\\(name:\\s*"Alamofire",\\s*package:\\s*"Alamofire"\\)${swiftTrailingComment}`,
       ),
       new:
-        providerConfig.apple === 'implementation'
+        getAlamofireDependencyType(providerConfig) === 'implementation'
           ? `.product(name: "Alamofire", package: "Alamofire")`
           : `// .product(name: "Alamofire", package: "Alamofire")  // Disabled via config (compileOnly)`,
     },

@@ -118,9 +118,24 @@ export default config;
 - This configuration only affects iOS and Android platforms; it does not affect the web platform.
 - **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
 - **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package — no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
-- **Apple (iOS)**: `apple: true` enables Sign in with Apple (AuthenticationServices; no external SDK for basic login). Alamofire is only linked when using `redirectUrl` / backend token exchange. `apple: false` removes Alamofire and disables Apple authentication at runtime—including basic Sign in with Apple—consistent with the rule above that `false` providers are unavailable at runtime. CocoaPods and Swift Package Manager both toggle Alamofire based on `apple: true|false`.
+- **Apple (iOS)**: `apple: true` enables Sign in with Apple (AuthenticationServices; no external SDK for basic login) and links Alamofire, which only the `redirectUrl` / backend token exchange uses. If your iOS app never passes `redirectUrl`, set `alamofire: false` next to `providers` to keep Apple enabled without Alamofire (see the example below); initializing Apple with a `redirectUrl` then rejects with an error. `apple: false` removes Alamofire and disables Apple authentication at runtime—including basic Sign in with Apple—consistent with the rule above that `false` providers are unavailable at runtime. CocoaPods and Swift Package Manager both follow these settings.
 - Apple Sign-In on Android uses OAuth flow without external SDK dependencies
 - Twitter uses standard OAuth 2.0 flow without external SDK dependencies
+
+### Example: Sign in with Apple without Alamofire
+
+Native Sign in with Apple on iOS does not need Alamofire. Only the `redirectUrl` / backend token exchange flow does. If you never pass `redirectUrl` on iOS, leave it out:
+
+```typescript
+plugins: {
+  SocialLogin: {
+    providers: {
+      apple: true,       // Enabled
+    },
+    alamofire: false     // iOS: not linked; Apple initialize() rejects a redirectUrl
+  }
+}
+```
 
 ### Example: Reduce App Size
 
@@ -1687,7 +1702,9 @@ BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authenticati
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### ProviderResponseMap
@@ -1738,7 +1755,9 @@ Construct a type with the properties of T except for those in type K.
 
 From T, pick a set of properties whose keys are in the union K
 
-<code>{ [P in K]: T[P]; }</code>
+<code>{
+ [P in K]: T[P];
+ }</code>
 
 
 #### Exclude
