@@ -304,14 +304,6 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
           ? `s.dependency 'FBSDKLoginKit', '~> 18.0'`
           : `# s.dependency 'FBSDKLoginKit', '~> 18.0'  # Disabled via config (compileOnly)`,
     },
-    {
-      // Alamofire (for Apple) - handle both active and commented (including existing disabled comments)
-      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'Alamofire',\\s*'~>\\s*5\\.10\\.2'${podspecTrailingComment}`),
-      new:
-        providerConfig.apple === 'implementation'
-          ? `s.dependency 'Alamofire', '~> 5.10.2'`
-          : `# s.dependency 'Alamofire', '~> 5.10.2'  # Disabled via config (compileOnly)`,
-    },
   ];
 }
 
@@ -340,15 +332,6 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
     },
     {
       old: new RegExp(
-        `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/Alamofire\\/Alamofire\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\)${swiftTrailingComment}`,
-      ),
-      new:
-        providerConfig.apple === 'implementation'
-          ? `.package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))`
-          : `// .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))  // Disabled via config (compileOnly)`,
-    },
-    {
-      old: new RegExp(
         `${swiftCommentPrefix}\\.product\\(name:\\s*"FacebookCore",\\s*package:\\s*"facebook-ios-sdk"\\),${swiftTrailingComment}`,
       ),
       new:
@@ -373,15 +356,6 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
         providerConfig.google === 'implementation'
           ? `.product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),`
           : `// .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),  // Disabled via config (compileOnly)`,
-    },
-    {
-      old: new RegExp(
-        `${swiftCommentPrefix}\\.product\\(name:\\s*"Alamofire",\\s*package:\\s*"Alamofire"\\)${swiftTrailingComment}`,
-      ),
-      new:
-        providerConfig.apple === 'implementation'
-          ? `.product(name: "Alamofire", package: "Alamofire")`
-          : `// .product(name: "Alamofire", package: "Alamofire")  // Disabled via config (compileOnly)`,
     },
   ];
 }

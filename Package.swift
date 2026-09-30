@@ -14,9 +14,7 @@ let package = Package(
         // FBSDKCoreKit and FBSDKLoginKit
         .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "18.0.3")),
         // Add Google Sign-In dependency
-        .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0")),
-        // Alamofire
-        .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.11.2"))
+        .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0"))
     ],
     targets: [
         .target(
@@ -26,8 +24,7 @@ let package = Package(
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
                 .product(name: "FacebookCore", package: "facebook-ios-sdk"),
                 .product(name: "FacebookLogin", package: "facebook-ios-sdk"),
-                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),
-                .product(name: "Alamofire", package: "Alamofire")
+                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
             ],
             path: "ios/Sources/SocialLoginPlugin"),
         .testTarget(
