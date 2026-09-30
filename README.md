@@ -94,7 +94,7 @@ const config: CapacitorConfig = {
       providers: {
         google: true,      // true = enabled (bundled), false = disabled (not bundled)
         facebook: true,   // Use false to reduce app size
-        apple: true,      // Apple uses system APIs; Alamofire only for redirectUrl backend flows
+        apple: true,      // Apple uses system APIs only (no third-party networking dependency)
         twitter: false   // false = disabled (not bundled)
       },
       logLevel: 1 // Warnings and errors only
@@ -118,7 +118,7 @@ export default config;
 - This configuration only affects iOS and Android platforms; it does not affect the web platform.
 - **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
 - **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package — no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
-- **Apple (iOS)**: `apple: true` enables Sign in with Apple (AuthenticationServices; no external SDK for basic login). Alamofire is only linked when using `redirectUrl` / backend token exchange. `apple: false` removes Alamofire and disables Apple authentication at runtime—including basic Sign in with Apple—consistent with the rule above that `false` providers are unavailable at runtime. CocoaPods and Swift Package Manager both toggle Alamofire based on `apple: true|false`.
+- **Apple (iOS)**: `apple: true` enables Sign in with Apple (AuthenticationServices). Redirect URL and backend token exchange use Foundation URLSession, so no third-party networking library is required. `apple: false` disables Apple authentication at runtime, including basic Sign in with Apple, consistent with the rule above that `false` providers are unavailable at runtime.
 - Apple Sign-In on Android uses OAuth flow without external SDK dependencies
 - Twitter uses standard OAuth 2.0 flow without external SDK dependencies
 

@@ -44,7 +44,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     // Providers - conditionally initialized based on available dependencies
-    // Apple uses AuthenticationServices; Alamofire is only needed for redirectUrl flows
+    // Apple uses AuthenticationServices; redirectUrl flows use URLSession (Foundation)
     private let apple = AppleProvider()
 
     #if canImport(FBSDKLoginKit)
@@ -193,12 +193,6 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             let redirectUrl = appleSettings["redirectUrl"] as? String
             let useProperTokenExchange = appleSettings["useProperTokenExchange"] as? Bool ?? false
-            #if !canImport(Alamofire)
-            if let redirectUrl = redirectUrl, !redirectUrl.isEmpty {
-                call.reject("Apple redirectUrl requires Alamofire. Add Alamofire to your Podfile or Package.swift, or omit redirectUrl for basic Sign in with Apple.")
-                return
-            }
-            #endif
             apple.initialize(redirectUrl: redirectUrl, useProperTokenExchange: useProperTokenExchange)
             initialized = true
         }
