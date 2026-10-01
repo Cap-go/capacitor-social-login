@@ -44,7 +44,7 @@ public class SocialLoginPlugin extends Plugin {
             if (!DependencyAvailabilityChecker.isProviderAvailable("apple")) {
                 call.reject(
                     "Apple Sign-In provider is disabled. " +
-                        "Dependencies are not available. Ensure JWT decode and CustomTabs dependencies are included in your app's build.gradle"
+                        "Dependencies are not available. Ensure CustomTabs dependencies are included in your app's build.gradle"
                 );
                 return;
             }
@@ -137,10 +137,7 @@ public class SocialLoginPlugin extends Plugin {
         if (twitter != null) {
             // Check if Twitter dependencies are available
             if (!DependencyAvailabilityChecker.isProviderAvailable("twitter")) {
-                call.reject(
-                    "Twitter provider is disabled. " +
-                        "Dependencies are not available. Ensure OkHttp dependencies are included in your app's build.gradle"
-                );
+                call.reject("Twitter provider is disabled via configuration.");
                 return;
             }
 
@@ -590,6 +587,18 @@ public class SocialLoginPlugin extends Plugin {
         byte[] decoded = Base64.decode(getJwtPayloadSegment(idToken), Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
         String json = new String(decoded, StandardCharsets.UTF_8);
         return new JSONObject(json);
+    }
+
+    /**
+     * Returns whether the JWT is expired. Matches Auth0 {@code JWT.isExpired(leewaySeconds)} semantics.
+     */
+    static boolean isJwtExpired(String idToken, long leewaySeconds) throws JSONException {
+        JSONObject claims = decodeJwtClaims(idToken);
+        if (!claims.has("exp")) {
+            return false;
+        }
+        long expSeconds = claims.getLong("exp");
+        return System.currentTimeMillis() + leewaySeconds * 1000L > expSeconds * 1000L;
     }
 
     static String getJwtPayloadSegment(String idToken) throws JSONException {

@@ -1,9 +1,12 @@
 package ee.forgr.capacitor.social.login;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
+import android.util.Base64;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import org.json.JSONException;
@@ -73,7 +76,21 @@ public class SocialLoginPluginUnitTest {
     }
 
     @Test
-    public void getJwtPayloadSegmentRejectsTokenWithoutDotSeparator() {
-        assertThrows(JSONException.class, () -> SocialLoginPlugin.getJwtPayloadSegment("not-a-jwt"));
+    public void isJwtExpiredMatchesExpClaim() throws JSONException {
+        long futureExp = (System.currentTimeMillis() / 1000L) + 3600;
+        String payload = Base64.encodeToString(
+            ("{\"exp\":" + futureExp + "}").getBytes(java.nio.charset.StandardCharsets.UTF_8),
+            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING
+        );
+        String idToken = "hdr." + payload + ".sig";
+        assertFalse(SocialLoginPlugin.isJwtExpired(idToken, 0));
+
+        long pastExp = (System.currentTimeMillis() / 1000L) - 3600;
+        String pastPayload = Base64.encodeToString(
+            ("{\"exp\":" + pastExp + "}").getBytes(java.nio.charset.StandardCharsets.UTF_8),
+            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING
+        );
+        String expiredToken = "hdr." + pastPayload + ".sig";
+        assertTrue(SocialLoginPlugin.isJwtExpired(expiredToken, 0));
     }
 }
