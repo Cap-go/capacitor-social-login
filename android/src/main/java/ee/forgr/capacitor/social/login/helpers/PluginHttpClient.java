@@ -70,9 +70,6 @@ public final class PluginHttpClient {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
         connection.setConnectTimeout(connectTimeoutMs);
         connection.setReadTimeout(readTimeoutMs);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            connection.setWriteTimeout(writeTimeoutMs);
-        }
         connection.setRequestMethod(method);
         connection.setUseCaches(false);
         if (headers != null) {
