@@ -16,6 +16,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -590,15 +591,33 @@ public class SocialLoginPlugin extends Plugin {
     }
 
     /**
-     * Returns whether the JWT is expired. Matches Auth0 {@code JWT.isExpired(leewaySeconds)} semantics.
+     * Returns whether the JWT should be treated as expired for login checks.
+     * Matches Auth0 {@code JWT.isExpired(leewaySeconds)} from jwtdecode 2.0.2 (second-truncated clock, exp/iat leeway).
      */
     static boolean isJwtExpired(String idToken, long leewaySeconds) throws JSONException {
-        JSONObject claims = decodeJwtClaims(idToken);
-        if (!claims.has("exp")) {
-            return false;
+        if (leewaySeconds < 0) {
+            throw new IllegalArgumentException("The leeway must be a positive value.");
         }
-        long expSeconds = claims.getLong("exp");
-        return System.currentTimeMillis() + leewaySeconds * 1000L > expSeconds * 1000L;
+        assertJwtHasThreeParts(idToken);
+        JSONObject claims = decodeJwtClaims(idToken);
+        long todayTime = (long) (Math.floor(System.currentTimeMillis() / 1000.0) * 1000);
+        Date futureToday = new Date(todayTime + leewaySeconds * 1000L);
+        Date pastToday = new Date(todayTime - leewaySeconds * 1000L);
+        Date exp = claims.has("exp") ? new Date(claims.getLong("exp") * 1000L) : null;
+        Date iat = claims.has("iat") ? new Date(claims.getLong("iat") * 1000L) : null;
+        boolean expValid = exp == null || !pastToday.after(exp);
+        boolean iatValid = iat == null || !futureToday.before(iat);
+        return !expValid || !iatValid;
+    }
+
+    static void assertJwtHasThreeParts(String idToken) throws JSONException {
+        String[] parts = idToken.split("\\.");
+        if (parts.length == 2 && idToken.endsWith(".")) {
+            return;
+        }
+        if (parts.length != 3) {
+            throw new JSONException(String.format("The token was expected to have 3 parts, but got %s.", parts.length));
+        }
     }
 
     static String getJwtPayloadSegment(String idToken) throws JSONException {

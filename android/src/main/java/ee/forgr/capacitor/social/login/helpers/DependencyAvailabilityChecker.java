@@ -221,9 +221,7 @@ public class DependencyAvailabilityChecker {
     }
 
     /**
-     * Check if Twitter OAuth dependencies are available.
-     * Checks config first (for "fake disable"), then checks classes.
-     * Result is cached after first check.
+     * Twitter OAuth uses built-in Android APIs only (no external SDK). Respects config disable flag.
      */
     private static boolean isTwitterAvailable() {
         if (twitterDependenciesAvailable != null) {

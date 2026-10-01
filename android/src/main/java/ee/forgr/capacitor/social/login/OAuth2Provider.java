@@ -1089,7 +1089,9 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         if (config.additionalTokenParameters != null) {
-            form.putAll(config.additionalTokenParameters);
+            for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
+                form.put(entry.getKey(), entry.getValue());
+            }
         }
 
         if (config.logsEnabled) {
@@ -1174,7 +1176,9 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         if (config.additionalTokenParameters != null) {
-            form.putAll(config.additionalTokenParameters);
+            for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
+                form.put(entry.getKey(), entry.getValue());
+            }
         }
 
         if (additionalParameters != null) {

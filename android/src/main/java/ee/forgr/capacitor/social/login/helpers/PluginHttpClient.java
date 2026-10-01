@@ -18,13 +18,17 @@ import java.util.concurrent.Executors;
  */
 public final class PluginHttpClient {
 
+    private static final int EXECUTOR_THREADS = 4;
+
     public static final PluginHttpClient DEFAULT = new PluginHttpClient(10_000, 10_000, 10_000);
     public static final PluginHttpClient THIRTY_SECOND_TIMEOUTS = new PluginHttpClient(30_000, 30_000, 30_000);
 
-    private static final ExecutorService EXECUTOR = Executors.newCachedThreadPool();
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(EXECUTOR_THREADS);
 
     private final int connectTimeoutMs;
     private final int readTimeoutMs;
+
+    @SuppressWarnings("unused")
     private final int writeTimeoutMs;
 
     public PluginHttpClient(int connectTimeoutMs, int readTimeoutMs, int writeTimeoutMs) {
@@ -70,9 +74,9 @@ public final class PluginHttpClient {
     private HttpURLConnection openConnection(String urlString, String method, Map<String, String> formFields, Map<String, String> headers)
         throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
+        connection.setInstanceFollowRedirects(true);
         connection.setConnectTimeout(connectTimeoutMs);
         connection.setReadTimeout(readTimeoutMs);
-        applyWriteTimeout(connection, writeTimeoutMs);
         connection.setRequestMethod(method);
         connection.setUseCaches(false);
         if (headers != null) {
@@ -87,21 +91,12 @@ public final class PluginHttpClient {
                 connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             }
             byte[] body = encodeFormBody(formFields);
-            connection.setFixedLengthStreamingMode(body.length);
             try (OutputStream out = connection.getOutputStream()) {
                 out.write(body);
             }
         }
 
         return connection;
-    }
-
-    private static void applyWriteTimeout(HttpURLConnection connection, int writeTimeoutMs) {
-        try {
-            connection.getClass().getMethod("setWriteTimeout", int.class).invoke(connection, writeTimeoutMs);
-        } catch (ReflectiveOperationException ignored) {
-            // HttpURLConnection.setWriteTimeout is API 26+; minSdk 24 builds omit it at compile time.
-        }
     }
 
     private static boolean containsHeaderIgnoreCase(Map<String, String> headers, String name) {
