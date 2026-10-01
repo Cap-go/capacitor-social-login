@@ -865,7 +865,7 @@ On **web**, host a small redirect page that posts the final URL to a `BroadcastC
 
 On **web**, the plugin opens the authorize URL in a **popup** via `window.open`. Call `openAuthSession()` from a **user gesture** (button click). Popup blockers must allow your origin, or the call fails immediately with an error about popups.
 
-Host an HTTPS redirect page (register that URL with your IdP). The landing page can post `location.href` when the authorize URL includes the same `redirect_uri`, or post a `${callbackURLScheme}://...` string for prefix matching:
+Host an HTTPS redirect page on the **same origin** as your app (BroadcastChannel only delivers to pages that share the app's origin). Register that URL with your IdP. The landing page can post `location.href` when the authorize URL includes the same `redirect_uri`, or post a `${callbackURLScheme}://...` string for prefix matching:
 
 ```html
 <script>

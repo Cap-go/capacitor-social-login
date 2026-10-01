@@ -745,6 +745,19 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
+        if (getActivity() == null) {
+            call.reject("Activity not available");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> startOpenAuthSessionOnMainThread(call, url, callbackURLScheme));
+    }
+
+    private void startOpenAuthSessionOnMainThread(PluginCall call, String url, String callbackURLScheme) {
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
+            return;
+        }
+
         openAuthSessionSavedCall = call;
         openAuthSessionCallbackScheme = callbackURLScheme;
         openAuthSessionPaused = false;

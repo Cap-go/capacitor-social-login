@@ -66,6 +66,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private twitterProvider: TwitterSocialLogin;
   private telegramProvider: TelegramSocialLogin;
   private oauth2Provider: OAuth2SocialLogin;
+  private webAuthPopupInProgress = false;
 
   constructor() {
     super();
@@ -527,6 +528,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     redirectPrefixes?: string[];
     broadcastChannelName?: string;
   }): Promise<string> {
+    if (this.webAuthPopupInProgress) {
+      return Promise.reject(new Error('Another auth session is already in progress'));
+    }
+    this.webAuthPopupInProgress = true;
+
     const w = 600;
     const h = 550;
     const settings = [
@@ -540,6 +546,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
     const popup = window.open(options.url, 'Authorization', settings);
     if (!popup) {
+      this.webAuthPopupInProgress = false;
       return Promise.reject(new Error('Unable to open authorization popup. Allow popups for this origin.'));
     }
     if (typeof popup.focus === 'function') {
@@ -557,6 +564,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           return;
         }
         settled = true;
+        this.webAuthPopupInProgress = false;
         window.clearInterval(pollTimer);
         window.clearTimeout(timeoutTimer);
         bc.close();
