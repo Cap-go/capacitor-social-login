@@ -863,10 +863,11 @@ On **web**, host a small redirect page that posts the final URL to a `BroadcastC
 </intent-filter>
 ```
 
-**Web:** Allow popups for your origin. On the redirect landing page, post the callback URL (must start with your scheme):
+**Web:** Allow popups for your origin. Register an **HTTPS** redirect URI with your IdP (browsers cannot navigate the popup to a custom scheme). On that hosted redirect page, post a string that starts with your `callbackURLScheme` so it passes the prefix check in the plugin (this is not the IdP redirect URI itself):
 
 ```html
 <script>
+  // IdP redirected here, e.g. https://app.example.com/auth/callback?code=...&state=...
   const callbackURL = 'myapp://auth/callback' + window.location.search + window.location.hash;
   new BroadcastChannel('capgo-auth-session').postMessage(callbackURL);
   window.close();

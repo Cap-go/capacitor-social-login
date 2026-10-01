@@ -34,6 +34,7 @@ public class SocialLoginPlugin extends Plugin {
     private String openSecureWindowRedirectUri;
     private PluginCall openAuthSessionSavedCall;
     private String openAuthSessionCallbackScheme;
+    private boolean openAuthSessionPaused;
     private Uri pendingOAuth2RedirectUri;
 
     @PluginMethod
@@ -670,7 +671,13 @@ public class SocialLoginPlugin extends Plugin {
         openSecureWindowSavedCall = call;
         openSecureWindowRedirectUri = redirectUri;
 
-        launchCustomTab(authEndpoint);
+        try {
+            launchCustomTab(authEndpoint);
+        } catch (Exception e) {
+            openSecureWindowSavedCall = null;
+            openSecureWindowRedirectUri = null;
+            call.reject("Unable to open browser", e);
+        }
     }
 
     @PluginMethod
@@ -694,8 +701,24 @@ public class SocialLoginPlugin extends Plugin {
 
         openAuthSessionSavedCall = call;
         openAuthSessionCallbackScheme = callbackURLScheme;
+        openAuthSessionPaused = false;
 
-        launchCustomTab(url);
+        try {
+            launchCustomTab(url);
+        } catch (Exception e) {
+            openAuthSessionSavedCall = null;
+            openAuthSessionCallbackScheme = null;
+            openAuthSessionPaused = false;
+            call.reject("Unable to open browser", e);
+        }
+    }
+
+    @Override
+    protected void handleOnPause() {
+        super.handleOnPause();
+        if (openAuthSessionSavedCall != null) {
+            openAuthSessionPaused = true;
+        }
     }
 
     private void launchCustomTab(String url) {
@@ -725,10 +748,11 @@ public class SocialLoginPlugin extends Plugin {
         }
 
         // If we have a saved call and user returned without callback, reject
-        if (openAuthSessionSavedCall != null) {
+        if (openAuthSessionSavedCall != null && openAuthSessionPaused) {
             openAuthSessionSavedCall.reject("User cancelled", USER_CANCELLED_CODE);
             openAuthSessionSavedCall = null;
             openAuthSessionCallbackScheme = null;
+            openAuthSessionPaused = false;
         }
 
         if (openSecureWindowSavedCall != null) {
@@ -773,12 +797,14 @@ public class SocialLoginPlugin extends Plugin {
                     openAuthSessionSavedCall.resolve(ret);
                     openAuthSessionSavedCall = null;
                     openAuthSessionCallbackScheme = null;
+                    openAuthSessionPaused = false;
                 }
             } catch (Exception e) {
                 if (openAuthSessionSavedCall != null) {
                     openAuthSessionSavedCall.reject("Failed to process OAuth callback", e);
                     openAuthSessionSavedCall = null;
                     openAuthSessionCallbackScheme = null;
+                    openAuthSessionPaused = false;
                 }
             }
             return;
