@@ -565,10 +565,23 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
       bc.addEventListener('message', (event) => {
         const data = typeof event.data === 'string' ? event.data : String(event.data ?? '');
-        if (!prefixes.some((prefix) => data.startsWith(prefix))) {
+        if (prefixes.some((prefix) => data.startsWith(prefix))) {
+          finish(() => resolve(data));
           return;
         }
-        finish(() => resolve(data));
+        const looksLikeRedirect = /^https?:\/\//i.test(data) || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(data);
+        if (looksLikeRedirect) {
+          finish(() =>
+            reject(
+              new Error(
+                'Redirect URI does not match expected prefix. Received: ' +
+                  data +
+                  ' Expected one of: ' +
+                  prefixes.join(', '),
+              ),
+            ),
+          );
+        }
       });
 
       const pollTimer = window.setInterval(() => {

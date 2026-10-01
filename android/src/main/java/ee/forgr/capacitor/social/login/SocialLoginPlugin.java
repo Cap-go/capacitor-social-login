@@ -2,6 +2,8 @@ package ee.forgr.capacitor.social.login;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 import androidx.activity.result.ActivityResult;
@@ -28,6 +30,7 @@ public class SocialLoginPlugin extends Plugin {
 
     public static String LOG_TAG = "CapgoSocialLogin";
     private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
+    private static final long OPEN_AUTH_SESSION_TIMEOUT_MS = 600_000L;
     public HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
     private PluginCall openSecureWindowSavedCall;
@@ -35,7 +38,47 @@ public class SocialLoginPlugin extends Plugin {
     private PluginCall openAuthSessionSavedCall;
     private String openAuthSessionCallbackScheme;
     private boolean openAuthSessionPaused;
+    private long openAuthSessionLaunchTimeMs;
+    private Handler openAuthSessionHandler;
+    private Runnable openAuthSessionTimeoutRunnable;
     private Uri pendingOAuth2RedirectUri;
+
+    private boolean rejectIfAnotherAuthBrowserSessionPending(PluginCall call) {
+        if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
+            call.reject("Another auth session is already in progress");
+            return true;
+        }
+        return false;
+    }
+
+    private void cancelOpenAuthSessionTimeout() {
+        if (openAuthSessionHandler != null && openAuthSessionTimeoutRunnable != null) {
+            openAuthSessionHandler.removeCallbacks(openAuthSessionTimeoutRunnable);
+        }
+        openAuthSessionTimeoutRunnable = null;
+    }
+
+    private void clearOpenAuthSessionState() {
+        cancelOpenAuthSessionTimeout();
+        openAuthSessionSavedCall = null;
+        openAuthSessionCallbackScheme = null;
+        openAuthSessionPaused = false;
+        openAuthSessionLaunchTimeMs = 0L;
+    }
+
+    private void scheduleOpenAuthSessionTimeout() {
+        if (openAuthSessionHandler == null) {
+            openAuthSessionHandler = new Handler(Looper.getMainLooper());
+        }
+        cancelOpenAuthSessionTimeout();
+        openAuthSessionTimeoutRunnable = () -> {
+            if (openAuthSessionSavedCall != null) {
+                openAuthSessionSavedCall.reject("The sign-in flow timed out", USER_CANCELLED_CODE);
+                clearOpenAuthSessionState();
+            }
+        };
+        openAuthSessionHandler.postDelayed(openAuthSessionTimeoutRunnable, OPEN_AUTH_SESSION_TIMEOUT_MS);
+    }
 
     @PluginMethod
     public void initialize(PluginCall call) {
@@ -668,8 +711,7 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
-        if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
-            call.reject("Another auth session is already in progress");
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
             return;
         }
 
@@ -699,21 +741,20 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
-        if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
-            call.reject("Another auth session is already in progress");
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
             return;
         }
 
         openAuthSessionSavedCall = call;
         openAuthSessionCallbackScheme = callbackURLScheme;
         openAuthSessionPaused = false;
+        openAuthSessionLaunchTimeMs = System.currentTimeMillis();
 
         try {
             launchCustomTab(url);
+            scheduleOpenAuthSessionTimeout();
         } catch (Exception e) {
-            openAuthSessionSavedCall = null;
-            openAuthSessionCallbackScheme = null;
-            openAuthSessionPaused = false;
+            clearOpenAuthSessionState();
             call.reject("Unable to open browser", e);
         }
     }
@@ -752,12 +793,17 @@ public class SocialLoginPlugin extends Plugin {
             ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
         }
 
-        // If we have a saved call and user returned without callback, reject
-        if (openAuthSessionSavedCall != null && openAuthSessionPaused) {
-            openAuthSessionSavedCall.reject("User cancelled", USER_CANCELLED_CODE);
-            openAuthSessionSavedCall = null;
-            openAuthSessionCallbackScheme = null;
-            openAuthSessionPaused = false;
+        // User returned without redirect: cancel when we saw pause, or after launch grace if pause was missed
+        if (openAuthSessionSavedCall != null) {
+            boolean pausedAfterLaunch = openAuthSessionPaused;
+            boolean missedPauseGraceElapsed =
+                !openAuthSessionPaused &&
+                openAuthSessionLaunchTimeMs > 0L &&
+                System.currentTimeMillis() - openAuthSessionLaunchTimeMs > 750L;
+            if (pausedAfterLaunch || missedPauseGraceElapsed) {
+                openAuthSessionSavedCall.reject("User cancelled", USER_CANCELLED_CODE);
+                clearOpenAuthSessionState();
+            }
         }
 
         if (openSecureWindowSavedCall != null) {
@@ -794,22 +840,22 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
-        if (openAuthSessionCallbackScheme != null && openAuthSessionCallbackScheme.equals(uri.getScheme())) {
+        if (
+            openAuthSessionCallbackScheme != null &&
+            uri.getScheme() != null &&
+            openAuthSessionCallbackScheme.equalsIgnoreCase(uri.getScheme())
+        ) {
             try {
                 if (openAuthSessionSavedCall != null) {
                     final JSObject ret = new JSObject();
                     ret.put("callbackURL", uri.toString());
                     openAuthSessionSavedCall.resolve(ret);
-                    openAuthSessionSavedCall = null;
-                    openAuthSessionCallbackScheme = null;
-                    openAuthSessionPaused = false;
+                    clearOpenAuthSessionState();
                 }
             } catch (Exception e) {
                 if (openAuthSessionSavedCall != null) {
                     openAuthSessionSavedCall.reject("Failed to process OAuth callback", e);
-                    openAuthSessionSavedCall = null;
-                    openAuthSessionCallbackScheme = null;
-                    openAuthSessionPaused = false;
+                    clearOpenAuthSessionState();
                 }
             }
             return;
