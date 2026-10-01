@@ -11,6 +11,7 @@ import androidx.browser.customtabs.CustomTabsIntent;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import ee.forgr.capacitor.social.login.helpers.PluginHttpClient;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -22,16 +23,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -56,7 +51,7 @@ public class OAuth2Provider implements SocialProvider {
 
     private final Activity activity;
     private final Context context;
-    private final OkHttpClient httpClient;
+    private final PluginHttpClient httpClient;
 
     // Map of providerId -> OAuth2ProviderConfig
     private final Map<String, OAuth2ProviderConfig> providers = new HashMap<>();
@@ -174,7 +169,7 @@ public class OAuth2Provider implements SocialProvider {
     public OAuth2Provider(Activity activity, Context context) {
         this.activity = activity;
         this.context = context;
-        this.httpClient = new OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build();
+        this.httpClient = PluginHttpClient.THIRTY_SECOND_TIMEOUTS;
     }
 
     private interface DiscoveryCallback {
@@ -211,68 +206,66 @@ public class OAuth2Provider implements SocialProvider {
 
         String issuer = trimTrailingSlashes(config.issuerUrl);
         String discoveryUrl = issuer + "/.well-known/openid-configuration";
-        Request req = new Request.Builder().url(discoveryUrl).get().build();
         if (config.logsEnabled) {
             Log.d(LOG_TAG, "Discovering OIDC configuration at: " + discoveryUrl);
         }
-        httpClient
-            .newCall(req)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        cb.onError("OIDC discovery failed: " + e.getMessage());
+        httpClient.enqueueGet(
+            discoveryUrl,
+            null,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    cb.onError("OIDC discovery failed: " + e.getMessage());
+                }
+
+                @Override
+                public void onResponse(int code, String body) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
+                        cb.onError("OIDC discovery failed: HTTP " + code);
+                        return;
                     }
+                    try {
+                        JSONObject json = new JSONObject(body);
+                        String auth = json.optString("authorization_endpoint", null);
+                        String token = json.optString("token_endpoint", null);
+                        String endSession = json.optString("end_session_endpoint", null);
 
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            cb.onError("OIDC discovery failed: HTTP " + response.code());
-                            return;
-                        }
-                        String body = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject json = new JSONObject(body);
-                            String auth = json.optString("authorization_endpoint", null);
-                            String token = json.optString("token_endpoint", null);
-                            String endSession = json.optString("end_session_endpoint", null);
-
-                            OAuth2ProviderConfig resolved = new OAuth2ProviderConfig(
-                                config.appId,
-                                config.clientSecret,
-                                config.issuerUrl,
-                                (config.authorizationBaseUrl != null && !config.authorizationBaseUrl.isEmpty())
-                                    ? config.authorizationBaseUrl
-                                    : auth,
-                                (config.accessTokenEndpoint != null && !config.accessTokenEndpoint.isEmpty())
-                                    ? config.accessTokenEndpoint
-                                    : token,
-                                config.redirectUrl,
-                                config.resourceUrl,
-                                config.responseType,
-                                config.pkceEnabled,
-                                config.scope,
-                                config.additionalParameters,
-                                config.loginHint,
-                                config.prompt,
-                                config.additionalTokenParameters,
-                                config.additionalResourceHeaders,
-                                (config.logoutUrl != null && !config.logoutUrl.isEmpty()) ? config.logoutUrl : endSession,
-                                config.postLogoutRedirectUrl,
-                                config.additionalLogoutParameters,
-                                config.androidUseCustomTabs,
-                                config.logsEnabled,
-                                config.clientIdParamName,
-                                config.clientSecretParamName
-                            );
-                            providers.put(providerId, resolved);
-                            cb.onSuccess(resolved);
-                        } catch (JSONException e) {
-                            cb.onError("Failed to parse OIDC discovery response");
-                        }
+                        OAuth2ProviderConfig resolved = new OAuth2ProviderConfig(
+                            config.appId,
+                            config.clientSecret,
+                            config.issuerUrl,
+                            (config.authorizationBaseUrl != null && !config.authorizationBaseUrl.isEmpty())
+                                ? config.authorizationBaseUrl
+                                : auth,
+                            (config.accessTokenEndpoint != null && !config.accessTokenEndpoint.isEmpty())
+                                ? config.accessTokenEndpoint
+                                : token,
+                            config.redirectUrl,
+                            config.resourceUrl,
+                            config.responseType,
+                            config.pkceEnabled,
+                            config.scope,
+                            config.additionalParameters,
+                            config.loginHint,
+                            config.prompt,
+                            config.additionalTokenParameters,
+                            config.additionalResourceHeaders,
+                            (config.logoutUrl != null && !config.logoutUrl.isEmpty()) ? config.logoutUrl : endSession,
+                            config.postLogoutRedirectUrl,
+                            config.additionalLogoutParameters,
+                            config.androidUseCustomTabs,
+                            config.logsEnabled,
+                            config.clientIdParamName,
+                            config.clientSecretParamName
+                        );
+                        providers.put(providerId, resolved);
+                        cb.onSuccess(resolved);
+                    } catch (JSONException e) {
+                        cb.onError("Failed to parse OIDC discovery response");
                     }
                 }
-            );
+            }
+        );
     }
 
     /**
@@ -1081,67 +1074,64 @@ public class OAuth2Provider implements SocialProvider {
         }
         final String providerId = pendingState.providerId;
 
-        FormBody.Builder bodyBuilder = new FormBody.Builder()
-            .add("grant_type", "authorization_code")
-            .add(config.clientIdParamName, config.appId)
-            .add("code", code)
-            .add("redirect_uri", pendingState.redirectUri);
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", "authorization_code");
+        form.put(config.clientIdParamName, config.appId);
+        form.put("code", code);
+        form.put("redirect_uri", pendingState.redirectUri);
 
         if (config.pkceEnabled) {
-            bodyBuilder.add("code_verifier", pendingState.codeVerifier);
+            form.put("code_verifier", pendingState.codeVerifier);
         }
 
         if (config.clientSecret != null) {
-            bodyBuilder.add(config.clientSecretParamName, config.clientSecret);
+            form.put(config.clientSecretParamName, config.clientSecret);
         }
 
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
-                bodyBuilder.add(entry.getKey(), entry.getValue());
+                form.put(entry.getKey(), entry.getValue());
             }
         }
-
-        Request request = new Request.Builder().url(config.accessTokenEndpoint).post(bodyBuilder.build()).build();
 
         if (config.logsEnabled) {
             Log.d(LOG_TAG, "Exchanging code at: " + config.accessTokenEndpoint);
         }
 
-        httpClient
-            .newCall(request)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
+        httpClient.enqueuePostForm(
+            config.accessTokenEndpoint,
+            form,
+            null,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    if (pendingCall != null) {
+                        pendingCall.reject("OAuth2 token exchange failed", e);
+                    }
+                    cleanupPending();
+                }
+
+                @Override
+                public void onResponse(int code, String responseBody) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
                         if (pendingCall != null) {
-                            pendingCall.reject("OAuth2 token exchange failed", e);
+                            pendingCall.reject("OAuth2 token exchange failed: " + responseBody);
+                        }
+                        cleanupPending();
+                        return;
+                    }
+                    try {
+                        JSONObject tokenPayload = new JSONObject(responseBody);
+                        handleTokenSuccess(providerId, config, tokenPayload);
+                    } catch (JSONException e) {
+                        if (pendingCall != null) {
+                            pendingCall.reject("Failed to parse OAuth2 token response", e);
                         }
                         cleanupPending();
                     }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            String errorBody = response.body() != null ? response.body().string() : "";
-                            if (pendingCall != null) {
-                                pendingCall.reject("OAuth2 token exchange failed: " + errorBody);
-                            }
-                            cleanupPending();
-                            return;
-                        }
-                        String responseBody = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject tokenPayload = new JSONObject(responseBody);
-                            handleTokenSuccess(providerId, config, tokenPayload);
-                        } catch (JSONException e) {
-                            if (pendingCall != null) {
-                                pendingCall.reject("Failed to parse OAuth2 token response", e);
-                            }
-                            cleanupPending();
-                        }
-                    }
                 }
-            );
+            }
+        );
     }
 
     private void refreshWithToken(
@@ -1176,18 +1166,18 @@ public class OAuth2Provider implements SocialProvider {
             return;
         }
 
-        FormBody.Builder bodyBuilder = new FormBody.Builder()
-            .add("grant_type", "refresh_token")
-            .add("refresh_token", refreshToken)
-            .add(config.clientIdParamName, config.appId);
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", "refresh_token");
+        form.put("refresh_token", refreshToken);
+        form.put(config.clientIdParamName, config.appId);
 
         if (config.clientSecret != null) {
-            bodyBuilder.add(config.clientSecretParamName, config.clientSecret);
+            form.put(config.clientSecretParamName, config.clientSecret);
         }
 
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
-                bodyBuilder.add(entry.getKey(), entry.getValue());
+                form.put(entry.getKey(), entry.getValue());
             }
         }
 
@@ -1196,41 +1186,38 @@ public class OAuth2Provider implements SocialProvider {
                 Iterator<String> keys = additionalParameters.keys();
                 while (keys.hasNext()) {
                     String key = keys.next();
-                    bodyBuilder.add(key, additionalParameters.getString(key));
+                    form.put(key, additionalParameters.getString(key));
                 }
             } catch (JSONException e) {
                 Log.w(LOG_TAG, "Failed to parse additionalParameters for refresh", e);
             }
         }
 
-        Request request = new Request.Builder().url(config.accessTokenEndpoint).post(bodyBuilder.build()).build();
+        httpClient.enqueuePostForm(
+            config.accessTokenEndpoint,
+            form,
+            null,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    pluginCall.reject("OAuth2 refresh failed", e);
+                }
 
-        httpClient
-            .newCall(request)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        pluginCall.reject("OAuth2 refresh failed", e);
+                @Override
+                public void onResponse(int code, String responseBody) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
+                        pluginCall.reject("OAuth2 refresh failed: " + responseBody);
+                        return;
                     }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            String errorBody = response.body() != null ? response.body().string() : "";
-                            pluginCall.reject("OAuth2 refresh failed: " + errorBody);
-                            return;
-                        }
-                        String responseBody = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject tokenPayload = new JSONObject(responseBody);
-                            handleTokenSuccess(providerId, config, tokenPayload, pluginCall, refreshToken, wrapResponse);
-                        } catch (JSONException e) {
-                            pluginCall.reject("Failed to parse OAuth2 refresh response", e);
-                        }
+                    try {
+                        JSONObject tokenPayload = new JSONObject(responseBody);
+                        handleTokenSuccess(providerId, config, tokenPayload, pluginCall, refreshToken, wrapResponse);
+                    } catch (JSONException e) {
+                        pluginCall.reject("Failed to parse OAuth2 refresh response", e);
                     }
                 }
-            );
+            }
+        );
     }
 
     private void handleTokenSuccess(String providerId, OAuth2ProviderConfig config, JSONObject tokenPayload) throws JSONException {
@@ -1401,40 +1388,36 @@ public class OAuth2Provider implements SocialProvider {
     }
 
     private void fetchResource(OAuth2ProviderConfig config, String accessToken, ResourceCallback callback) {
-        Request.Builder requestBuilder = new Request.Builder().url(config.resourceUrl).addHeader("Authorization", "Bearer " + accessToken);
-
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Authorization", "Bearer " + accessToken);
         if (config.additionalResourceHeaders != null) {
-            for (Map.Entry<String, String> entry : config.additionalResourceHeaders.entrySet()) {
-                requestBuilder.addHeader(entry.getKey(), entry.getValue());
-            }
+            headers.putAll(config.additionalResourceHeaders);
         }
 
-        httpClient
-            .newCall(requestBuilder.build())
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        callback.onError("Failed to fetch resource: " + e.getMessage());
-                    }
+        httpClient.enqueueGet(
+            config.resourceUrl,
+            headers,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    callback.onError("Failed to fetch resource: " + e.getMessage());
+                }
 
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            String errorBody = response.body() != null ? response.body().string() : "";
-                            callback.onError("Failed to fetch resource: " + errorBody);
-                            return;
-                        }
-                        String responseBody = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject data = new JSONObject(responseBody);
-                            callback.onSuccess(data);
-                        } catch (JSONException e) {
-                            callback.onError("Failed to parse resource response");
-                        }
+                @Override
+                public void onResponse(int code, String responseBody) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
+                        callback.onError("Failed to fetch resource: " + responseBody);
+                        return;
+                    }
+                    try {
+                        JSONObject data = new JSONObject(responseBody);
+                        callback.onSuccess(data);
+                    } catch (JSONException e) {
+                        callback.onError("Failed to parse resource response");
                     }
                 }
-            );
+            }
+        );
     }
 
     private void persistTokens(

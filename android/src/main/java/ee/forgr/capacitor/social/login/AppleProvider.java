@@ -32,20 +32,15 @@ import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.browser.customtabs.CustomTabsServiceConnection;
 import androidx.browser.customtabs.CustomTabsSession;
 import androidx.browser.trusted.TrustedWebActivityIntentBuilder;
-import com.auth0.android.jwt.JWT;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import com.google.androidbrowserhelper.trusted.TwaLauncher;
+import ee.forgr.capacitor.social.login.helpers.PluginHttpClient;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
-import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -296,8 +291,7 @@ public class AppleProvider implements SocialProvider {
     public void isLoggedIn(PluginCall call) {
         if (this.idToken != null && !this.idToken.isEmpty()) {
             try {
-                JWT jwt = new JWT(this.idToken);
-                boolean isLoggedIn = !jwt.isExpired(0);
+                boolean isLoggedIn = !SocialLoginPlugin.isJwtExpired(this.idToken, 0);
                 call.resolve(new JSObject().put("isLoggedIn", isLoggedIn));
             } catch (Exception e) {
                 call.reject("Error checking login status", e);
@@ -369,23 +363,61 @@ public class AppleProvider implements SocialProvider {
     }
 
     private void requestForAccessToken(String code, String clientSecret) {
-        OkHttpClient client = new OkHttpClient();
-        FormBody formBody = new FormBody.Builder()
-            .add("grant_type", "authorization_code")
-            .add("code", code)
-            .add("redirect_uri", redirectUrl)
-            .add("client_id", clientId)
-            .add("client_secret", clientSecret)
-            .build();
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", "authorization_code");
+        form.put("code", code);
+        form.put("redirect_uri", redirectUrl);
+        form.put("client_id", clientId);
+        form.put("client_secret", clientSecret);
 
-        Request request = new Request.Builder().url(TOKENURL).post(formBody).build();
+        PluginHttpClient.DEFAULT.enqueuePostForm(
+            TOKENURL,
+            form,
+            null,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    if (AppleProvider.this.lastcall != null) {
+                        AppleProvider.this.lastcall.reject("Cannot get access_token", e);
+                        AppleProvider.this.lastcall = null;
+                    } else {
+                        Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
+                    }
+                }
 
-        client
-            .newCall(request)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                @Override
+                public void onResponse(int code, String responseData) throws IOException {
+                    try {
+                        if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
+                            throw new IOException("Unexpected code " + code);
+                        }
+
+                        JSONObject jsonObject = (JSONObject) new JSONTokener(responseData).nextValue();
+                        String accessToken = jsonObject.getString("access_token");
+                        String refreshToken = jsonObject.getString("refresh_token");
+                        String idToken = jsonObject.getString("id_token");
+
+                        persistState(idToken, refreshToken, accessToken);
+
+                        JSObject result = new JSObject();
+                        result.put("accessToken", createAccessTokenObject(accessToken));
+                        result.put("profile", createProfileObject(idToken));
+                        result.put("idToken", idToken);
+
+                        JSObject appleResponse = new JSObject();
+                        appleResponse.put("provider", "apple");
+                        appleResponse.put("result", result);
+
+                        if (AppleProvider.this.lastcall != null) {
+                            AppleProvider.this.lastcall.resolve(appleResponse);
+                            AppleProvider.this.lastcall = null;
+                        } else {
+                            Log.e(
+                                SocialLoginPlugin.LOG_TAG,
+                                "Cannot resolve access_token response: lastcall is null. Response: " + appleResponse.toString()
+                            );
+                        }
+                    } catch (Exception e) {
                         if (AppleProvider.this.lastcall != null) {
                             AppleProvider.this.lastcall.reject("Cannot get access_token", e);
                             AppleProvider.this.lastcall = null;
@@ -393,55 +425,9 @@ public class AppleProvider implements SocialProvider {
                             Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
                         }
                     }
-
-                    @Override
-                    public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                        try {
-                            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                            String responseData = Objects.requireNonNull(response.body()).string();
-                            JSONObject jsonObject = (JSONObject) new JSONTokener(responseData).nextValue();
-                            String accessToken = jsonObject.getString("access_token");
-                            String refreshToken = jsonObject.getString("refresh_token");
-                            String idToken = jsonObject.getString("id_token");
-
-                            persistState(idToken, refreshToken, accessToken);
-
-                            // Create proper response with all tokens
-                            JSObject result = new JSObject();
-                            result.put("accessToken", createAccessTokenObject(accessToken));
-                            result.put("profile", createProfileObject(idToken));
-                            result.put("idToken", idToken);
-
-                            // For legacy mode, we don't include authorization code in the response
-                            // since we've already exchanged it for proper tokens
-
-                            JSObject appleResponse = new JSObject();
-                            appleResponse.put("provider", "apple");
-                            appleResponse.put("result", result);
-
-                            if (AppleProvider.this.lastcall != null) {
-                                AppleProvider.this.lastcall.resolve(appleResponse);
-                                AppleProvider.this.lastcall = null;
-                            } else {
-                                Log.e(
-                                    SocialLoginPlugin.LOG_TAG,
-                                    "Cannot resolve access_token response: lastcall is null. Response: " + appleResponse.toString()
-                                );
-                            }
-                        } catch (Exception e) {
-                            if (AppleProvider.this.lastcall != null) {
-                                AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-                                AppleProvider.this.lastcall = null;
-                            } else {
-                                Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
-                            }
-                        } finally {
-                            response.close();
-                        }
-                    }
                 }
-            );
+            }
+        );
     }
 
     private void persistState(String idToken, String refreshToken, String accessToken) throws JSONException {
