@@ -668,6 +668,11 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
+        if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
+            call.reject("Another auth session is already in progress");
+            return;
+        }
+
         openSecureWindowSavedCall = call;
         openSecureWindowRedirectUri = redirectUri;
 

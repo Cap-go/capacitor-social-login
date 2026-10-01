@@ -1278,7 +1278,8 @@ export interface OpenAuthSessionOptions {
   url: string;
   /**
    * Custom URL scheme that receives the redirect (without `://`).
-   * Must match the scheme in your registered redirect URI and native URL handler.
+   * Must match the scheme in your registered redirect URI and native URL handler (iOS/Android).
+   * On Web, the plugin also accepts HTTPS redirect URLs when `redirect_uri` is present in `url`, or messages prefixed with `${callbackURLScheme}://` on the BroadcastChannel.
    * @example 'myapp'
    */
   callbackURLScheme: string;
@@ -1581,6 +1582,9 @@ export interface SocialLoginPlugin {
    * Use this when you build the authorize URL yourself (or your IdP SDK returns one) and only need
    * the plugin to run the secure browser flow and return the redirect callback URL. Exchange the
    * authorization code or tokens on your backend or with your own client logic.
+   *
+   * **iOS/Android:** system browser session (`ASWebAuthenticationSession` / Chrome Custom Tabs).
+   * **Web:** popup window plus `BroadcastChannel` (not a native browser session).
    *
    * On user cancel or dismiss, the Promise rejects with `code === 'USER_CANCELLED'`.
    *

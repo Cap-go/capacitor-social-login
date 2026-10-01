@@ -863,13 +863,12 @@ On **web**, host a small redirect page that posts the final URL to a `BroadcastC
 </intent-filter>
 ```
 
-**Web:** Allow popups for your origin. Register an **HTTPS** redirect URI with your IdP (browsers cannot navigate the popup to a custom scheme). On that hosted redirect page, post a string that starts with your `callbackURLScheme` so it passes the prefix check in the plugin (this is not the IdP redirect URI itself):
+On **web**, host an HTTPS redirect page (register that URL with your IdP). The landing page can post `location.href` when the authorize URL includes the same `redirect_uri`, or post a `${callbackURLScheme}://...` string for prefix matching:
 
 ```html
 <script>
-  // IdP redirected here, e.g. https://app.example.com/auth/callback?code=...&state=...
-  const callbackURL = 'myapp://auth/callback' + window.location.search + window.location.hash;
-  new BroadcastChannel('capgo-auth-session').postMessage(callbackURL);
+  // Option A: post the HTTPS callback (works when redirect_uri is in the authorize URL)
+  new BroadcastChannel('capgo-auth-session').postMessage(location.href);
   window.close();
 </script>
 ```
@@ -1354,6 +1353,9 @@ Use this when you build the authorize URL yourself (or your IdP SDK returns one)
 the plugin to run the secure browser flow and return the redirect callback URL. Exchange the
 authorization code or tokens on your backend or with your own client logic.
 
+**iOS/Android:** system browser session (`ASWebAuthenticationSession` / Chrome Custom Tabs).
+**Web:** popup window plus `BroadcastChannel` (not a native browser session).
+
 On user cancel or dismiss, the Promise rejects with `code === 'USER_CANCELLED'`.
 
 | Param         | Type                                                                      | Description            |
@@ -1773,12 +1775,12 @@ BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authenticati
 
 #### OpenAuthSessionOptions
 
-| Prop                          | Type                 | Description                                                                                                                                                         | Default                           |
-| ----------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| **`url`**                     | <code>string</code>  | Authorization or login URL to open in the system browser session (OAuth/OIDC authorize endpoint, SSO login page, etc.).                                             |                                   |
-| **`callbackURLScheme`**       | <code>string</code>  | Custom URL scheme that receives the redirect (without `://`). Must match the scheme in your registered redirect URI and native URL handler.                         |                                   |
-| **`prefersEphemeralSession`** | <code>boolean</code> | iOS-only: prefer an ephemeral `ASWebAuthenticationSession` (no shared cookies with Safari). Defaults to `false` so SSO cookies in the system browser can be reused. |                                   |
-| **`broadcastChannelName`**    | <code>string</code>  | Web-only: `BroadcastChannel` name used by the redirect page to post the callback URL back to the app.                                                               | <code>'capgo-auth-session'</code> |
+| Prop                          | Type                 | Description                                                                                                                                                                                                                                                                                                                         | Default                           |
+| ----------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| **`url`**                     | <code>string</code>  | Authorization or login URL to open in the system browser session (OAuth/OIDC authorize endpoint, SSO login page, etc.).                                                                                                                                                                                                             |                                   |
+| **`callbackURLScheme`**       | <code>string</code>  | Custom URL scheme that receives the redirect (without `://`). Must match the scheme in your registered redirect URI and native URL handler (iOS/Android). On Web, the plugin also accepts HTTPS redirect URLs when `redirect_uri` is present in `url`, or messages prefixed with `${callbackURLScheme}://` on the BroadcastChannel. |                                   |
+| **`prefersEphemeralSession`** | <code>boolean</code> | iOS-only: prefer an ephemeral `ASWebAuthenticationSession` (no shared cookies with Safari). Defaults to `false` so SSO cookies in the system browser can be reused.                                                                                                                                                                 |                                   |
+| **`broadcastChannelName`**    | <code>string</code>  | Web-only: `BroadcastChannel` name used by the redirect page to post the callback URL back to the app.                                                                                                                                                                                                                               | <code>'capgo-auth-session'</code> |
 
 
 ### Type Aliases

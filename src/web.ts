@@ -502,10 +502,20 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult> {
-    const redirectPrefix = `${options.callbackURLScheme}://`;
+    const redirectPrefixes = [`${options.callbackURLScheme}://`];
+    try {
+      const authUrl = new URL(options.url);
+      const redirectUri = authUrl.searchParams.get('redirect_uri');
+      if (redirectUri && /^https?:\/\//i.test(redirectUri) && !redirectPrefixes.includes(redirectUri)) {
+        redirectPrefixes.unshift(redirectUri);
+      }
+    } catch {
+      // ignore malformed authorize URLs; scheme prefix remains the fallback
+    }
+
     const callbackURL = await this.runWebAuthPopup({
       url: options.url,
-      redirectPrefix,
+      redirectPrefixes,
       broadcastChannelName: options.broadcastChannelName ?? 'capgo-auth-session',
     });
     return { callbackURL };
@@ -513,7 +523,8 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
   private runWebAuthPopup(options: {
     url: string;
-    redirectPrefix: string;
+    redirectPrefix?: string;
+    redirectPrefixes?: string[];
     broadcastChannelName?: string;
   }): Promise<string> {
     const w = 600;
@@ -539,6 +550,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       const channelName = options.broadcastChannelName ?? 'oauth-channel';
       const bc = new BroadcastChannel(channelName);
       let settled = false;
+      const prefixes = options.redirectPrefixes ?? (options.redirectPrefix != null ? [options.redirectPrefix] : []);
 
       const finish = (handler: () => void) => {
         if (settled) {
@@ -553,7 +565,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
 
       bc.addEventListener('message', (event) => {
         const data = typeof event.data === 'string' ? event.data : String(event.data ?? '');
-        if (!data.startsWith(options.redirectPrefix)) {
+        if (!prefixes.some((prefix) => data.startsWith(prefix))) {
           return;
         }
         finish(() => resolve(data));
