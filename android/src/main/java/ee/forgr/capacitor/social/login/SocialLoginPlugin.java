@@ -27,10 +27,13 @@ public class SocialLoginPlugin extends Plugin {
     private final String pluginVersion = "8.5.12";
 
     public static String LOG_TAG = "CapgoSocialLogin";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
     public HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
     private PluginCall openSecureWindowSavedCall;
     private String openSecureWindowRedirectUri;
+    private PluginCall openAuthSessionSavedCall;
+    private String openAuthSessionCallbackScheme;
     private Uri pendingOAuth2RedirectUri;
 
     @PluginMethod
@@ -667,8 +670,32 @@ public class SocialLoginPlugin extends Plugin {
         openSecureWindowSavedCall = call;
         openSecureWindowRedirectUri = redirectUri;
 
-        // Launch OAuth in custom tab
         launchCustomTab(authEndpoint);
+    }
+
+    @PluginMethod
+    public void openAuthSession(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("url is required");
+            return;
+        }
+
+        String callbackURLScheme = call.getString("callbackURLScheme");
+        if (callbackURLScheme == null || callbackURLScheme.isEmpty()) {
+            call.reject("callbackURLScheme is required");
+            return;
+        }
+
+        if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
+            call.reject("Another auth session is already in progress");
+            return;
+        }
+
+        openAuthSessionSavedCall = call;
+        openAuthSessionCallbackScheme = callbackURLScheme;
+
+        launchCustomTab(url);
     }
 
     private void launchCustomTab(String url) {
@@ -698,9 +725,16 @@ public class SocialLoginPlugin extends Plugin {
         }
 
         // If we have a saved call and user returned without callback, reject
+        if (openAuthSessionSavedCall != null) {
+            openAuthSessionSavedCall.reject("User cancelled", USER_CANCELLED_CODE);
+            openAuthSessionSavedCall = null;
+            openAuthSessionCallbackScheme = null;
+        }
+
         if (openSecureWindowSavedCall != null) {
             openSecureWindowSavedCall.reject("OAuth cancelled or no callback received");
             openSecureWindowSavedCall = null;
+            openSecureWindowRedirectUri = null;
         }
     }
 
@@ -725,6 +759,29 @@ public class SocialLoginPlugin extends Plugin {
         } else {
             // Buffer until SocialLogin.initialize() registers the oauth2 provider
             pendingOAuth2RedirectUri = uri;
+        }
+
+        if (openSecureWindowRedirectUri == null && openAuthSessionCallbackScheme == null) {
+            return;
+        }
+
+        if (openAuthSessionCallbackScheme != null && openAuthSessionCallbackScheme.equals(uri.getScheme())) {
+            try {
+                if (openAuthSessionSavedCall != null) {
+                    final JSObject ret = new JSObject();
+                    ret.put("callbackURL", uri.toString());
+                    openAuthSessionSavedCall.resolve(ret);
+                    openAuthSessionSavedCall = null;
+                    openAuthSessionCallbackScheme = null;
+                }
+            } catch (Exception e) {
+                if (openAuthSessionSavedCall != null) {
+                    openAuthSessionSavedCall.reject("Failed to process OAuth callback", e);
+                    openAuthSessionSavedCall = null;
+                    openAuthSessionCallbackScheme = null;
+                }
+            }
+            return;
         }
 
         if (openSecureWindowRedirectUri == null) {

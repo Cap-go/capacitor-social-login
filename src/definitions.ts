@@ -1270,6 +1270,37 @@ export interface OpenSecureWindowResponse {
   redirectedUri: string;
 }
 
+export interface OpenAuthSessionOptions {
+  /**
+   * Authorization or login URL to open in the system browser session (OAuth/OIDC authorize endpoint, SSO login page, etc.).
+   * @example 'https://login.example.com/oauth2/authorize?client_id=...&redirect_uri=...&state=...'
+   */
+  url: string;
+  /**
+   * Custom URL scheme that receives the redirect (without `://`).
+   * Must match the scheme in your registered redirect URI and native URL handler.
+   * @example 'myapp'
+   */
+  callbackURLScheme: string;
+  /**
+   * iOS-only: prefer an ephemeral `ASWebAuthenticationSession` (no shared cookies with Safari).
+   * Defaults to `false` so SSO cookies in the system browser can be reused.
+   */
+  prefersEphemeralSession?: boolean;
+  /**
+   * Web-only: `BroadcastChannel` name used by the redirect page to post the callback URL back to the app.
+   * @default 'capgo-auth-session'
+   */
+  broadcastChannelName?: string;
+}
+
+export interface OpenAuthSessionResult {
+  /**
+   * Full redirect URI returned by the identity provider, including query or fragment (e.g. `myapp://auth/callback?code=...&state=...`).
+   */
+  callbackURL: string;
+}
+
 export type FacebookRequestTrackingOptions = Record<string, never>;
 
 export interface FacebookRequestTrackingResponse {
@@ -1543,4 +1574,17 @@ export interface SocialLoginPlugin {
    * @param options - the options for the openSecureWindow call
    */
   openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse>;
+
+  /**
+   * Opens a system auth session for generic OAuth/OIDC or enterprise SSO.
+   *
+   * Use this when you build the authorize URL yourself (or your IdP SDK returns one) and only need
+   * the plugin to run the secure browser flow and return the redirect callback URL. Exchange the
+   * authorization code or tokens on your backend or with your own client logic.
+   *
+   * On user cancel or dismiss, the Promise rejects with `code === 'USER_CANCELLED'`.
+   *
+   * @param options - auth session options
+   */
+  openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult>;
 }
