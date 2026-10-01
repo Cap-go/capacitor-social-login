@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
-import android.util.Base64;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
 import org.json.JSONException;

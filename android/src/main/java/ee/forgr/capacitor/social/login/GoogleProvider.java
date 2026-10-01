@@ -37,6 +37,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import ee.forgr.capacitor.social.login.helpers.PluginHttpClient;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -270,13 +272,15 @@ public class GoogleProvider implements SocialProvider {
 
     public ListenableFuture<Boolean> accessTokenIsValid(String accessToken) {
         return CallbackToFutureAdapter.getFuture((completer) -> {
-            String url = TOKEN_REQUEST_URL + "?" + "access_token=" + accessToken;
+            String url = TOKEN_REQUEST_URL + "?access_token=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8.name());
             PluginHttpClient.DEFAULT.enqueueGet(
                 url,
                 null,
                 new PluginHttpClient.Callback() {
                     @Override
-                    public void onFailure(IOException e) {}
+                    public void onFailure(IOException e) {
+                        completer.set(false);
+                    }
 
                     @Override
                     public void onResponse(int code, String responseString) throws IOException {

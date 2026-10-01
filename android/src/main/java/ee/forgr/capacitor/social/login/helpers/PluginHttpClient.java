@@ -57,6 +57,8 @@ public final class PluginHttpClient {
                 callback.onResponse(code, body);
             } catch (IOException e) {
                 callback.onFailure(e);
+            } catch (RuntimeException e) {
+                callback.onFailure(new IOException(e));
             } finally {
                 if (connection != null) {
                     connection.disconnect();
@@ -70,6 +72,7 @@ public final class PluginHttpClient {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
         connection.setConnectTimeout(connectTimeoutMs);
         connection.setReadTimeout(readTimeoutMs);
+        applyWriteTimeout(connection, writeTimeoutMs);
         connection.setRequestMethod(method);
         connection.setUseCaches(false);
         if (headers != null) {
@@ -91,6 +94,14 @@ public final class PluginHttpClient {
         }
 
         return connection;
+    }
+
+    private static void applyWriteTimeout(HttpURLConnection connection, int writeTimeoutMs) {
+        try {
+            connection.getClass().getMethod("setWriteTimeout", int.class).invoke(connection, writeTimeoutMs);
+        } catch (ReflectiveOperationException ignored) {
+            // HttpURLConnection.setWriteTimeout is API 26+; minSdk 24 builds omit it at compile time.
+        }
     }
 
     private static boolean containsHeaderIgnoreCase(Map<String, String> headers, String name) {
