@@ -846,9 +846,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             if let user = response as? SocialLoginUser {
                 call.resolve([
                     "accessToken": user.accessToken,
-                    "idToken": user.idToken,
-                    "refreshToken": user.refreshToken,
-                    "expiresIn": user.expiresIn
+                    "idToken": user.idToken ?? NSNull(),
+                    "refreshToken": user.refreshToken ?? NSNull(),
+                    "expiresIn": user.expiresIn ?? NSNull()
                 ])
             } else if let twitterResponse = response as? TwitterProfileResponse {
                 call.resolve([
@@ -1019,7 +1019,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "expires": oauth2Response.accessToken.expires ?? NSNull(),
                     "refreshToken": oauth2Response.accessToken.refreshToken ?? NSNull()
                 ]
-                var oauth2Result: [String: Any] = [
+                let oauth2Result: [String: Any] = [
                     "providerId": oauth2Response.providerId,
                     "accessToken": accessToken,
                     "idToken": oauth2Response.idToken ?? NSNull(),

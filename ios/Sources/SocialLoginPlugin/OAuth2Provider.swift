@@ -577,7 +577,7 @@ class OAuth2Provider: NSObject {
         let effectiveRefreshToken = tokenResponse.refresh_token ?? fallbackRefreshToken
 
         // Fetch resource data if configured
-        if let resourceUrl = config.resourceUrl {
+        if config.resourceUrl != nil {
             fetchResource(config: config, accessToken: tokenResponse.access_token) { [weak self] resourceResult in
                 guard let self = self else { return }
 
@@ -756,7 +756,11 @@ class OAuth2Provider: NSObject {
 
 extension OAuth2Provider: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
     }
 }
 
