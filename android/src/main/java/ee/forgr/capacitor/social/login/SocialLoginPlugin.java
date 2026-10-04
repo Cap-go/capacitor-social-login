@@ -17,6 +17,7 @@ import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.json.JSONArray;
@@ -84,8 +85,11 @@ public class SocialLoginPlugin extends Plugin {
             try {
                 Uri authUri = Uri.parse(authorizeUrl);
                 String redirectUri = authUri.getQueryParameter("redirect_uri");
+                if (redirectUri == null || redirectUri.isEmpty()) {
+                    redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
+                }
                 if (redirectUri != null && !redirectUri.isEmpty()) {
-                    return Uri.decode(redirectUri);
+                    return redirectUri;
                 }
             } catch (Exception ignored) {
                 // fall back to scheme prefix below
@@ -95,6 +99,26 @@ public class SocialLoginPlugin extends Plugin {
             return null;
         }
         return callbackURLScheme + "://";
+    }
+
+    private static String extractRedirectUriFromAuthorizeQuery(String authorizeUrl) {
+        int queryStart = authorizeUrl.indexOf('?');
+        if (queryStart < 0 || queryStart >= authorizeUrl.length() - 1) {
+            return null;
+        }
+        String query = authorizeUrl.substring(queryStart + 1);
+        for (String part : query.split("&")) {
+            int equals = part.indexOf('=');
+            if (equals <= 0) {
+                continue;
+            }
+            if (!"redirect_uri".equals(part.substring(0, equals))) {
+                continue;
+            }
+            String encoded = part.substring(equals + 1);
+            return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
+        }
+        return null;
     }
 
     private void scheduleOpenAuthSessionTimeout() {
