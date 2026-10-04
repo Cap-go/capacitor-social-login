@@ -106,8 +106,7 @@ public class SocialLoginPlugin extends Plugin {
         if (callbackURLScheme != null && expectedPrefix.equals(callbackURLScheme + ":")) {
             String schemePrefix = callbackURLScheme + ":";
             return (
-                callbackUrl.regionMatches(true, 0, schemePrefix, 0, schemePrefix.length()) &&
-                callbackUrl.length() > schemePrefix.length()
+                callbackUrl.regionMatches(true, 0, schemePrefix, 0, schemePrefix.length()) && callbackUrl.length() > schemePrefix.length()
             );
         }
         return (
