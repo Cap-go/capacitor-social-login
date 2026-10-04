@@ -17,6 +17,7 @@ import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.json.JSONArray;
@@ -131,7 +132,7 @@ public class SocialLoginPlugin extends Plugin {
             if (!"redirect_uri".equals(part.substring(0, equals))) {
                 continue;
             }
-            return Uri.decode(part.substring(equals + 1));
+            return URLDecoder.decode(part.substring(equals + 1), StandardCharsets.UTF_8);
         }
         return null;
     }
