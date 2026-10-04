@@ -2,6 +2,7 @@ package ee.forgr.capacitor.social.login;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 
 import com.getcapacitor.JSObject;
@@ -75,5 +76,27 @@ public class SocialLoginPluginUnitTest {
     @Test
     public void getJwtPayloadSegmentRejectsTokenWithoutDotSeparator() {
         assertThrows(JSONException.class, () -> SocialLoginPlugin.getJwtPayloadSegment("not-a-jwt"));
+    }
+
+    @Test
+    public void decodeJwtHeaderObjectRejectsNonObjectHeader() {
+        // Header segment decodes to a JSON array, not an object.
+        String idToken = "W10.eyJleHAiOjI5OTk5OTk5OTl9.signature";
+
+        assertThrows(JSONException.class, () -> SocialLoginPlugin.decodeJwtHeaderObject(idToken));
+    }
+
+    @Test
+    public void isJwtExpiredRejectsTokenWithNonObjectHeader() throws JSONException {
+        String idToken = "W10.eyJleHAiOjI5OTk5OTk5OTl9.signature";
+
+        assertThrows(JSONException.class, () -> SocialLoginPlugin.isJwtExpired(idToken, 0));
+    }
+
+    @Test
+    public void isJwtExpiredAcceptsValidHeaderAndFutureExp() throws JSONException {
+        String idToken = "eyJhbGciOiJub25lIn0.eyJleHAiOjI5OTk5OTk5OTl9.";
+
+        assertFalse(SocialLoginPlugin.isJwtExpired(idToken, 0));
     }
 }

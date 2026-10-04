@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -27,8 +28,6 @@ public final class PluginHttpClient {
 
     private final int connectTimeoutMs;
     private final int readTimeoutMs;
-
-    @SuppressWarnings("unused")
     private final int writeTimeoutMs;
 
     public PluginHttpClient(int connectTimeoutMs, int readTimeoutMs, int writeTimeoutMs) {
@@ -92,11 +91,55 @@ public final class PluginHttpClient {
             }
             byte[] body = encodeFormBody(formFields);
             try (OutputStream out = connection.getOutputStream()) {
-                out.write(body);
+                writeBodyWithTimeout(out, body, writeTimeoutMs, connection);
             }
         }
 
         return connection;
+    }
+
+    /**
+     * HttpURLConnection has no write timeout on Android; run the body write on a worker thread and bound wait time.
+     */
+    static void writeBodyWithTimeout(OutputStream out, byte[] body, int writeTimeoutMs, HttpURLConnection connection) throws IOException {
+        if (writeTimeoutMs <= 0) {
+            out.write(body);
+            out.flush();
+            return;
+        }
+
+        final IOException[] writeError = new IOException[1];
+        Thread writeThread = new Thread(
+            () -> {
+                try {
+                    out.write(body);
+                    out.flush();
+                } catch (IOException e) {
+                    writeError[0] = e;
+                }
+            },
+            "PluginHttpClient-write"
+        );
+        writeThread.start();
+        try {
+            writeThread.join(writeTimeoutMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (connection != null) {
+                connection.disconnect();
+            }
+            throw new IOException("Request body write interrupted", e);
+        }
+        if (writeThread.isAlive()) {
+            writeThread.interrupt();
+            if (connection != null) {
+                connection.disconnect();
+            }
+            throw new SocketTimeoutException("Request body write timed out after " + writeTimeoutMs + "ms");
+        }
+        if (writeError[0] != null) {
+            throw writeError[0];
+        }
     }
 
     private static boolean containsHeaderIgnoreCase(Map<String, String> headers, String name) {

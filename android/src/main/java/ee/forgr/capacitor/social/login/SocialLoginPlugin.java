@@ -21,6 +21,7 @@ import java.util.HashMap;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 @CapacitorPlugin(name = "SocialLogin")
 public class SocialLoginPlugin extends Plugin {
@@ -590,6 +591,23 @@ public class SocialLoginPlugin extends Plugin {
         return new JSONObject(json);
     }
 
+    static JSONObject decodeJwtHeaderObject(String idToken) throws JSONException {
+        byte[] decoded = Base64.decode(getJwtHeaderSegment(idToken), Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
+        Object parsed = new JSONTokener(new String(decoded, StandardCharsets.UTF_8)).nextValue();
+        if (!(parsed instanceof JSONObject)) {
+            throw new JSONException("Invalid JWT header");
+        }
+        return (JSONObject) parsed;
+    }
+
+    static String getJwtHeaderSegment(String idToken) throws JSONException {
+        String[] parts = idToken.split("\\.");
+        if (parts.length < 1 || parts[0].isEmpty()) {
+            throw new JSONException("Invalid JWT");
+        }
+        return parts[0];
+    }
+
     /**
      * Returns whether the JWT should be treated as expired for login checks.
      * Matches Auth0 {@code JWT.isExpired(leewaySeconds)} from jwtdecode 2.0.2 (second-truncated clock, exp/iat leeway).
@@ -599,6 +617,7 @@ public class SocialLoginPlugin extends Plugin {
             throw new IllegalArgumentException("The leeway must be a positive value.");
         }
         assertJwtHasThreeParts(idToken);
+        decodeJwtHeaderObject(idToken);
         JSONObject claims = decodeJwtClaims(idToken);
         long todayTime = (long) (Math.floor(System.currentTimeMillis() / 1000.0) * 1000);
         Date futureToday = new Date(todayTime + leewaySeconds * 1000L);
