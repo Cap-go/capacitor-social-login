@@ -14,6 +14,14 @@ import org.robolectric.annotation.Config;
 public class SocialLoginPluginJwtTest {
 
     @Test
+    public void decodeJwtHeaderObjectRejectsTrailingGarbageInHeader() {
+        // Base64url of {"alg":"none"}junk
+        String idToken = "eyJhbGciOiJub25lIn1qdW5r.eyJleHAiOjI5OTk5OTk5OTl9.signature";
+
+        assertThrows(JSONException.class, () -> SocialLoginPlugin.decodeJwtHeaderObject(idToken));
+    }
+
+    @Test
     public void decodeJwtHeaderObjectRejectsNonObjectHeader() {
         // Header segment decodes to a JSON array, not an object.
         String idToken = "W10.eyJleHAiOjI5OTk5OTk5OTl9.signature";

@@ -593,11 +593,13 @@ public class SocialLoginPlugin extends Plugin {
 
     static JSONObject decodeJwtHeaderObject(String idToken) throws JSONException {
         byte[] decoded = Base64.decode(getJwtHeaderSegment(idToken), Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
-        Object parsed = new JSONTokener(new String(decoded, StandardCharsets.UTF_8)).nextValue();
-        if (!(parsed instanceof JSONObject)) {
+        String headerJson = new String(decoded, StandardCharsets.UTF_8);
+        JSONTokener tokener = new JSONTokener(headerJson);
+        JSONObject header = new JSONObject(tokener);
+        if (tokener.more()) {
             throw new JSONException("Invalid JWT header");
         }
-        return (JSONObject) parsed;
+        return header;
     }
 
     static String getJwtHeaderSegment(String idToken) throws JSONException {

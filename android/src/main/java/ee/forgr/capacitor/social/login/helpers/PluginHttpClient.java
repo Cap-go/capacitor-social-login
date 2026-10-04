@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Minimal async HTTP client using {@link HttpURLConnection} (replaces OkHttp for plugin HTTP calls).
@@ -50,22 +51,71 @@ public final class PluginHttpClient {
         enqueue("POST", url, formFields, headers, callback);
     }
 
+    int requestDeadlineMs() {
+        return connectTimeoutMs + writeTimeoutMs + readTimeoutMs;
+    }
+
     private void enqueue(String method, String url, Map<String, String> formFields, Map<String, String> headers, Callback callback) {
         EXECUTOR.execute(() -> {
-            HttpURLConnection connection = null;
+            final int requestDeadlineMs = requestDeadlineMs();
+            final AtomicReference<HttpURLConnection> connectionRef = new AtomicReference<>();
+            final int[] responseCode = new int[1];
+            final String[] responseBody = new String[1];
+            final IOException[] error = new IOException[1];
+
+            Thread worker = new Thread(
+                () -> {
+                    HttpURLConnection connection = null;
+                    try {
+                        connection = openConnection(url, method, formFields, headers);
+                        connectionRef.set(connection);
+                        int code = connection.getResponseCode();
+                        responseCode[0] = code;
+                        responseBody[0] = readBody(connection, code);
+                    } catch (IOException e) {
+                        error[0] = e;
+                    } catch (RuntimeException e) {
+                        error[0] = new IOException(e);
+                    } finally {
+                        if (connection != null) {
+                            connection.disconnect();
+                        }
+                    }
+                },
+                "PluginHttpClient-request"
+            );
+            worker.start();
             try {
-                connection = openConnection(url, method, formFields, headers);
-                int code = connection.getResponseCode();
-                String body = readBody(connection, code);
-                callback.onResponse(code, body);
+                worker.join(requestDeadlineMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                HttpURLConnection connection = connectionRef.get();
+                if (connection != null) {
+                    connection.disconnect();
+                }
+                worker.interrupt();
+                callback.onFailure(new IOException("Request interrupted", e));
+                return;
+            }
+            if (worker.isAlive()) {
+                worker.interrupt();
+                HttpURLConnection connection = connectionRef.get();
+                if (connection != null) {
+                    connection.disconnect();
+                }
+                callback.onFailure(new SocketTimeoutException("Request timed out after " + requestDeadlineMs + "ms"));
+                return;
+            }
+            if (error[0] != null) {
+                callback.onFailure(error[0]);
+                return;
+            }
+            try {
+                callback.onResponse(responseCode[0], responseBody[0]);
             } catch (IOException e) {
                 callback.onFailure(e);
             } catch (RuntimeException e) {
                 callback.onFailure(new IOException(e));
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
             }
         });
     }
