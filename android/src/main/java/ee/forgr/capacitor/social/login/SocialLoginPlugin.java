@@ -17,8 +17,6 @@ import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,10 +81,10 @@ public class SocialLoginPlugin extends Plugin {
     static String resolveOpenAuthSessionExpectedCallbackPrefix(String authorizeUrl, String callbackURLScheme) {
         if (authorizeUrl != null && !authorizeUrl.isEmpty()) {
             try {
-                String redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
+                Uri authUri = Uri.parse(authorizeUrl);
+                String redirectUri = authUri.getQueryParameter("redirect_uri");
                 if (redirectUri == null || redirectUri.isEmpty()) {
-                    Uri authUri = Uri.parse(authorizeUrl);
-                    redirectUri = authUri.getQueryParameter("redirect_uri");
+                    redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
                 }
                 if (redirectUri != null && !redirectUri.isEmpty()) {
                     return redirectUri;
@@ -98,7 +96,23 @@ public class SocialLoginPlugin extends Plugin {
         if (callbackURLScheme == null || callbackURLScheme.isEmpty()) {
             return null;
         }
-        return callbackURLScheme + "://";
+        return callbackURLScheme + ":";
+    }
+
+    static boolean matchesOpenAuthSessionCallback(String callbackUrl, String expectedPrefix, String callbackURLScheme) {
+        if (callbackUrl == null || expectedPrefix == null || expectedPrefix.isEmpty()) {
+            return false;
+        }
+        if (callbackURLScheme != null && expectedPrefix.equals(callbackURLScheme + ":")) {
+            Uri callback = Uri.parse(callbackUrl);
+            return callback.getScheme() != null && callback.getScheme().equalsIgnoreCase(callbackURLScheme);
+        }
+        return (
+            callbackUrl.equals(expectedPrefix) ||
+            callbackUrl.startsWith(expectedPrefix + "?") ||
+            callbackUrl.startsWith(expectedPrefix + "&") ||
+            callbackUrl.startsWith(expectedPrefix + "#")
+        );
     }
 
     private static String extractRedirectUriFromAuthorizeQuery(String authorizeUrl) {
@@ -107,18 +121,8 @@ public class SocialLoginPlugin extends Plugin {
             return null;
         }
         String query = authorizeUrl.substring(queryStart + 1);
-        for (String part : query.split("&")) {
-            int equals = part.indexOf('=');
-            if (equals <= 0) {
-                continue;
-            }
-            if (!"redirect_uri".equals(part.substring(0, equals))) {
-                continue;
-            }
-            String encoded = part.substring(equals + 1);
-            return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
-        }
-        return null;
+        Uri parsed = Uri.parse("https://callback.local/?" + query);
+        return parsed.getQueryParameter("redirect_uri");
     }
 
     private void scheduleOpenAuthSessionTimeout() {
@@ -914,7 +918,10 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
-        if (openAuthSessionExpectedCallbackPrefix != null && uri.toString().startsWith(openAuthSessionExpectedCallbackPrefix)) {
+        if (
+            openAuthSessionExpectedCallbackPrefix != null &&
+            matchesOpenAuthSessionCallback(uri.toString(), openAuthSessionExpectedCallbackPrefix, openAuthSessionCallbackScheme)
+        ) {
             try {
                 if (openAuthSessionSavedCall != null) {
                     final JSObject ret = new JSObject();

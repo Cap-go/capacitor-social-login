@@ -87,6 +87,41 @@ public class SocialLoginPluginUnitTest {
 
     @Test
     public void resolveOpenAuthSessionExpectedCallbackPrefixFallsBackToScheme() {
-        assertEquals("myapp://", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix("https://login.example.com", "myapp"));
+        assertEquals("myapp:", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix("https://login.example.com", "myapp"));
+    }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixDecodesRedirectUriOnce() {
+        String authorizeUrl =
+            "https://login.example.com/oauth2/authorize?redirect_uri=com.example.app%3A%2Foauth2redirect&response_type=code";
+
+        assertEquals(
+            "com.example.app:/oauth2redirect",
+            SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix(authorizeUrl, "com.example.app")
+        );
+    }
+
+    @Test
+    public void matchesOpenAuthSessionCallbackRejectsPrefixExtensionAttack() {
+        assertEquals(
+            false,
+            SocialLoginPlugin.matchesOpenAuthSessionCallback("myapp://auth/callback.evil", "myapp://auth/callback", "myapp")
+        );
+        assertEquals(
+            true,
+            SocialLoginPlugin.matchesOpenAuthSessionCallback("myapp://auth/callback?code=abc", "myapp://auth/callback", "myapp")
+        );
+    }
+
+    @Test
+    public void matchesOpenAuthSessionCallbackUsesSchemeWhenRedirectUriOmitted() {
+        assertEquals(
+            true,
+            SocialLoginPlugin.matchesOpenAuthSessionCallback(
+                "com.example.app:/oauth2redirect?code=1",
+                "com.example.app:",
+                "com.example.app"
+            )
+        );
     }
 }
