@@ -54,9 +54,6 @@ public class PluginHttpClientTest {
             }
         };
 
-        assertThrows(
-            SocketTimeoutException.class,
-            () -> PluginHttpClient.writeBodyWithTimeout(out, new byte[] { 1 }, 50, null)
-        );
+        assertThrows(SocketTimeoutException.class, () -> PluginHttpClient.writeBodyWithTimeout(out, new byte[] { 1 }, 50, null));
     }
 }
