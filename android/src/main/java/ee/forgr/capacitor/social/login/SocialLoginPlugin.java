@@ -82,10 +82,9 @@ public class SocialLoginPlugin extends Plugin {
     static String resolveOpenAuthSessionExpectedCallbackPrefix(String authorizeUrl, String callbackURLScheme) {
         if (authorizeUrl != null && !authorizeUrl.isEmpty()) {
             try {
-                Uri authUri = Uri.parse(authorizeUrl);
-                String redirectUri = authUri.getQueryParameter("redirect_uri");
+                String redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
                 if (redirectUri == null || redirectUri.isEmpty()) {
-                    redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
+                    redirectUri = Uri.parse(authorizeUrl).getQueryParameter("redirect_uri");
                 }
                 if (redirectUri != null && !redirectUri.isEmpty()) {
                     return redirectUri;
@@ -105,8 +104,11 @@ public class SocialLoginPlugin extends Plugin {
             return false;
         }
         if (callbackURLScheme != null && expectedPrefix.equals(callbackURLScheme + ":")) {
-            Uri callback = Uri.parse(callbackUrl);
-            return callback.getScheme() != null && callback.getScheme().equalsIgnoreCase(callbackURLScheme);
+            String schemePrefix = callbackURLScheme + ":";
+            return (
+                callbackUrl.regionMatches(true, 0, schemePrefix, 0, schemePrefix.length()) &&
+                callbackUrl.length() > schemePrefix.length()
+            );
         }
         return (
             callbackUrl.equals(expectedPrefix) ||
