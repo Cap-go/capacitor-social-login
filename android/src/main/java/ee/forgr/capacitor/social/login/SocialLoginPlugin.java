@@ -17,6 +17,7 @@ import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.json.JSONArray;
 import org.json.JSONException;
