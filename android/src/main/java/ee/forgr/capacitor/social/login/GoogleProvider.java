@@ -279,7 +279,7 @@ public class GoogleProvider implements SocialProvider {
                 new PluginHttpClient.Callback() {
                     @Override
                     public void onFailure(IOException e) {
-                        completer.set(false);
+                        completer.setException(e);
                     }
 
                     @Override
