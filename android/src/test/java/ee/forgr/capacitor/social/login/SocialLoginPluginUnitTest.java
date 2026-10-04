@@ -76,4 +76,17 @@ public class SocialLoginPluginUnitTest {
     public void getJwtPayloadSegmentRejectsTokenWithoutDotSeparator() {
         assertThrows(JSONException.class, () -> SocialLoginPlugin.getJwtPayloadSegment("not-a-jwt"));
     }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixUsesRedirectUriQueryParam() {
+        String authorizeUrl =
+            "https://login.example.com/oauth2/authorize?client_id=app&redirect_uri=myapp%3A%2F%2Fauth%2Fcallback&response_type=code";
+
+        assertEquals("myapp://auth/callback", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix(authorizeUrl, "myapp"));
+    }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixFallsBackToScheme() {
+        assertEquals("myapp://", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix("https://login.example.com", "myapp"));
+    }
 }

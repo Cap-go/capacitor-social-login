@@ -56,6 +56,7 @@ import {
   TIKTOK_PROVIDER_ID,
 } from './tiktok-provider';
 import { TwitterSocialLogin } from './twitter-provider';
+import { nextPopupClosePollState, type PopupClosePollState } from './web-auth-popup-close';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = OAUTH_STATE_KEY;
@@ -634,9 +635,14 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         }
       });
 
+      let popupClosePollState: PopupClosePollState = { graceStartedAtMs: null };
+
       pollTimer = window.setInterval(() => {
         try {
-          if (activePopup.closed) {
+          const closed = activePopup.closed;
+          const pollResult = nextPopupClosePollState(closed, popupClosePollState, Date.now());
+          popupClosePollState = pollResult.state;
+          if (pollResult.shouldCancel) {
             finish(() => reject(createUserCancelledError('User cancelled authorization')));
           }
         } catch {

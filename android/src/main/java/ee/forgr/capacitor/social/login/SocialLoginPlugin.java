@@ -37,6 +37,7 @@ public class SocialLoginPlugin extends Plugin {
     private String openSecureWindowRedirectUri;
     private PluginCall openAuthSessionSavedCall;
     private String openAuthSessionCallbackScheme;
+    private String openAuthSessionExpectedCallbackPrefix;
     private boolean openAuthSessionPaused;
     private long openAuthSessionLaunchTimeMs;
     private Handler openAuthSessionHandler;
@@ -73,8 +74,27 @@ public class SocialLoginPlugin extends Plugin {
         cancelOpenAuthSessionTimeout();
         openAuthSessionSavedCall = null;
         openAuthSessionCallbackScheme = null;
+        openAuthSessionExpectedCallbackPrefix = null;
         openAuthSessionPaused = false;
         openAuthSessionLaunchTimeMs = 0L;
+    }
+
+    static String resolveOpenAuthSessionExpectedCallbackPrefix(String authorizeUrl, String callbackURLScheme) {
+        if (authorizeUrl != null && !authorizeUrl.isEmpty()) {
+            try {
+                Uri authUri = Uri.parse(authorizeUrl);
+                String redirectUri = authUri.getQueryParameter("redirect_uri");
+                if (redirectUri != null && !redirectUri.isEmpty()) {
+                    return Uri.decode(redirectUri);
+                }
+            } catch (Exception ignored) {
+                // fall back to scheme prefix below
+            }
+        }
+        if (callbackURLScheme == null || callbackURLScheme.isEmpty()) {
+            return null;
+        }
+        return callbackURLScheme + "://";
     }
 
     private void scheduleOpenAuthSessionTimeout() {
@@ -776,6 +796,7 @@ public class SocialLoginPlugin extends Plugin {
 
         openAuthSessionSavedCall = call;
         openAuthSessionCallbackScheme = callbackURLScheme;
+        openAuthSessionExpectedCallbackPrefix = resolveOpenAuthSessionExpectedCallbackPrefix(url, callbackURLScheme);
         openAuthSessionPaused = false;
         openAuthSessionLaunchTimeMs = System.currentTimeMillis();
 
@@ -869,11 +890,7 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
-        if (
-            openAuthSessionCallbackScheme != null &&
-            uri.getScheme() != null &&
-            openAuthSessionCallbackScheme.equalsIgnoreCase(uri.getScheme())
-        ) {
+        if (openAuthSessionExpectedCallbackPrefix != null && uri.toString().startsWith(openAuthSessionExpectedCallbackPrefix)) {
             try {
                 if (openAuthSessionSavedCall != null) {
                     final JSObject ret = new JSObject();

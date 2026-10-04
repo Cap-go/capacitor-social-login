@@ -467,14 +467,6 @@ public class OAuth2Provider implements SocialProvider {
                         return;
                     }
 
-                    if (authBrowserSessionGuard != null && authBrowserSessionGuard.isAnotherSessionInProgress()) {
-                        call.reject("Another auth session is already in progress");
-                        return;
-                    }
-
-                    pendingState = new OAuth2PendingState(providerId, finalState, finalCodeVerifier, finalRedirect, finalLoginScope);
-                    pendingCall = call;
-
                     Uri.Builder builder = Uri.parse(resolved.authorizationBaseUrl)
                         .buildUpon()
                         .appendQueryParameter("response_type", resolved.responseType)
@@ -525,24 +517,40 @@ public class OAuth2Provider implements SocialProvider {
                         Log.d(LOG_TAG, "Opening authorization URL: " + builder.build().toString());
                     }
 
-                    pendingUseCustomTabs = resolved.androidUseCustomTabs;
-                    if (resolved.androidUseCustomTabs) {
-                        if (resolved.logsEnabled) {
-                            Log.d(LOG_TAG, "Using Custom Tabs for OAuth2 authorization");
+                    final String authUrl = builder.build().toString();
+                    final OAuth2PendingState loginState = new OAuth2PendingState(
+                        providerId,
+                        finalState,
+                        finalCodeVerifier,
+                        finalRedirect,
+                        finalLoginScope
+                    );
+                    final boolean useCustomTabs = resolved.androidUseCustomTabs;
+
+                    activity.runOnUiThread(() -> {
+                        if (authBrowserSessionGuard != null && authBrowserSessionGuard.isAnotherSessionInProgress()) {
+                            call.reject("Another auth session is already in progress");
+                            return;
                         }
-                        final String authUrl = builder.build().toString();
-                        activity.runOnUiThread(() -> {
+
+                        pendingState = loginState;
+                        pendingCall = call;
+                        pendingUseCustomTabs = useCustomTabs;
+
+                        if (useCustomTabs) {
+                            if (resolved.logsEnabled) {
+                                Log.d(LOG_TAG, "Using Custom Tabs for OAuth2 authorization");
+                            }
                             if (!launchCustomTabs(authUrl)) {
-                                // No Custom Tabs browser — fall back to embedded WebView
                                 pendingUseCustomTabs = false;
                                 clearPersistedCustomTabsState();
                                 launchWebViewActivity(authUrl, finalRedirect);
                             }
-                        });
-                        return;
-                    }
+                            return;
+                        }
 
-                    activity.runOnUiThread(() -> launchWebViewActivity(builder.build().toString(), finalRedirect));
+                        launchWebViewActivity(authUrl, finalRedirect);
+                    });
                 }
 
                 @Override
