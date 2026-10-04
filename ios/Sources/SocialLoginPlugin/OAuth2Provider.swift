@@ -65,6 +65,8 @@ struct OAuth2ProviderConfig {
 }
 
 class OAuth2Provider: NSObject {
+    /// Capacitor bridge view controller, used to present in the scene that started the call.
+    weak var hostViewController: UIViewController?
     private var providers: [String: OAuth2ProviderConfig] = [:]
     private var currentSession: ASWebAuthenticationSession?
     private var currentState: String?
@@ -756,11 +758,7 @@ class OAuth2Provider: NSObject {
 
 extension OAuth2Provider: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .filter { $0.activationState == .foregroundActive }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        return PresentationWindowResolver.window(hostViewController: hostViewController) ?? ASPresentationAnchor()
     }
 }
 

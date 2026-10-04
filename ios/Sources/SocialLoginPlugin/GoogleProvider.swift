@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 #if canImport(GoogleSignIn)
 import GoogleSignIn
@@ -11,6 +12,8 @@ enum GoogleProviderLoginType {
 
 #if canImport(GoogleSignIn)
 class GoogleProvider {
+    /// Capacitor bridge view controller, used to present in the scene that started the call.
+    weak var hostViewController: UIViewController?
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
@@ -38,11 +41,8 @@ class GoogleProvider {
             }
 
             func login() {
-                guard let presentingVc = (UIApplication.shared.connectedScenes
-                    .compactMap { $0 as? UIWindowScene }
-                    .filter { $0.activationState == .foregroundActive }
-                    .flatMap { $0.windows }
-                    .first { $0.isKeyWindow })?.rootViewController else {
+                guard let presentingVc = PresentationWindowResolver
+                        .window(hostViewController: self.hostViewController)?.rootViewController else {
                     completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                     return
                 }
@@ -249,6 +249,8 @@ class GoogleProvider {
 #else
 // Stub class when GoogleSignIn is not available
 class GoogleProvider {
+    weak var hostViewController: UIViewController?
+
     func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil, hostedDomain: String? = nil) {
         fatalError("Google Sign-In is not available. Include GoogleSignIn dependency in your Podfile.")
     }
