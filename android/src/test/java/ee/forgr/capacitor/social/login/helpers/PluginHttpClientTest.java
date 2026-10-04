@@ -4,10 +4,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
@@ -66,20 +65,25 @@ public class PluginHttpClientTest {
 
     @Test
     public void postFormTimesOutWhenServerStallsReadingBody() throws Exception {
-        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
-        server.createContext("/", (exchange) -> {
-            try {
-                Thread.sleep(60_000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } finally {
-                exchange.close();
-            }
-        });
-        server.start();
-        int port = server.getAddress().getPort();
-        String url = "http://127.0.0.1:" + port + "/";
+        ServerSocket serverSocket = new ServerSocket(0);
+        int port = serverSocket.getLocalPort();
+        Thread serverThread = new Thread(
+            () -> {
+                try {
+                    serverSocket.accept();
+                    Thread.sleep(120_000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (IOException ignored) {
+                    // Server socket closed after the client times out.
+                }
+            },
+            "PluginHttpClientTest-server"
+        );
+        serverThread.setDaemon(true);
+        serverThread.start();
 
+        String url = "http://127.0.0.1:" + port + "/";
         PluginHttpClient client = new PluginHttpClient(200, 200, 200);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<IOException> failure = new AtomicReference<>();
@@ -103,7 +107,7 @@ public class PluginHttpClientTest {
         );
 
         assertTrue(latch.await(15, TimeUnit.SECONDS));
-        server.stop(0);
+        serverSocket.close();
         assertNotNull(failure.get());
         assertTrue(failure.get() instanceof SocketTimeoutException);
     }
