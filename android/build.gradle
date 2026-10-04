@@ -123,6 +123,7 @@ dependencies {
     // Test dependencies (always included)
     testImplementation "junit:junit:$junitVersion"
     testImplementation "org.json:json:20240303"
+    testImplementation 'org.robolectric:robolectric:4.14.1'
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
 }
