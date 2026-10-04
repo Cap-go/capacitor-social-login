@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
@@ -69,9 +70,9 @@ public class PluginHttpClientTest {
         int port = serverSocket.getLocalPort();
         Thread serverThread = new Thread(
             () -> {
-                try {
-                    serverSocket.accept();
-                    Thread.sleep(120_000);
+                try (Socket socket = serverSocket.accept()) {
+                    // Never read the request body so the client write blocks once the socket buffer fills.
+                    Thread.sleep(2_000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } catch (IOException ignored) {
@@ -84,31 +85,38 @@ public class PluginHttpClientTest {
         serverThread.start();
 
         String url = "http://127.0.0.1:" + port + "/";
-        PluginHttpClient client = new PluginHttpClient(200, 200, 200);
+        // Read timeout is longer than write timeout so a stalled upload fails on write, not read.
+        PluginHttpClient client = new PluginHttpClient(200, 200, 5_000);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<IOException> failure = new AtomicReference<>();
 
-        client.enqueuePostForm(
-            url,
-            Collections.singletonMap("grant_type", "client_credentials"),
-            null,
-            new PluginHttpClient.Callback() {
-                @Override
-                public void onFailure(IOException e) {
-                    failure.set(e);
-                    latch.countDown();
-                }
+        try {
+            String largeField = "x".repeat(512 * 1024);
+            client.enqueuePostForm(
+                url,
+                Collections.singletonMap("grant_type", largeField),
+                null,
+                new PluginHttpClient.Callback() {
+                    @Override
+                    public void onFailure(IOException e) {
+                        failure.set(e);
+                        latch.countDown();
+                    }
 
-                @Override
-                public void onResponse(int code, String body) {
-                    latch.countDown();
+                    @Override
+                    public void onResponse(int code, String body) {
+                        latch.countDown();
+                    }
                 }
-            }
-        );
+            );
 
-        assertTrue(latch.await(15, TimeUnit.SECONDS));
-        serverSocket.close();
-        assertNotNull(failure.get());
-        assertTrue(failure.get() instanceof SocketTimeoutException);
+            assertTrue(latch.await(15, TimeUnit.SECONDS));
+            assertNotNull(failure.get());
+            assertTrue(failure.get() instanceof SocketTimeoutException);
+        } finally {
+            serverSocket.close();
+            serverThread.interrupt();
+            serverThread.join(2_000);
+        }
     }
 }
