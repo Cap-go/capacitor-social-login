@@ -18,12 +18,18 @@ enum PresentationWindowResolver {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
         for state in [UIScene.ActivationState.foregroundActive, .foregroundInactive] {
             let windows = scenes.filter { $0.activationState == state }.flatMap { $0.windows }
-            if let keyWindow = windows.first(where: { $0.isKeyWindow }) ?? windows.first {
-                return keyWindow
+            if let window = preferredWindow(from: windows) {
+                return window
             }
         }
 
-        let appWindows = UIApplication.shared.windows
-        return appWindows.first(where: { $0.isKeyWindow }) ?? appWindows.first
+        return preferredWindow(from: UIApplication.shared.windows)
+    }
+
+    private static func preferredWindow(from windows: [UIWindow]) -> UIWindow? {
+        if let keyWindow = windows.first(where: { $0.isKeyWindow }) {
+            return keyWindow
+        }
+        return windows.first(where: { !$0.isHidden && $0.alpha > 0 })
     }
 }

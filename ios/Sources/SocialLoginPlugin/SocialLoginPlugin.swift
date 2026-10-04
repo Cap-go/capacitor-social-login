@@ -480,6 +480,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Apple Sign-In provider is disabled in capacitor.config")
                 return
             }
+            apple.hostViewController = self.bridge?.viewController
             apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -489,6 +490,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 self.handleLoginResult(result, call: call)
             }
         case "telegram":
+            telegram.hostViewController = self.bridge?.viewController
             telegram.login(payload: payload) { (result: Result<TelegramLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
