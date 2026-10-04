@@ -533,29 +533,74 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
     }
     this.webAuthPopupInProgress = true;
 
-    const w = 600;
-    const h = 550;
-    const settings = [
-      ['width', w],
-      ['height', h],
-      ['left', screen.width / 2 - w / 2],
-      ['top', screen.height / 2 - h / 2],
-    ]
-      .map((x) => x.join('='))
-      .join(',');
+    let popup: Window | null = null;
+    let bc: BroadcastChannel | null = null;
+    let pollTimer = 0;
+    let timeoutTimer = 0;
 
-    const popup = window.open(options.url, 'Authorization', settings);
-    if (!popup) {
+    const releasePopupGuard = () => {
       this.webAuthPopupInProgress = false;
-      return Promise.reject(new Error('Unable to open authorization popup. Allow popups for this origin.'));
+      if (pollTimer) {
+        window.clearInterval(pollTimer);
+        pollTimer = 0;
+      }
+      if (timeoutTimer) {
+        window.clearTimeout(timeoutTimer);
+        timeoutTimer = 0;
+      }
+      if (bc) {
+        try {
+          bc.close();
+        } catch {
+          // ignore close errors
+        }
+        bc = null;
+      }
+    };
+
+    try {
+      const w = 600;
+      const h = 550;
+      const settings = [
+        ['width', w],
+        ['height', h],
+        ['left', screen.width / 2 - w / 2],
+        ['top', screen.height / 2 - h / 2],
+      ]
+        .map((x) => x.join('='))
+        .join(',');
+
+      popup = window.open(options.url, 'Authorization', settings);
+      if (!popup) {
+        releasePopupGuard();
+        return Promise.reject(new Error('Unable to open authorization popup. Allow popups for this origin.'));
+      }
+      if (typeof popup.focus === 'function') {
+        popup.focus();
+      }
+
+      const channelName = options.broadcastChannelName ?? 'oauth-channel';
+      bc = new BroadcastChannel(channelName);
+    } catch (error) {
+      releasePopupGuard();
+      if (popup && !popup.closed) {
+        try {
+          popup.close();
+        } catch {
+          // ignore cross-origin close errors
+        }
+      }
+      throw error;
     }
-    if (typeof popup.focus === 'function') {
-      popup.focus();
+
+    const activePopup = popup;
+    const activeBc = bc;
+    if (!activeBc) {
+      releasePopupGuard();
+      return Promise.reject(new Error('Unable to open authorization channel'));
     }
 
     return new Promise((resolve, reject) => {
-      const channelName = options.broadcastChannelName ?? 'oauth-channel';
-      const bc = new BroadcastChannel(channelName);
       let settled = false;
       const prefixes = options.redirectPrefixes ?? (options.redirectPrefix != null ? [options.redirectPrefix] : []);
 
@@ -564,14 +609,11 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
           return;
         }
         settled = true;
-        this.webAuthPopupInProgress = false;
-        window.clearInterval(pollTimer);
-        window.clearTimeout(timeoutTimer);
-        bc.close();
+        releasePopupGuard();
         handler();
       };
 
-      bc.addEventListener('message', (event) => {
+      activeBc.addEventListener('message', (event) => {
         const data = typeof event.data === 'string' ? event.data : String(event.data ?? '');
         if (prefixes.some((prefix) => data.startsWith(prefix))) {
           finish(() => resolve(data));
@@ -592,13 +634,18 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
         }
       });
 
-      const pollTimer = window.setInterval(() => {
-        if (popup.closed) {
-          finish(() => reject(createUserCancelledError('User cancelled authorization')));
+      pollTimer = window.setInterval(() => {
+        try {
+          if (activePopup.closed) {
+            finish(() => reject(createUserCancelledError('User cancelled authorization')));
+          }
+        } catch {
+          window.clearInterval(pollTimer);
+          pollTimer = 0;
         }
       }, 500);
 
-      const timeoutTimer = window.setTimeout(() => {
+      timeoutTimer = window.setTimeout(() => {
         finish(() => reject(new Error('The sign-in flow timed out')));
       }, 5 * 60000);
     });

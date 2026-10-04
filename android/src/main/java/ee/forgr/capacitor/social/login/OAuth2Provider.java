@@ -54,6 +54,10 @@ public class OAuth2Provider implements SocialProvider {
         void launchForResult(Intent intent, int requestCode);
     }
 
+    public interface AuthBrowserSessionGuard {
+        boolean isAnotherSessionInProgress();
+    }
+
     private final Activity activity;
     private final Context context;
     private final OkHttpClient httpClient;
@@ -65,9 +69,14 @@ public class OAuth2Provider implements SocialProvider {
     private OAuth2PendingState pendingState;
     private boolean pendingUseCustomTabs;
     private ActivityLauncher activityLauncher;
+    private AuthBrowserSessionGuard authBrowserSessionGuard;
 
     public void setActivityLauncher(ActivityLauncher launcher) {
         this.activityLauncher = launcher;
+    }
+
+    public void setAuthBrowserSessionGuard(AuthBrowserSessionGuard guard) {
+        this.authBrowserSessionGuard = guard;
     }
 
     public PluginCall getPendingCall() {
@@ -455,6 +464,11 @@ public class OAuth2Provider implements SocialProvider {
                 public void onSuccess(OAuth2ProviderConfig resolved) {
                     if (resolved.authorizationBaseUrl == null || resolved.authorizationBaseUrl.isEmpty()) {
                         call.reject("Missing authorization endpoint (discovery may have failed)");
+                        return;
+                    }
+
+                    if (authBrowserSessionGuard != null && authBrowserSessionGuard.isAnotherSessionInProgress()) {
+                        call.reject("Another auth session is already in progress");
                         return;
                     }
 

@@ -43,8 +43,19 @@ public class SocialLoginPlugin extends Plugin {
     private Runnable openAuthSessionTimeoutRunnable;
     private Uri pendingOAuth2RedirectUri;
 
-    private boolean rejectIfAnotherAuthBrowserSessionPending(PluginCall call) {
+    private boolean isAnotherAuthBrowserSessionInProgress() {
         if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
+            return true;
+        }
+        SocialProvider oauth2 = socialProviderHashMap.get("oauth2");
+        if (oauth2 instanceof OAuth2Provider) {
+            return ((OAuth2Provider) oauth2).getPendingCall() != null;
+        }
+        return false;
+    }
+
+    private boolean rejectIfAnotherAuthBrowserSessionPending(PluginCall call) {
+        if (isAnotherAuthBrowserSessionInProgress()) {
             call.reject("Another auth session is already in progress");
             return true;
         }
@@ -243,6 +254,7 @@ public class SocialLoginPlugin extends Plugin {
                     return;
                 }
                 this.socialProviderHashMap.put("oauth2", oauth2Provider);
+                oauth2Provider.setAuthBrowserSessionGuard(this::isAnotherAuthBrowserSessionInProgress);
                 oauth2Provider.setActivityLauncher((intent, requestCode) -> {
                     PluginCall loginCall = oauth2Provider.getPendingCall();
                     if (loginCall != null) {
@@ -300,6 +312,10 @@ public class SocialLoginPlugin extends Plugin {
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
+            return;
+        }
+
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
             return;
         }
 
