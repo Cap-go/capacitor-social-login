@@ -27,9 +27,7 @@ enum PresentationWindowResolver {
     }
 
     private static func preferredWindow(from windows: [UIWindow]) -> UIWindow? {
-        if let keyWindow = windows.first(where: { $0.isKeyWindow }) {
-            return keyWindow
-        }
-        return windows.first(where: { !$0.isHidden && $0.alpha > 0 })
+        let visible = windows.filter { !$0.isHidden && $0.alpha > 0 }
+        return visible.first(where: { $0.isKeyWindow }) ?? visible.first
     }
 }
