@@ -83,10 +83,10 @@ public class SocialLoginPlugin extends Plugin {
     static String resolveOpenAuthSessionExpectedCallbackPrefix(String authorizeUrl, String callbackURLScheme) {
         if (authorizeUrl != null && !authorizeUrl.isEmpty()) {
             try {
-                Uri authUri = Uri.parse(authorizeUrl);
-                String redirectUri = authUri.getQueryParameter("redirect_uri");
+                String redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
                 if (redirectUri == null || redirectUri.isEmpty()) {
-                    redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
+                    Uri authUri = Uri.parse(authorizeUrl);
+                    redirectUri = authUri.getQueryParameter("redirect_uri");
                 }
                 if (redirectUri != null && !redirectUri.isEmpty()) {
                     return redirectUri;
