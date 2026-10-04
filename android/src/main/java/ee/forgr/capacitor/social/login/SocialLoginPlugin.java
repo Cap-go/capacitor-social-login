@@ -123,8 +123,17 @@ public class SocialLoginPlugin extends Plugin {
             return null;
         }
         String query = authorizeUrl.substring(queryStart + 1);
-        Uri parsed = Uri.parse("https://callback.local/?" + query);
-        return parsed.getQueryParameter("redirect_uri");
+        for (String part : query.split("&")) {
+            int equals = part.indexOf('=');
+            if (equals <= 0) {
+                continue;
+            }
+            if (!"redirect_uri".equals(part.substring(0, equals))) {
+                continue;
+            }
+            return Uri.decode(part.substring(equals + 1));
+        }
+        return null;
     }
 
     private void scheduleOpenAuthSessionTimeout() {
