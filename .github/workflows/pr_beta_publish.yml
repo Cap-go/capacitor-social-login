@@ -160,6 +160,7 @@ jobs:
           ref: ${{ steps.pr.outputs.head_sha }}
           fetch-depth: 0
           filter: blob:none
+          persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
 
