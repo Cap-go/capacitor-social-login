@@ -14,7 +14,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
+@RunWith(RobolectricTestRunner.class)
+@Config(manifest = Config.NONE, sdk = 28)
 public class PluginHttpClientTest {
 
     @Test
@@ -91,7 +96,7 @@ public class PluginHttpClientTest {
         AtomicReference<IOException> failure = new AtomicReference<>();
 
         try {
-            String largeField = "x".repeat(512 * 1024);
+            String largeField = "x".repeat(1024 * 1024);
             client.enqueuePostForm(
                 url,
                 Collections.singletonMap("grant_type", largeField),

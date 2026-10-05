@@ -135,12 +135,12 @@ public final class PluginHttpClient {
         }
 
         if ("POST".equals(method) && formFields != null) {
+            byte[] body = encodeFormBody(formFields);
             connection.setDoOutput(true);
+            connection.setFixedLengthStreamingMode(body.length);
             if (headers == null || !containsHeaderIgnoreCase(headers, "Content-Type")) {
                 connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             }
-            byte[] body = encodeFormBody(formFields);
-            connection.setFixedLengthStreamingMode(body.length);
             try (OutputStream out = connection.getOutputStream()) {
                 writeBodyWithTimeout(out, body, writeTimeoutMs, connection);
             }
@@ -185,6 +185,11 @@ public final class PluginHttpClient {
             writeThread.interrupt();
             if (connection != null) {
                 connection.disconnect();
+            }
+            try {
+                writeThread.join(1_000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
             throw new SocketTimeoutException("Request body write timed out after " + writeTimeoutMs + "ms");
         }
