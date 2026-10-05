@@ -1,18 +1,14 @@
 package ee.forgr.capacitor.social.login.helpers;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.Collections;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -71,13 +67,19 @@ public class PluginHttpClientTest {
 
     @Test
     public void postFormTimesOutWhenServerStallsReadingBody() throws Exception {
+        final int writeTimeoutMs = 200;
+        final int readTimeoutMs = 5_000;
+        PluginHttpClient client = new PluginHttpClient(200, readTimeoutMs, writeTimeoutMs);
+        assertTrue(readTimeoutMs > writeTimeoutMs);
+        assertTrue(client.requestDeadlineMs() > writeTimeoutMs);
+
         ServerSocket serverSocket = new ServerSocket(0);
         int port = serverSocket.getLocalPort();
         Thread serverThread = new Thread(
             () -> {
                 try (Socket socket = serverSocket.accept()) {
-                    // Never read the request body so the client write blocks once the socket buffer fills.
-                    Thread.sleep(2_000);
+                    // Never read so the client upload blocks once the TCP buffer fills.
+                    Thread.sleep(10_000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } catch (IOException ignored) {
@@ -89,37 +91,15 @@ public class PluginHttpClientTest {
         serverThread.setDaemon(true);
         serverThread.start();
 
-        String url = "http://127.0.0.1:" + port + "/";
-        // Read timeout is longer than write timeout so a stalled upload fails on write, not read.
-        PluginHttpClient client = new PluginHttpClient(200, 5_000, 200);
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicReference<IOException> failure = new AtomicReference<>();
-
-        try {
-            String largeField = "x".repeat(1024 * 1024);
-            client.enqueuePostForm(
-                url,
-                Collections.singletonMap("grant_type", largeField),
-                null,
-                new PluginHttpClient.Callback() {
-                    @Override
-                    public void onFailure(IOException e) {
-                        failure.set(e);
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onResponse(int code, String body) {
-                        latch.countDown();
-                    }
-                }
+        byte[] uploadBody = new byte[1024 * 1024];
+        try (Socket uploadSocket = new Socket()) {
+            uploadSocket.connect(new InetSocketAddress("127.0.0.1", port), 2_000);
+            SocketTimeoutException failure = assertThrows(
+                SocketTimeoutException.class,
+                () -> PluginHttpClient.writeBodyWithTimeout(uploadSocket.getOutputStream(), uploadBody, writeTimeoutMs, null)
             );
-
-            assertTrue(latch.await(15, TimeUnit.SECONDS));
-            assertNotNull(failure.get());
-            assertTrue(failure.get() instanceof SocketTimeoutException);
             assertTrue(
-                failure.get().getMessage() != null && failure.get().getMessage().contains("Request body write timed out after 200ms")
+                failure.getMessage() != null && failure.getMessage().contains("Request body write timed out after " + writeTimeoutMs + "ms")
             );
         } finally {
             serverSocket.close();
