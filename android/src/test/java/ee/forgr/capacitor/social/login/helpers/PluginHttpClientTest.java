@@ -10,12 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
-@RunWith(RobolectricTestRunner.class)
-@Config(manifest = Config.NONE, sdk = 28)
 public class PluginHttpClientTest {
 
     @Test
@@ -93,10 +88,10 @@ public class PluginHttpClientTest {
 
         byte[] uploadBody = new byte[1024 * 1024];
         try (Socket uploadSocket = new Socket()) {
+            uploadSocket.setSendBufferSize(4_096);
             uploadSocket.connect(new InetSocketAddress("127.0.0.1", port), 2_000);
-            SocketTimeoutException failure = assertThrows(
-                SocketTimeoutException.class,
-                () -> PluginHttpClient.writeBodyWithTimeout(uploadSocket.getOutputStream(), uploadBody, writeTimeoutMs, null)
+            SocketTimeoutException failure = assertThrows(SocketTimeoutException.class, () ->
+                PluginHttpClient.writeBodyWithTimeout(uploadSocket.getOutputStream(), uploadBody, writeTimeoutMs, null)
             );
             assertTrue(
                 failure.getMessage() != null && failure.getMessage().contains("Request body write timed out after " + writeTimeoutMs + "ms")
