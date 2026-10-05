@@ -91,6 +91,14 @@ public class SocialLoginPluginUnitTest {
     }
 
     @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixIgnoresAuthorizeUrlFragment() {
+        String authorizeUrl =
+            "https://login.example.com/oauth2/authorize?redirect_uri=myapp%3A%2F%2Fauth%2Fcallback&response_type=code#frag";
+
+        assertEquals("myapp://auth/callback", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix(authorizeUrl, "myapp"));
+    }
+
+    @Test
     public void resolveOpenAuthSessionExpectedCallbackPrefixDecodesRedirectUriOnce() {
         String authorizeUrl =
             "https://login.example.com/oauth2/authorize?redirect_uri=com.example.app%3A%2Foauth2redirect&response_type=code";

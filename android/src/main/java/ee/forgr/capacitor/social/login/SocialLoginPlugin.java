@@ -124,6 +124,10 @@ public class SocialLoginPlugin extends Plugin {
             return null;
         }
         String query = authorizeUrl.substring(queryStart + 1);
+        int fragmentStart = query.indexOf('#');
+        if (fragmentStart >= 0) {
+            query = query.substring(0, fragmentStart);
+        }
         for (String part : query.split("&")) {
             int equals = part.indexOf('=');
             if (equals <= 0) {
