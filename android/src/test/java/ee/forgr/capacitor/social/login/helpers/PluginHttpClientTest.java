@@ -86,7 +86,7 @@ public class PluginHttpClientTest {
 
         String url = "http://127.0.0.1:" + port + "/";
         // Read timeout is longer than write timeout so a stalled upload fails on write, not read.
-        PluginHttpClient client = new PluginHttpClient(200, 200, 5_000);
+        PluginHttpClient client = new PluginHttpClient(200, 5_000, 200);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<IOException> failure = new AtomicReference<>();
 
@@ -113,6 +113,9 @@ public class PluginHttpClientTest {
             assertTrue(latch.await(15, TimeUnit.SECONDS));
             assertNotNull(failure.get());
             assertTrue(failure.get() instanceof SocketTimeoutException);
+            assertTrue(
+                failure.get().getMessage() != null && failure.get().getMessage().contains("Request body write timed out after 200ms")
+            );
         } finally {
             serverSocket.close();
             serverThread.interrupt();

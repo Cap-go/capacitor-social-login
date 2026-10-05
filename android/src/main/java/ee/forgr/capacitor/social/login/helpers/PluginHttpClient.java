@@ -140,6 +140,7 @@ public final class PluginHttpClient {
                 connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             }
             byte[] body = encodeFormBody(formFields);
+            connection.setFixedLengthStreamingMode(body.length);
             try (OutputStream out = connection.getOutputStream()) {
                 writeBodyWithTimeout(out, body, writeTimeoutMs, connection);
             }
