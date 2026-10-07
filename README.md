@@ -1,10 +1,28 @@
 # @capgo/capacitor-social-login
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-social-login" alt="Capgo - Instant updates for Capacitor" /></a>
+
+Add Google, Apple, Facebook and other social sign-ins to your Capacitor app with one plugin and one API across iOS, Android and the web.
+
+<a href="https://capgo.app/?ref=plugin_social_login"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-social-login" alt="Capgo - Instant updates for Capacitor" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_social_login"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_social_login"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: open-source live updates for Ionic and Capacitor apps. Ship OTA fixes and features instantly, without waiting for app store review.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_social_login">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
+  <p><a href="https://capgo.app/consulting/?ref=plugin_social_login">Missing a feature? We'll build the plugin for you 💪</a></p>
 </div>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Cap-go/capacitor-social-login/main/assets/github-social-preview.png" alt="@capgo/capacitor-social-login for Capacitor apps" width="300" />
+</p>
+
+## Key features
+
+- **Many providers**: Google, Apple, Facebook, Twitter (X), LinkedIn, TikTok, Telegram and generic OAuth2.
+- **One API**: `initialize()`, `login()`, `logout()`, `isLoggedIn()` and `getAuthorizationCode()`.
+- **Tokens**: `refresh()`, `refreshToken()`, `decodeIdToken()` and expiry helpers.
+- **Native sign-in**: Sign in with Apple, Google Sign-In and the Facebook SDK on iOS, Credential Manager on Android.
+- **Web OAuth**: `handleRedirectCallback()` and `openSecureWindow()` for redirect and popup flows.
+- **Platforms**: iOS, Android and Web. Check the docs for each provider's setup on each platform.
 
 ## Fork Information
 This plugin is a fork of [@codetrix-studio/capacitor-google-auth](https://github.com/CodetrixStudio/CapacitorGoogleAuth). We created this fork because the original plugin is "virtually" archived with no way to reach the maintainer in any medium, and only one person (@reslear) has write rights but doesn't handle native code.
@@ -117,7 +135,7 @@ export default config;
 - **Important**: Disabling a provider (`false`) will make it unavailable at runtime, regardless of whether it actually adds any dependencies. The provider will be disabled even if it uses only system APIs.
 - This configuration only affects iOS and Android platforms; it does not affect the web platform.
 - **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
-- **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package — no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
+- **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package, no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
 - **Apple (iOS)**: `apple: true` enables Sign in with Apple (AuthenticationServices). Redirect URL and backend token exchange use Foundation URLSession, so no third-party networking library is required. `apple: false` disables Apple authentication at runtime, including basic Sign in with Apple, consistent with the rule above that `false` providers are unavailable at runtime.
 - Apple Sign-In on Android uses OAuth flow without external SDK dependencies
 - Twitter uses standard OAuth 2.0 flow without external SDK dependencies
@@ -441,15 +459,15 @@ You need **two kinds** of OAuth 2.0 client IDs:
 | Client type | Used for | Where it goes |
 |-------------|----------|---------------|
 | **Web application** | Server / ID token audience | `webClientId` in `SocialLogin.initialize()` |
-| **Android** (one per signing key) | Proves your APK is allowed to call Google | Google Cloud Console only — **do not** pass this ID to `webClientId` |
+| **Android** (one per signing key) | Proves your APK is allowed to call Google | Google Cloud Console only, **do not** pass this ID to `webClientId` |
 
 Common mistake: using the **Android** client ID as `webClientId`. Credential Manager requires the **Web** client ID there. The Android client only needs the correct **package name + SHA-1** registered in the console.
 
 Create one Android OAuth client for **each** certificate that signs builds you test:
 
-- **Debug** — from `./gradlew signingReport` (debug variant)
-- **Release** — from the APK/AAB you actually install (see below)
-- **Play App Signing** — from Play Console → **App integrity** → **App signing key certificate** (required for Play Store builds even if your upload key SHA-1 is already registered)
+- **Debug**, from `./gradlew signingReport` (debug variant)
+- **Release**, from the APK/AAB you actually install (see below)
+- **Play App Signing**, from Play Console → **App integrity** → **App signing key certificate** (required for Play Store builds even if your upload key SHA-1 is already registered)
 
 The `applicationId` in `android/app/build.gradle` must match the Android OAuth client package name exactly (including any `.debug` suffix if you use one).
 
@@ -464,13 +482,13 @@ This almost always means Google rejected the combination of **installed APK sign
 1. Confirm `webClientId` is the **Web application** client ID (ends with `.apps.googleusercontent.com`).
 2. Run the app, reproduce the failure, and read Logcat (`GoogleProvider`) for `signingSha1=` and `package=`.
 3. In [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), open your **Android** OAuth client and verify that **exact** package name and SHA-1 are listed.
-4. If testing a **release** build, register the SHA-1 from that build — not only the debug keystore.
+4. If testing a **release** build, register the SHA-1 from that build, not only the debug keystore.
 5. If the app is distributed via **Play Store**, also register the **Play App Signing** SHA-1.
 6. Ensure Web and Android clients live in the **same** Google Cloud project.
 7. If consent screen is in Testing, confirm the Google account is a **test user**.
 8. Wait and retry after console changes.
 
-`USER_CANCELLED` after picking an account on a misconfigured debug build can still be a SHA-1 / client-ID mismatch — fix the console setup above first.
+`USER_CANCELLED` after picking an account on a misconfigured debug build can still be a SHA-1 / client-ID mismatch, fix the console setup above first.
 
 ##### Error `[16] Account reauth failed`
 
@@ -480,14 +498,14 @@ This error comes from Google Credential Manager when re-authenticating a cached 
 
 If the retry still fails for specific users, check:
 
-1. **OAuth consent screen** — must be **External** (Internal / Workspace-only blocks consumer `@gmail.com` accounts).
-2. **Testing mode** — every failing Google account must be listed under **Audience → Test users**.
-3. **Sign in with Google setting** — the user may have disabled your app under Google Account → **Sign in with Google**.
-4. **Family Link / supervised accounts** — ensure `filterByAuthorizedAccounts` is not explicitly set to `true` (the default is `false`; see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
-5. **Play App Signing SHA-1** — still required for Play Store builds even when most users succeed (some device/account paths are stricter).
-6. **Explicit override** — if your app sets `filterByAuthorizedAccounts: true`, set it back to `false` for affected users; the default already skips authorized-account filtering.
+1. **OAuth consent screen**, must be **External** (Internal / Workspace-only blocks consumer `@gmail.com` accounts).
+2. **Testing mode**, every failing Google account must be listed under **Audience → Test users**.
+3. **Sign in with Google setting**, the user may have disabled your app under Google Account → **Sign in with Google**.
+4. **Family Link / supervised accounts**, ensure `filterByAuthorizedAccounts` is not explicitly set to `true` (the default is `false`; see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
+5. **Play App Signing SHA-1**, still required for Play Store builds even when most users succeed (some device/account paths are stricter).
+6. **Explicit override**, if your app sets `filterByAuthorizedAccounts: true`, set it back to `false` for affected users; the default already skips authorized-account filtering.
 
-After a failure, filter Logcat for `GoogleProvider` — the plugin logs `package`, `signingSha1`, and `webClientId`.
+After a failure, filter Logcat for `GoogleProvider`, the plugin logs `package`, `signingSha1`, and `webClientId`.
 
 ##### Extract SHA-1 from the build you install
 
@@ -860,7 +878,7 @@ Then run `npx cap sync`. The plugin uses stub classes instead of the real Facebo
 
 On Android, this error comes from **Google Credential Manager** when the installed APK's signing certificate, package name, or `webClientId` does not match Google Cloud Console.
 
-See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. After a failed login, filter Logcat for `GoogleProvider` — the plugin prints `package`, `signingSha1`, and `webClientId` to compare with your OAuth clients.
+See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. After a failed login, filter Logcat for `GoogleProvider`, the plugin prints `package`, `signingSha1`, and `webClientId` to compare with your OAuth clients.
 
 ### Google Sign-In `[16] Account reauth failed` (Android)
 
