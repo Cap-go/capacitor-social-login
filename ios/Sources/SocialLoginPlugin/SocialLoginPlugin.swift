@@ -471,6 +471,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
                 return
             }
+            gProvider.hostViewController = self.bridge?.viewController
             gProvider.login(payload: payload) { (result: Result<GoogleLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -479,14 +480,17 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Apple Sign-In provider is disabled in capacitor.config")
                 return
             }
+            apple.hostViewController = self.bridge?.viewController
             apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "twitter":
+            twitter.hostViewController = self.bridge?.viewController
             twitter.login(payload: payload) { (result: Result<TwitterProfileResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "telegram":
+            telegram.hostViewController = self.bridge?.viewController
             telegram.login(payload: payload) { (result: Result<TelegramLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -495,6 +499,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("providerId is required for oauth2 login")
                 return
             }
+            oauth2.hostViewController = self.bridge?.viewController
             oauth2.login(providerId: providerId, payload: payload) { (result: Result<OAuth2LoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -846,9 +851,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             if let user = response as? SocialLoginUser {
                 call.resolve([
                     "accessToken": user.accessToken,
-                    "idToken": user.idToken,
-                    "refreshToken": user.refreshToken,
-                    "expiresIn": user.expiresIn
+                    "idToken": user.idToken ?? NSNull(),
+                    "refreshToken": user.refreshToken ?? NSNull(),
+                    "expiresIn": user.expiresIn ?? NSNull()
                 ])
             } else if let twitterResponse = response as? TwitterProfileResponse {
                 call.resolve([
@@ -1019,7 +1024,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "expires": oauth2Response.accessToken.expires ?? NSNull(),
                     "refreshToken": oauth2Response.accessToken.refreshToken ?? NSNull()
                 ]
-                var oauth2Result: [String: Any] = [
+                let oauth2Result: [String: Any] = [
                     "providerId": oauth2Response.providerId,
                     "accessToken": accessToken,
                     "idToken": oauth2Response.idToken ?? NSNull(),

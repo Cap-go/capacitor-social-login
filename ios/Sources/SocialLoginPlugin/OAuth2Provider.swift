@@ -65,6 +65,8 @@ struct OAuth2ProviderConfig {
 }
 
 class OAuth2Provider: NSObject {
+    /// Capacitor bridge view controller, used to present in the scene that started the call.
+    weak var hostViewController: UIViewController?
     private var providers: [String: OAuth2ProviderConfig] = [:]
     private var currentSession: ASWebAuthenticationSession?
     private var currentState: String?
@@ -577,7 +579,7 @@ class OAuth2Provider: NSObject {
         let effectiveRefreshToken = tokenResponse.refresh_token ?? fallbackRefreshToken
 
         // Fetch resource data if configured
-        if let resourceUrl = config.resourceUrl {
+        if config.resourceUrl != nil {
             fetchResource(config: config, accessToken: tokenResponse.access_token) { [weak self] resourceResult in
                 guard let self = self else { return }
 
@@ -756,7 +758,7 @@ class OAuth2Provider: NSObject {
 
 extension OAuth2Provider: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        return PresentationWindowResolver.window(hostViewController: hostViewController) ?? ASPresentationAnchor()
     }
 }
 

@@ -49,6 +49,8 @@ struct TwitterStoredTokens: Codable {
 }
 
 class TwitterProvider: NSObject {
+    /// Capacitor bridge view controller, used to present in the scene that started the call.
+    weak var hostViewController: UIViewController?
     private var clientId: String?
     private var redirectUri: String?
     private var defaultScopes = ["tweet.read", "users.read"]
@@ -362,7 +364,7 @@ class TwitterProvider: NSObject {
 
 extension TwitterProvider: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        return UIApplication.shared.windows.first { $0.isKeyWindow } ?? ASPresentationAnchor()
+        return PresentationWindowResolver.window(hostViewController: hostViewController) ?? ASPresentationAnchor()
     }
 }
 

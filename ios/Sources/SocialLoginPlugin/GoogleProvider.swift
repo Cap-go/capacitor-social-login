@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 #if canImport(GoogleSignIn)
 import GoogleSignIn
@@ -11,6 +12,8 @@ enum GoogleProviderLoginType {
 
 #if canImport(GoogleSignIn)
 class GoogleProvider {
+    /// Capacitor bridge view controller, used to present in the scene that started the call.
+    weak var hostViewController: UIViewController?
     var configuration: GIDConfiguration!
     var forceAuthCode: Bool = false
     var additionalScopes: [String]!
@@ -38,7 +41,8 @@ class GoogleProvider {
             }
 
             func login() {
-                guard let presentingVc = UIApplication.shared.windows.first?.rootViewController else {
+                guard let presentingVc = PresentationWindowResolver
+                        .window(hostViewController: self.hostViewController)?.rootViewController else {
                     completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "No presenting view controller found"])))
                     return
                 }
@@ -71,7 +75,7 @@ class GoogleProvider {
                             completion(.failure(NSError(domain: "GoogleProvider", code: 0, userInfo: [NSLocalizedDescriptionKey: "Cannot find serverAuthCode, make sure to set iOSServerClientId in the configuration"])))
                             return
                         }
-                        completion(.success(self.createOfflineResponse(serverAuthCode: result.serverAuthCode ?? "")))
+                        completion(.success(self.createOfflineResponse(serverAuthCode: serverAuthCode)))
                     } else {
                         completion(.success(self.mode == .ONLINE ? self.createOnlineLoginResponse(user: result.user) : self.createOfflineResponse(serverAuthCode: result.serverAuthCode ?? "")))
                     }
@@ -80,8 +84,8 @@ class GoogleProvider {
 
             if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode && self.mode != .OFFLINE {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
-                    if let error = error {
-                        // completion(.failure(error))
+                    if error != nil {
+                        // Retry interactive login when restoring the previous session fails.
                         login()
                         return
                     }
@@ -245,6 +249,8 @@ class GoogleProvider {
 #else
 // Stub class when GoogleSignIn is not available
 class GoogleProvider {
+    weak var hostViewController: UIViewController?
+
     func initialize(clientId: String, mode: GoogleProviderLoginType, serverClientId: String? = nil, hostedDomain: String? = nil) {
         fatalError("Google Sign-In is not available. Include GoogleSignIn dependency in your Podfile.")
     }
