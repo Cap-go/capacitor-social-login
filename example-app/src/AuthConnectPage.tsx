@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   SocialLoginAuthConnect,
+  SocialLogin,
   type AuthConnectProviderId,
   type OAuth2LoginResponse,
   type AuthorizationCode,
@@ -10,7 +11,7 @@ import './App.css';
 
 type Provider = AuthConnectProviderId;
 
-type BusyAction = 'initialize' | 'login' | 'logout' | 'getAuthorizationCode' | null;
+type BusyAction = 'initialize' | 'login' | 'logout' | 'getAuthorizationCode' | 'openAuthSession' | null;
 
 const providers: Array<{ id: Provider; label: string }> = [
   { id: 'auth0', label: 'Auth0' },
@@ -284,6 +285,91 @@ function AuthConnectPage() {
       setAuthorizationCode(null);
       const providerName = providers.find((provider) => provider.id === selectedProvider)?.label ?? selectedProvider;
       setStatusMessage(`${providerName} logout succeeded.`);
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const buildDemoAuthorizeUrl = (): { url: string; callbackURLScheme: string } => {
+    const state = `capgo-demo-${Date.now()}`;
+    let redirectUrl = '';
+    let authorizeBase = '';
+    let clientId = '';
+    let scope = 'openid profile email';
+
+    switch (selectedProvider) {
+      case 'auth0':
+        redirectUrl = auth0Config.redirectUrl;
+        clientId = auth0Config.clientId;
+        scope = auth0Config.scope || scope;
+        authorizeBase = `${auth0Config.domain.replace(/\/+$/, '')}/authorize`;
+        break;
+      case 'azure':
+        redirectUrl = azureConfig.redirectUrl;
+        clientId = azureConfig.clientId;
+        scope = azureConfig.scope || scope;
+        authorizeBase = `${azureConfig.authorityHost.replace(/\/+$/, '')}/${azureConfig.tenantId}/oauth2/v2.0/authorize`;
+        break;
+      case 'cognito':
+        redirectUrl = cognitoConfig.redirectUrl;
+        clientId = cognitoConfig.clientId;
+        scope = cognitoConfig.scope || scope;
+        authorizeBase = `${cognitoConfig.domain.replace(/\/+$/, '')}/oauth2/authorize`;
+        break;
+      case 'okta':
+        redirectUrl = oktaConfig.redirectUrl;
+        clientId = oktaConfig.clientId;
+        scope = oktaConfig.scope || scope;
+        authorizeBase = `${oktaConfig.issuer.replace(/\/+$/, '')}/v1/authorize`;
+        break;
+      case 'onelogin':
+        redirectUrl = oneloginConfig.redirectUrl;
+        clientId = oneloginConfig.clientId;
+        scope = oneloginConfig.scope || scope;
+        authorizeBase = `${oneloginConfig.issuer.replace(/\/+$/, '')}/auth`;
+        break;
+      default:
+        throw new Error('Unsupported provider');
+    }
+
+    if (!clientId.trim()) {
+      throw new Error('Set a client ID before running openAuthSession()');
+    }
+
+    const schemeMatch = redirectUrl.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+    if (!schemeMatch) {
+      throw new Error('Redirect URL must use a custom URL scheme (e.g. myapp://oauth/callback)');
+    }
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUrl,
+      response_type: 'code',
+      scope,
+      state,
+    });
+
+    return {
+      url: `${authorizeBase}?${params.toString()}`,
+      callbackURLScheme: schemeMatch[1],
+    };
+  };
+
+  const handleOpenAuthSession = async () => {
+    setBusyAction('openAuthSession');
+    setStatusMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const { url, callbackURLScheme } = buildDemoAuthorizeUrl();
+      const { callbackURL } = await SocialLogin.openAuthSession({
+        url,
+        callbackURLScheme,
+        prefersEphemeralSession: false,
+      });
+      setStatusMessage(`openAuthSession callback: ${callbackURL}`);
     } catch (error) {
       setErrorMessage(getErrorMessage(error));
     } finally {
@@ -610,6 +696,9 @@ function AuthConnectPage() {
           </button>
           <button type="button" onClick={handleGetAuthorizationCode} disabled={busyAction !== null}>
             {busyAction === 'getAuthorizationCode' ? 'getting code...' : 'getAuthorizationCode()'}
+          </button>
+          <button type="button" onClick={handleOpenAuthSession} disabled={busyAction !== null}>
+            {busyAction === 'openAuthSession' ? 'opening session...' : 'openAuthSession()'}
           </button>
         </div>
 

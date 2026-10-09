@@ -2,6 +2,8 @@ package ee.forgr.capacitor.social.login;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
 import androidx.activity.result.ActivityResult;
@@ -15,6 +17,7 @@ import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import ee.forgr.capacitor.social.login.helpers.DependencyAvailabilityChecker;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import org.json.JSONArray;
@@ -27,11 +30,130 @@ public class SocialLoginPlugin extends Plugin {
     private final String pluginVersion = "8.5.15";
 
     public static String LOG_TAG = "CapgoSocialLogin";
+    private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
+    private static final long OPEN_AUTH_SESSION_TIMEOUT_MS = 600_000L;
     public HashMap<String, SocialProvider> socialProviderHashMap = new HashMap<>();
 
     private PluginCall openSecureWindowSavedCall;
     private String openSecureWindowRedirectUri;
+    private PluginCall openAuthSessionSavedCall;
+    private String openAuthSessionCallbackScheme;
+    private String openAuthSessionExpectedCallbackPrefix;
+    private boolean openAuthSessionPaused;
+    private long openAuthSessionLaunchTimeMs;
+    private Handler openAuthSessionHandler;
+    private Runnable openAuthSessionTimeoutRunnable;
     private Uri pendingOAuth2RedirectUri;
+
+    private boolean isAnotherAuthBrowserSessionInProgress() {
+        if (openAuthSessionSavedCall != null || openSecureWindowSavedCall != null) {
+            return true;
+        }
+        SocialProvider oauth2 = socialProviderHashMap.get("oauth2");
+        if (oauth2 instanceof OAuth2Provider) {
+            return ((OAuth2Provider) oauth2).getPendingCall() != null;
+        }
+        return false;
+    }
+
+    private boolean rejectIfAnotherAuthBrowserSessionPending(PluginCall call) {
+        if (isAnotherAuthBrowserSessionInProgress()) {
+            call.reject("Another auth session is already in progress");
+            return true;
+        }
+        return false;
+    }
+
+    private void cancelOpenAuthSessionTimeout() {
+        if (openAuthSessionHandler != null && openAuthSessionTimeoutRunnable != null) {
+            openAuthSessionHandler.removeCallbacks(openAuthSessionTimeoutRunnable);
+        }
+        openAuthSessionTimeoutRunnable = null;
+    }
+
+    private void clearOpenAuthSessionState() {
+        cancelOpenAuthSessionTimeout();
+        openAuthSessionSavedCall = null;
+        openAuthSessionCallbackScheme = null;
+        openAuthSessionExpectedCallbackPrefix = null;
+        openAuthSessionPaused = false;
+        openAuthSessionLaunchTimeMs = 0L;
+    }
+
+    static String resolveOpenAuthSessionExpectedCallbackPrefix(String authorizeUrl, String callbackURLScheme) {
+        if (authorizeUrl != null && !authorizeUrl.isEmpty()) {
+            try {
+                String redirectUri = extractRedirectUriFromAuthorizeQuery(authorizeUrl);
+                if (redirectUri == null || redirectUri.isEmpty()) {
+                    redirectUri = Uri.parse(authorizeUrl).getQueryParameter("redirect_uri");
+                }
+                if (redirectUri != null && !redirectUri.isEmpty()) {
+                    return redirectUri;
+                }
+            } catch (Exception ignored) {
+                // fall back to scheme prefix below
+            }
+        }
+        if (callbackURLScheme == null || callbackURLScheme.isEmpty()) {
+            return null;
+        }
+        return callbackURLScheme + ":";
+    }
+
+    static boolean matchesOpenAuthSessionCallback(String callbackUrl, String expectedPrefix, String callbackURLScheme) {
+        if (callbackUrl == null || expectedPrefix == null || expectedPrefix.isEmpty()) {
+            return false;
+        }
+        if (callbackURLScheme != null && expectedPrefix.equals(callbackURLScheme + ":")) {
+            String schemePrefix = callbackURLScheme + ":";
+            return (
+                callbackUrl.regionMatches(true, 0, schemePrefix, 0, schemePrefix.length()) && callbackUrl.length() > schemePrefix.length()
+            );
+        }
+        return (
+            callbackUrl.equals(expectedPrefix) ||
+            callbackUrl.startsWith(expectedPrefix + "?") ||
+            callbackUrl.startsWith(expectedPrefix + "&") ||
+            callbackUrl.startsWith(expectedPrefix + "#")
+        );
+    }
+
+    private static String extractRedirectUriFromAuthorizeQuery(String authorizeUrl) {
+        int queryStart = authorizeUrl.indexOf('?');
+        if (queryStart < 0 || queryStart >= authorizeUrl.length() - 1) {
+            return null;
+        }
+        String query = authorizeUrl.substring(queryStart + 1);
+        int fragmentStart = query.indexOf('#');
+        if (fragmentStart >= 0) {
+            query = query.substring(0, fragmentStart);
+        }
+        for (String part : query.split("&")) {
+            int equals = part.indexOf('=');
+            if (equals <= 0) {
+                continue;
+            }
+            if (!"redirect_uri".equals(part.substring(0, equals))) {
+                continue;
+            }
+            return URLDecoder.decode(part.substring(equals + 1), StandardCharsets.UTF_8);
+        }
+        return null;
+    }
+
+    private void scheduleOpenAuthSessionTimeout() {
+        if (openAuthSessionHandler == null) {
+            openAuthSessionHandler = new Handler(Looper.getMainLooper());
+        }
+        cancelOpenAuthSessionTimeout();
+        openAuthSessionTimeoutRunnable = () -> {
+            if (openAuthSessionSavedCall != null) {
+                openAuthSessionSavedCall.reject("The sign-in flow timed out", USER_CANCELLED_CODE);
+                clearOpenAuthSessionState();
+            }
+        };
+        openAuthSessionHandler.postDelayed(openAuthSessionTimeoutRunnable, OPEN_AUTH_SESSION_TIMEOUT_MS);
+    }
 
     @PluginMethod
     public void initialize(PluginCall call) {
@@ -196,6 +318,7 @@ public class SocialLoginPlugin extends Plugin {
                     return;
                 }
                 this.socialProviderHashMap.put("oauth2", oauth2Provider);
+                oauth2Provider.setAuthBrowserSessionGuard(this::isAnotherAuthBrowserSessionInProgress);
                 oauth2Provider.setActivityLauncher((intent, requestCode) -> {
                     PluginCall loginCall = oauth2Provider.getPendingCall();
                     if (loginCall != null) {
@@ -253,6 +376,10 @@ public class SocialLoginPlugin extends Plugin {
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
+            return;
+        }
+
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
             return;
         }
 
@@ -664,11 +791,74 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
+            return;
+        }
+
         openSecureWindowSavedCall = call;
         openSecureWindowRedirectUri = redirectUri;
 
-        // Launch OAuth in custom tab
-        launchCustomTab(authEndpoint);
+        try {
+            launchCustomTab(authEndpoint);
+        } catch (Exception e) {
+            openSecureWindowSavedCall = null;
+            openSecureWindowRedirectUri = null;
+            call.reject("Unable to open browser", e);
+        }
+    }
+
+    @PluginMethod
+    public void openAuthSession(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("url is required");
+            return;
+        }
+
+        String callbackURLScheme = call.getString("callbackURLScheme");
+        if (callbackURLScheme == null || callbackURLScheme.isEmpty()) {
+            call.reject("callbackURLScheme is required");
+            return;
+        }
+
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
+            return;
+        }
+
+        if (getActivity() == null) {
+            call.reject("Activity not available");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> startOpenAuthSessionOnMainThread(call, url, callbackURLScheme));
+    }
+
+    private void startOpenAuthSessionOnMainThread(PluginCall call, String url, String callbackURLScheme) {
+        if (rejectIfAnotherAuthBrowserSessionPending(call)) {
+            return;
+        }
+
+        openAuthSessionSavedCall = call;
+        openAuthSessionCallbackScheme = callbackURLScheme;
+        openAuthSessionExpectedCallbackPrefix = resolveOpenAuthSessionExpectedCallbackPrefix(url, callbackURLScheme);
+        openAuthSessionPaused = false;
+        openAuthSessionLaunchTimeMs = System.currentTimeMillis();
+
+        try {
+            launchCustomTab(url);
+            scheduleOpenAuthSessionTimeout();
+        } catch (Exception e) {
+            clearOpenAuthSessionState();
+            call.reject("Unable to open browser", e);
+        }
+    }
+
+    @Override
+    protected void handleOnPause() {
+        super.handleOnPause();
+        if (openAuthSessionSavedCall != null) {
+            openAuthSessionPaused = true;
+        }
     }
 
     private void launchCustomTab(String url) {
@@ -697,10 +887,23 @@ public class SocialLoginPlugin extends Plugin {
             ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
         }
 
-        // If we have a saved call and user returned without callback, reject
+        // User returned without redirect: cancel when we saw pause, or after launch grace if pause was missed
+        if (openAuthSessionSavedCall != null) {
+            boolean pausedAfterLaunch = openAuthSessionPaused;
+            boolean missedPauseGraceElapsed =
+                !openAuthSessionPaused &&
+                openAuthSessionLaunchTimeMs > 0L &&
+                System.currentTimeMillis() - openAuthSessionLaunchTimeMs > 750L;
+            if (pausedAfterLaunch || missedPauseGraceElapsed) {
+                openAuthSessionSavedCall.reject("User cancelled", USER_CANCELLED_CODE);
+                clearOpenAuthSessionState();
+            }
+        }
+
         if (openSecureWindowSavedCall != null) {
             openSecureWindowSavedCall.reject("OAuth cancelled or no callback received");
             openSecureWindowSavedCall = null;
+            openSecureWindowRedirectUri = null;
         }
     }
 
@@ -725,6 +928,30 @@ public class SocialLoginPlugin extends Plugin {
         } else {
             // Buffer until SocialLogin.initialize() registers the oauth2 provider
             pendingOAuth2RedirectUri = uri;
+        }
+
+        if (openSecureWindowRedirectUri == null && openAuthSessionCallbackScheme == null) {
+            return;
+        }
+
+        if (
+            openAuthSessionExpectedCallbackPrefix != null &&
+            matchesOpenAuthSessionCallback(uri.toString(), openAuthSessionExpectedCallbackPrefix, openAuthSessionCallbackScheme)
+        ) {
+            try {
+                if (openAuthSessionSavedCall != null) {
+                    final JSObject ret = new JSObject();
+                    ret.put("callbackURL", uri.toString());
+                    openAuthSessionSavedCall.resolve(ret);
+                    clearOpenAuthSessionState();
+                }
+            } catch (Exception e) {
+                if (openAuthSessionSavedCall != null) {
+                    openAuthSessionSavedCall.reject("Failed to process OAuth callback", e);
+                    clearOpenAuthSessionState();
+                }
+            }
+            return;
         }
 
         if (openSecureWindowRedirectUri == null) {
