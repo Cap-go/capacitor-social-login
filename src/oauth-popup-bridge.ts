@@ -71,7 +71,8 @@ export function isOAuthPopupContext(): boolean {
 
 export function shouldAutoFinishOAuthRedirect(): boolean {
   if (!localStorage.getItem(OAUTH_STATE_KEY)) return false;
-  return isOAuthPopupContext() || hasOAuthRedirectParams();
+  // Popup only. Same-window redirect (flow: 'redirect') must call handleRedirectCallback().
+  return isOAuthPopupContext();
 }
 
 /**
