@@ -113,7 +113,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
       }
     }
 
-    let result: LoginResult | { error: string } | null = null;
+    let result: LoginResult | { error: string } | null;
 
     switch (provider) {
       case 'twitter':

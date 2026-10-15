@@ -331,7 +331,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
     if (options.flow === 'redirect') {
       // Trigger a full-page redirect. The promise will not resolve because the page navigates away.
       window.location.assign(authUrl);
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
+
       return new Promise(() => {}) as any;
     }
 
@@ -389,7 +389,7 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
             return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
           const {
             provider: _ignoredProvider,
             type: _ignoredType,

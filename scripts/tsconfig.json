@@ -10,9 +10,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "declaration": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "types": ["node"]
   },
   "include": ["configure-dependencies.ts"],
   "exclude": ["node_modules"]
