@@ -47,7 +47,7 @@ export class AppleSocialLogin extends BaseSocialLogin {
       AppleID.auth
         .signIn()
         .then((res: any) => {
-          let accessToken: { token: string } | null = null;
+          let accessToken: { token: string } | null;
 
           if (this.useProperTokenExchange) {
             // When using proper token exchange, the authorization code should be exchanged

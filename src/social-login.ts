@@ -9,6 +9,8 @@ import type {
   InitializeOptions,
   LinkedInLoginOptions,
   LoginOptions,
+  OpenAuthSessionOptions,
+  OpenAuthSessionResult,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
   OAuth2LoginResponse,
@@ -228,6 +230,10 @@ class SocialLoginClient implements SocialLoginPlugin {
 
   async openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse> {
     return rawSocialLogin.openSecureWindow(options);
+  }
+
+  async openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult> {
+    return rawSocialLogin.openAuthSession(options);
   }
 }
 

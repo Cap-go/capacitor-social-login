@@ -71,7 +71,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     if (this.loginType === 'offline') {
       return Promise.reject("Offline login doesn't store tokens. logout is not available");
     }
-    // eslint-disable-next-line
+
     const state = this.getGoogleState();
     if (!state) return;
     await this.rawLogoutGoogle(state.accessToken);
@@ -81,7 +81,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     if (this.loginType === 'offline') {
       return Promise.reject("Offline login doesn't store tokens. isLoggedIn is not available");
     }
-    // eslint-disable-next-line
+
     const state = this.getGoogleState();
     if (!state) return { isLoggedIn: false };
 
@@ -107,7 +107,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
     if (this.loginType === 'offline') {
       return Promise.reject("Offline login doesn't store tokens. getAuthorizationCode is not available");
     }
-    // eslint-disable-next-line
+
     const state = this.getGoogleState();
     if (!state) throw new Error('No Google authorization code available');
 
@@ -237,6 +237,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         );
         throw new Error(
           `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. Response body is not valid JSON. Error: ${e}`,
+          { cause: e },
         );
       }
 
@@ -265,6 +266,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
         );
         throw new Error(
           `Invalid response from ${this.GOOGLE_TOKEN_REQUEST_URL}. 'expires_in': ${expiresInStr} is not a valid integer. Error: ${e}`,
+          { cause: e },
         );
       }
 
@@ -281,7 +283,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       const parsed = this.parseJwt(idToken);
       const currentTime = Math.ceil(Date.now() / 1000) + 5; // Convert current time to seconds since epoch
       return parsed.exp && currentTime < parsed.exp;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -295,7 +297,7 @@ export class GoogleSocialLogin extends BaseSocialLogin {
       try {
         await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${encodeURIComponent(accessToken)}`);
         this.clearStateGoogle();
-      } catch (e) {
+      } catch {
         // ignore
       }
       return;

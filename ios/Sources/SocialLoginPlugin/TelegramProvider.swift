@@ -33,6 +33,8 @@ private struct TelegramProfileStored: Codable {
 }
 
 class TelegramProvider: NSObject {
+    /// Capacitor bridge view controller, used to present in the scene that started the call.
+    weak var hostViewController: UIViewController?
     private var botId: String?
     private var requestAccess: String = "write"
     private var origin: String?
@@ -250,11 +252,6 @@ class TelegramProvider: NSObject {
 
 extension TelegramProvider: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let active = scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
-        if let window = active?.windows.first(where: { $0.isKeyWindow }) ?? active?.windows.first {
-            return window
-        }
-        return ASPresentationAnchor()
+        return PresentationWindowResolver.window(hostViewController: hostViewController) ?? ASPresentationAnchor()
     }
 }

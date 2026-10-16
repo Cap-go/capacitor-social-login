@@ -48,7 +48,7 @@ async function parseRedirectResult(): Promise<{
   const twitterProvider = new TwitterSocialLogin();
   const telegramProvider = new TelegramSocialLogin();
 
-  let result: LoginResult | { error: string } | null = null;
+  let result: LoginResult | { error: string } | null;
 
   switch (provider) {
     case 'twitter':

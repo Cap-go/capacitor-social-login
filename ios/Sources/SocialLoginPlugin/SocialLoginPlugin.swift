@@ -16,7 +16,7 @@ import GoogleSignIn
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "8.5.12"
+    private let pluginVersion: String = "8.6.0"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     private static let userCancelledCode = "USER_CANCELLED"
@@ -40,7 +40,8 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isRefreshTokenAvailable", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "providerSpecificCall", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getPluginVersion", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "openSecureWindow", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "openSecureWindow", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openAuthSession", returnType: CAPPluginReturnPromise)
     ]
 
     // Providers - conditionally initialized based on available dependencies
@@ -62,7 +63,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     private let twitter = TwitterProvider()
     private let oauth2 = OAuth2Provider()
     private let telegram = TelegramProvider()
-    private var openSecureWindowCall: CAPPluginCall?
+    private var webAuthSessionCall: CAPPluginCall?
+    private var webAuthSessionRedirectPrefix: String?
+    private var webAuthSessionResultKey: String = "callbackURL"
 
     // Helper to get Facebook provider (returns nil if unavailable)
     private var facebookProvider: FacebookProvider? {
@@ -471,6 +474,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Google Sign-In provider is disabled. Dependencies are not available. Ensure Google Sign-In dependencies are included in your Podfile")
                 return
             }
+            gProvider.hostViewController = self.bridge?.viewController
             gProvider.login(payload: payload) { (result: Result<GoogleLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -479,14 +483,17 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Apple Sign-In provider is disabled in capacitor.config")
                 return
             }
+            apple.hostViewController = self.bridge?.viewController
             apple.login(payload: payload) { (result: Result<AppleProviderResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "twitter":
+            twitter.hostViewController = self.bridge?.viewController
             twitter.login(payload: payload) { (result: Result<TwitterProfileResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
         case "telegram":
+            telegram.hostViewController = self.bridge?.viewController
             telegram.login(payload: payload) { (result: Result<TelegramLoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -495,6 +502,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("providerId is required for oauth2 login")
                 return
             }
+            oauth2.hostViewController = self.bridge?.viewController
             oauth2.login(providerId: providerId, payload: payload) { (result: Result<OAuth2LoginResponse, Error>) in
                 self.handleLoginResult(result, call: call)
             }
@@ -772,41 +780,108 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
 
-        // Store the call for later resolution
-        self.openSecureWindowCall = call
+        guard let callbackScheme = URL(string: redirectUri)?.scheme, !callbackScheme.isEmpty else {
+            call.reject("redirectUri must include a URL scheme")
+            return
+        }
 
-        // Open the URL in a secure browser window
+        startWebAuthSession(
+            call: call,
+            url: url,
+            callbackURLScheme: callbackScheme,
+            redirectPrefix: redirectUri,
+            prefersEphemeral: false,
+            resultKey: "redirectedUri"
+        )
+    }
+
+    @objc func openAuthSession(_ call: CAPPluginCall) {
+        guard let urlString = call.getString("url") else {
+            call.reject("url is required")
+            return
+        }
+
+        guard let url = URL(string: urlString) else {
+            call.reject("Invalid URL")
+            return
+        }
+
+        guard let callbackURLScheme = call.getString("callbackURLScheme"), !callbackURLScheme.isEmpty else {
+            call.reject("callbackURLScheme is required")
+            return
+        }
+
+        let prefersEphemeral = call.getBool("prefersEphemeralSession") ?? false
+
+        startWebAuthSession(
+            call: call,
+            url: url,
+            callbackURLScheme: callbackURLScheme,
+            redirectPrefix: nil,
+            prefersEphemeral: prefersEphemeral,
+            resultKey: "callbackURL"
+        )
+    }
+
+    private func startWebAuthSession(
+        call: CAPPluginCall,
+        url: URL,
+        callbackURLScheme: String,
+        redirectPrefix: String?,
+        prefersEphemeral: Bool,
+        resultKey: String
+    ) {
+        if webAuthSessionCall != nil {
+            call.reject("Another auth session is already in progress")
+            return
+        }
+
+        webAuthSessionCall = call
+        webAuthSessionRedirectPrefix = redirectPrefix
+        webAuthSessionResultKey = resultKey
+
         DispatchQueue.main.async {
-            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: url.scheme) {
-                callbackURL, error in
+            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackURLScheme) { callbackURL, error in
+                let activeCall = self.webAuthSessionCall
+                let expectedPrefix = self.webAuthSessionRedirectPrefix
+                let resolveKey = self.webAuthSessionResultKey
 
-                // Clean up the stored call
-                self.openSecureWindowCall = nil
+                self.webAuthSessionCall = nil
+                self.webAuthSessionRedirectPrefix = nil
+
+                guard let activeCall = activeCall else {
+                    return
+                }
 
                 if let error = error {
-                    // Handle error (e.g., user cancelled)
-                    call.reject(error.localizedDescription)
+                    self.rejectWebAuthSessionCall(activeCall, error: error)
                     return
                 }
 
                 guard let callbackURL = callbackURL else {
-                    call.reject("No callback URL received")
+                    activeCall.reject("No callback URL received")
                     return
                 }
 
-                if !callbackURL.absoluteString.hasPrefix(redirectUri) {
-                    call.reject("Redirect URI does not match, expected " + redirectUri + " but got " + callbackURL.absoluteString)
+                if let expectedPrefix = expectedPrefix, !callbackURL.absoluteString.hasPrefix(expectedPrefix) {
+                    activeCall.reject(
+                        "Redirect URI does not match, expected " + expectedPrefix + " but got " + callbackURL.absoluteString
+                    )
                     return
                 }
 
-                // Resolve the call with the callback URL
-                call.resolve(["redirectedUri": callbackURL.absoluteString])
+                activeCall.resolve([resolveKey: callbackURL.absoluteString])
             }
 
-            // Present the session
             session.presentationContextProvider = self
+            session.prefersEphemeralWebBrowserSession = prefersEphemeral
             session.start()
         }
+    }
+
+    private func rejectWebAuthSessionCall(_ call: CAPPluginCall, error: Error) {
+        let cancelled = isUserCancelledError(error)
+        call.reject(error.localizedDescription, cancelled ? SocialLoginPlugin.userCancelledCode : nil, error)
     }
 
     private func decodeJwtClaims(idToken: String) throws -> [String: Any] {
@@ -846,9 +921,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
             if let user = response as? SocialLoginUser {
                 call.resolve([
                     "accessToken": user.accessToken,
-                    "idToken": user.idToken,
-                    "refreshToken": user.refreshToken,
-                    "expiresIn": user.expiresIn
+                    "idToken": user.idToken ?? NSNull(),
+                    "refreshToken": user.refreshToken ?? NSNull(),
+                    "expiresIn": user.expiresIn ?? NSNull()
                 ])
             } else if let twitterResponse = response as? TwitterProfileResponse {
                 call.resolve([
@@ -1019,7 +1094,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     "expires": oauth2Response.accessToken.expires ?? NSNull(),
                     "refreshToken": oauth2Response.accessToken.refreshToken ?? NSNull()
                 ]
-                var oauth2Result: [String: Any] = [
+                let oauth2Result: [String: Any] = [
                     "providerId": oauth2Response.providerId,
                     "accessToken": accessToken,
                     "idToken": oauth2Response.idToken ?? NSNull(),

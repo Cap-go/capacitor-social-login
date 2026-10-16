@@ -1,10 +1,29 @@
 # @capgo/capacitor-social-login
-<a href="https://capgo.app/"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-social-login" alt="Capgo - Instant updates for Capacitor" /></a>
+
+Add Google, Apple, Facebook and other social sign-ins to your Capacitor app with one plugin and one API across iOS, Android and the web.
+
+<a href="https://capgo.app/?ref=plugin_social_login"><img src="https://capgo.app/readme-banner.svg?repo=Cap-go/capacitor-social-login" alt="Capgo - Build Capacitor apps with AI, ship updates instantly" /></a>
 
 <div align="center">
-  <h2><a href="https://capgo.app/?ref=plugin_social_login"> ➡️ Get Instant updates for your App with Capgo</a></h2>
-  <h2><a href="https://capgo.app/consulting/?ref=plugin_social_login"> Missing a feature? We’ll build the plugin for you 💪</a></h2>
+  <p><b>Capgo</b>: push fixes to your Capacitor users in minutes, build signed iOS and Android apps without a Mac, and roll back in one click.</p>
+  <h2><a href="https://capgo.app/register/?ref=plugin_social_login">➡️ Get started for free</a></h2>
+  <p>14-day unlimited free trial. No credit card required</p>
 </div>
+
+> 🤖 **Building with an AI coding agent?** Install [Capgo skills](https://capgo.app/skills/?ref=plugin_social_login) so Claude Code, Codex, Cursor, Copilot, or Gemini CLI know how to install and use `@capgo/capacitor-social-login` in your Capacitor app: `npx skills add Cap-go/capgo-skills`. Then ask your agent: *"Add @capgo/capacitor-social-login to my Capacitor app and wire it up."* [Agent setup guides](https://capgo.app/agents/?ref=plugin_social_login) · [Hosted MCP](https://capgo.app/docs/ai/mcp/?ref=plugin_social_login)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Cap-go/capacitor-social-login/main/assets/github-social-preview.png" alt="@capgo/capacitor-social-login for Capacitor apps" width="300" />
+</p>
+
+## Key features
+
+- **Many providers**: Google, Apple, Facebook, Twitter (X), LinkedIn, TikTok, Telegram and generic OAuth2.
+- **One API**: `initialize()`, `login()`, `logout()`, `isLoggedIn()` and `getAuthorizationCode()`.
+- **Tokens**: `refresh()`, `refreshToken()`, `decodeIdToken()` and expiry helpers.
+- **Native sign-in**: Sign in with Apple, Google Sign-In and the Facebook SDK on iOS, Credential Manager on Android.
+- **Web OAuth**: `handleRedirectCallback()` and `openSecureWindow()` for redirect and popup flows.
+- **Platforms**: iOS, Android and Web. Check the docs for each provider's setup on each platform.
 
 ## Fork Information
 This plugin is a fork of [@codetrix-studio/capacitor-google-auth](https://github.com/CodetrixStudio/CapacitorGoogleAuth). We created this fork because the original plugin is "virtually" archived with no way to reach the maintainer in any medium, and only one person (@reslear) has write rights but doesn't handle native code.
@@ -117,7 +136,7 @@ export default config;
 - **Important**: Disabling a provider (`false`) will make it unavailable at runtime, regardless of whether it actually adds any dependencies. The provider will be disabled even if it uses only system APIs.
 - This configuration only affects iOS and Android platforms; it does not affect the web platform.
 - **Important**: Using `false` means the dependency won't be bundled, but the plugin code still compiles against it. Ensure the consuming app includes the dependency if needed.
-- **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package — no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
+- **Facebook**: When `facebook: false`, the Facebook SDK is omitted and the plugin compiles a provider stub in its own package, no `com.facebook.*` classes are shipped (avoids privacy-scanner false positives).
 - **Apple (iOS)**: `apple: true` enables Sign in with Apple (AuthenticationServices). Redirect URL and backend token exchange use Foundation URLSession, so no third-party networking library is required. `apple: false` disables Apple authentication at runtime, including basic Sign in with Apple, consistent with the rule above that `false` providers are unavailable at runtime.
 - Apple Sign-In on Android uses OAuth flow without external SDK dependencies
 - Twitter uses standard OAuth 2.0 flow without external SDK dependencies
@@ -441,15 +460,15 @@ You need **two kinds** of OAuth 2.0 client IDs:
 | Client type | Used for | Where it goes |
 |-------------|----------|---------------|
 | **Web application** | Server / ID token audience | `webClientId` in `SocialLogin.initialize()` |
-| **Android** (one per signing key) | Proves your APK is allowed to call Google | Google Cloud Console only — **do not** pass this ID to `webClientId` |
+| **Android** (one per signing key) | Proves your APK is allowed to call Google | Google Cloud Console only, **do not** pass this ID to `webClientId` |
 
 Common mistake: using the **Android** client ID as `webClientId`. Credential Manager requires the **Web** client ID there. The Android client only needs the correct **package name + SHA-1** registered in the console.
 
 Create one Android OAuth client for **each** certificate that signs builds you test:
 
-- **Debug** — from `./gradlew signingReport` (debug variant)
-- **Release** — from the APK/AAB you actually install (see below)
-- **Play App Signing** — from Play Console → **App integrity** → **App signing key certificate** (required for Play Store builds even if your upload key SHA-1 is already registered)
+- **Debug**, from `./gradlew signingReport` (debug variant)
+- **Release**, from the APK/AAB you actually install (see below)
+- **Play App Signing**, from Play Console → **App integrity** → **App signing key certificate** (required for Play Store builds even if your upload key SHA-1 is already registered)
 
 The `applicationId` in `android/app/build.gradle` must match the Android OAuth client package name exactly (including any `.debug` suffix if you use one).
 
@@ -464,13 +483,13 @@ This almost always means Google rejected the combination of **installed APK sign
 1. Confirm `webClientId` is the **Web application** client ID (ends with `.apps.googleusercontent.com`).
 2. Run the app, reproduce the failure, and read Logcat (`GoogleProvider`) for `signingSha1=` and `package=`.
 3. In [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials), open your **Android** OAuth client and verify that **exact** package name and SHA-1 are listed.
-4. If testing a **release** build, register the SHA-1 from that build — not only the debug keystore.
+4. If testing a **release** build, register the SHA-1 from that build, not only the debug keystore.
 5. If the app is distributed via **Play Store**, also register the **Play App Signing** SHA-1.
 6. Ensure Web and Android clients live in the **same** Google Cloud project.
 7. If consent screen is in Testing, confirm the Google account is a **test user**.
 8. Wait and retry after console changes.
 
-`USER_CANCELLED` after picking an account on a misconfigured debug build can still be a SHA-1 / client-ID mismatch — fix the console setup above first.
+`USER_CANCELLED` after picking an account on a misconfigured debug build can still be a SHA-1 / client-ID mismatch, fix the console setup above first.
 
 ##### Error `[16] Account reauth failed`
 
@@ -480,14 +499,14 @@ This error comes from Google Credential Manager when re-authenticating a cached 
 
 If the retry still fails for specific users, check:
 
-1. **OAuth consent screen** — must be **External** (Internal / Workspace-only blocks consumer `@gmail.com` accounts).
-2. **Testing mode** — every failing Google account must be listed under **Audience → Test users**.
-3. **Sign in with Google setting** — the user may have disabled your app under Google Account → **Sign in with Google**.
-4. **Family Link / supervised accounts** — ensure `filterByAuthorizedAccounts` is not explicitly set to `true` (the default is `false`; see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
-5. **Play App Signing SHA-1** — still required for Play Store builds even when most users succeed (some device/account paths are stricter).
-6. **Explicit override** — if your app sets `filterByAuthorizedAccounts: true`, set it back to `false` for affected users; the default already skips authorized-account filtering.
+1. **OAuth consent screen**, must be **External** (Internal / Workspace-only blocks consumer `@gmail.com` accounts).
+2. **Testing mode**, every failing Google account must be listed under **Audience → Test users**.
+3. **Sign in with Google setting**, the user may have disabled your app under Google Account → **Sign in with Google**.
+4. **Family Link / supervised accounts**, ensure `filterByAuthorizedAccounts` is not explicitly set to `true` (the default is `false`; see [Family Link section](#google-sign-in-with-family-link-supervised-accounts) below).
+5. **Play App Signing SHA-1**, still required for Play Store builds even when most users succeed (some device/account paths are stricter).
+6. **Explicit override**, if your app sets `filterByAuthorizedAccounts: true`, set it back to `false` for affected users; the default already skips authorized-account filtering.
 
-After a failure, filter Logcat for `GoogleProvider` — the plugin logs `package`, `signingSha1`, and `webClientId`.
+After a failure, filter Logcat for `GoogleProvider`, the plugin logs `package`, `signingSha1`, and `webClientId`.
 
 ##### Extract SHA-1 from the build you install
 
@@ -816,6 +835,67 @@ await SocialLogin.refresh({
 3. **Store tokens securely** using [@capgo/capacitor-persistent-account](https://github.com/Cap-go/capacitor-persistent-account)
 4. **Use HTTPS** for all endpoints and redirect URLs in production
 
+## Generic OAuth / OIDC auth session (SSO)
+
+Use `openAuthSession()` when your app already has an authorize URL (from your IdP, OutSystems, Keycloak, Azure AD, etc.) and you only need a **system browser session** that returns the **full redirect callback URL**. You keep token exchange and session management in your own code.
+
+**Use case:** Enterprise SSO or OIDC where the login page URL is built server-side or with your SDK, and mobile must reuse the platform secure browser (Custom Tabs / `ASWebAuthenticationSession`) instead of an embedded WebView.
+
+### Quick start
+
+```typescript
+import { SocialLogin } from '@capgo/capacitor-social-login';
+
+const authorizeUrl =
+  'https://login.example.com/oauth2/authorize?client_id=APP&redirect_uri=myapp%3A%2F%2Fauth%2Fcallback&response_type=code&state=xyz';
+
+try {
+  const { callbackURL } = await SocialLogin.openAuthSession({
+    url: authorizeUrl,
+    callbackURLScheme: 'myapp',
+    prefersEphemeralSession: false, // iOS: allow shared SSO cookies when false
+  });
+  // callbackURL e.g. myapp://auth/callback?code=...&state=...
+  const parsed = new URL(callbackURL.replace('myapp://', 'https://placeholder/'));
+  const code = parsed.searchParams.get('code');
+} catch (error) {
+  if ((error as { code?: string }).code === 'USER_CANCELLED') {
+    // user closed the browser tab or cancelled the sheet
+  }
+}
+```
+
+On **web**, host a small redirect page that posts the final URL to a `BroadcastChannel` (same pattern as `openSecureWindow()`). Default channel name for `openAuthSession` is `capgo-auth-session`.
+
+### Platform setup
+
+**iOS:** Register your callback URL scheme in `Info.plist` (`CFBundleURLTypes` / `CFBundleURLSchemes`). `callbackURLScheme` must match that scheme (without `://`).
+
+**Android:** Add an intent filter on your main activity for the redirect URI scheme and host, and use `launchMode` `singleTask` or `singleTop` so the redirect arrives in `onNewIntent`:
+
+```xml
+<intent-filter>
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="myapp" android:host="auth" android:pathPrefix="/callback" />
+</intent-filter>
+```
+
+On **web**, the plugin opens the authorize URL in a **popup** via `window.open`. Call `openAuthSession()` from a **user gesture** (button click). Popup blockers must allow your origin, or the call fails immediately with an error about popups.
+
+Host an HTTPS redirect page on the **same origin** as your app (BroadcastChannel only delivers to pages that share the app's origin). Register that URL with your IdP. The landing page can post `location.href` when the authorize URL includes the same `redirect_uri`, or post a `${callbackURLScheme}://...` string for prefix matching:
+
+```html
+<script>
+  // Option A: post the HTTPS callback (works when redirect_uri is in the authorize URL)
+  new BroadcastChannel('capgo-auth-session').postMessage(location.href);
+  window.close();
+</script>
+```
+
+See also [`openSecureWindow()`](#opensecurewindow) for the legacy option names (`authEndpoint`, `redirectUri`, `redirectedUri`).
+
 ## Troubleshooting
 
 
@@ -860,7 +940,7 @@ Then run `npx cap sync`. The plugin uses stub classes instead of the real Facebo
 
 On Android, this error comes from **Google Credential Manager** when the installed APK's signing certificate, package name, or `webClientId` does not match Google Cloud Console.
 
-See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. After a failed login, filter Logcat for `GoogleProvider` — the plugin prints `package`, `signingSha1`, and `webClientId` to compare with your OAuth clients.
+See [Android troubleshooting (Credential Manager, SHA-1, and Firebase)](#android-troubleshooting-credential-manager-sha-1-and-firebase) for the full checklist. After a failed login, filter Logcat for `GoogleProvider`, the plugin prints `package`, `signingSha1`, and `webClientId` to compare with your OAuth clients.
 
 ### Google Sign-In `[16] Account reauth failed` (Android)
 
@@ -938,6 +1018,7 @@ For iOS, it will store data in the Keychain, which is Apple's secure credential 
 * [`providerSpecificCall(...)`](#providerspecificcall)
 * [`getPluginVersion()`](#getpluginversion)
 * [`openSecureWindow(...)`](#opensecurewindow)
+* [`openAuthSession(...)`](#openauthsession)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -1277,6 +1358,32 @@ And in the AndroidManifest.xml file:
 | **`options`** | <code><a href="#opensecurewindowoptions">OpenSecureWindowOptions</a></code> | - the options for the openSecureWindow call |
 
 **Returns:** <code>Promise&lt;<a href="#opensecurewindowresponse">OpenSecureWindowResponse</a>&gt;</code>
+
+--------------------
+
+
+### openAuthSession(...)
+
+```typescript
+openAuthSession(options: OpenAuthSessionOptions) => Promise<OpenAuthSessionResult>
+```
+
+Opens a system auth session for generic OAuth/OIDC or enterprise SSO.
+
+Use this when you build the authorize URL yourself (or your IdP SDK returns one) and only need
+the plugin to run the secure browser flow and return the redirect callback URL. Exchange the
+authorization code or tokens on your backend or with your own client logic.
+
+**iOS/Android:** system browser session (`ASWebAuthenticationSession` / Chrome Custom Tabs).
+**Web:** popup window plus `BroadcastChannel` (not a native browser session).
+
+On user cancel or dismiss, the Promise rejects with `code === 'USER_CANCELLED'`.
+
+| Param         | Type                                                                      | Description            |
+| ------------- | ------------------------------------------------------------------------- | ---------------------- |
+| **`options`** | <code><a href="#openauthsessionoptions">OpenAuthSessionOptions</a></code> | - auth session options |
+
+**Returns:** <code>Promise&lt;<a href="#openauthsessionresult">OpenAuthSessionResult</a>&gt;</code>
 
 --------------------
 
@@ -1678,6 +1785,23 @@ BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authenticati
 | **`authEndpoint`**         | <code>string</code> | The endpoint to open                                                                                                                                            |
 | **`redirectUri`**          | <code>string</code> | The redirect URI to use for the openSecureWindow call. This will be checked to make sure it matches the redirect URI after the window finishes the redirection. |
 | **`broadcastChannelName`** | <code>string</code> | The name of the broadcast channel to listen to, relevant only for web                                                                                           |
+
+
+#### OpenAuthSessionResult
+
+| Prop              | Type                | Description                                                                                                                         |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **`callbackURL`** | <code>string</code> | Full redirect URI returned by the identity provider, including query or fragment (e.g. `myapp://auth/callback?code=...&state=...`). |
+
+
+#### OpenAuthSessionOptions
+
+| Prop                          | Type                 | Description                                                                                                                                                                                                                                                                                                                         | Default                           |
+| ----------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| **`url`**                     | <code>string</code>  | Authorization or login URL to open in the system browser session (OAuth/OIDC authorize endpoint, SSO login page, etc.).                                                                                                                                                                                                             |                                   |
+| **`callbackURLScheme`**       | <code>string</code>  | Custom URL scheme that receives the redirect (without `://`). Must match the scheme in your registered redirect URI and native URL handler (iOS/Android). On Web, the plugin also accepts HTTPS redirect URLs when `redirect_uri` is present in `url`, or messages prefixed with `${callbackURLScheme}://` on the BroadcastChannel. |                                   |
+| **`prefersEphemeralSession`** | <code>boolean</code> | iOS-only: prefer an ephemeral `ASWebAuthenticationSession` (no shared cookies with Safari). Defaults to `false` so SSO cookies in the system browser can be reused.                                                                                                                                                                 |                                   |
+| **`broadcastChannelName`**    | <code>string</code>  | Web-only: `BroadcastChannel` name used by the redirect page to post the callback URL back to the app.                                                                                                                                                                                                                               | <code>'capgo-auth-session'</code> |
 
 
 ### Type Aliases

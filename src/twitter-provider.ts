@@ -150,7 +150,7 @@ export class TwitterSocialLogin extends BaseSocialLogin {
             return false;
           }
           cleanup(messageHandler, timeoutHandle, popupClosedInterval);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
           const {
             provider: _ignoredProvider,
             type: _ignoredType,
