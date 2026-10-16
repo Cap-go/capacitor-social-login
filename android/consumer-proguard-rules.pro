@@ -15,15 +15,6 @@
 -keep class com.getcapacitor.** { *; }
 -keepclassmembers class com.getcapacitor.** { *; }
 
-# OkHttp (used for OAuth2/Twitter token endpoints)
--dontwarn okhttp3.**
--dontwarn okio.**
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
-
-# JWT Decode library (used for Apple Sign-In)
--keep class com.auth0.android.jwt.** { *; }
-
 # Google Sign-In (if included)
 -keep class com.google.android.gms.auth.** { *; }
 -keep class com.google.android.libraries.identity.googleid.** { *; }
