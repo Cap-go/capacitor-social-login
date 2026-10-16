@@ -128,6 +128,7 @@ public final class PluginHttpClient {
     }
 
     private static final class ExchangeResult {
+
         final int code;
         final String body;
 
@@ -171,11 +172,13 @@ public final class PluginHttpClient {
     }
 
     static boolean isRedirectStatus(int code) {
-        return code == HttpURLConnection.HTTP_MOVED_PERM
-            || code == HttpURLConnection.HTTP_MOVED_TEMP
-            || code == 303
-            || code == 307
-            || code == 308;
+        return (
+            code == HttpURLConnection.HTTP_MOVED_PERM ||
+            code == HttpURLConnection.HTTP_MOVED_TEMP ||
+            code == 303 ||
+            code == 307 ||
+            code == 308
+        );
     }
 
     static URL resolveRedirectUrl(URL base, String location) throws IOException {
