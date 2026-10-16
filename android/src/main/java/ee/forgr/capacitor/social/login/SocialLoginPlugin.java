@@ -697,6 +697,11 @@ public class SocialLoginPlugin extends Plugin {
             ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
         }
 
+        SocialProvider appleProvider = socialProviderHashMap.get("apple");
+        if (appleProvider instanceof AppleProvider) {
+            ((AppleProvider) appleProvider).handleUserReturnedWithoutCallback();
+        }
+
         // If we have a saved call and user returned without callback, reject
         if (openSecureWindowSavedCall != null) {
             openSecureWindowSavedCall.reject("OAuth cancelled or no callback received");
