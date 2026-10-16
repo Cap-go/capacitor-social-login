@@ -1,9 +1,11 @@
 package ee.forgr.capacitor.social.login.helpers;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.net.URL;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -12,6 +14,27 @@ import java.net.SocketTimeoutException;
 import org.junit.Test;
 
 public class PluginHttpClientTest {
+
+    @Test
+    public void isSafeRedirectDestinationAllowsSameHostHttps() throws Exception {
+        URL original = new URL("https://oauth.example.com/token");
+        URL destination = new URL("https://oauth.example.com/token/v2");
+        assertTrue(PluginHttpClient.isSafeRedirectDestination(original, destination));
+    }
+
+    @Test
+    public void isSafeRedirectDestinationRejectsDifferentHost() throws Exception {
+        URL original = new URL("https://oauth.example.com/token");
+        URL destination = new URL("https://evil.example.net/token");
+        assertFalse(PluginHttpClient.isSafeRedirectDestination(original, destination));
+    }
+
+    @Test
+    public void isSafeRedirectDestinationRejectsHttpsDowngrade() throws Exception {
+        URL original = new URL("https://oauth.example.com/token");
+        URL destination = new URL("http://oauth.example.com/token");
+        assertFalse(PluginHttpClient.isSafeRedirectDestination(original, destination));
+    }
 
     @Test
     public void writeBodyWithTimeoutCompletesSmallWrite() throws IOException {

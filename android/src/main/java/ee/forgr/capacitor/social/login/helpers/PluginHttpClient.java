@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class PluginHttpClient {
 
     private static final int EXECUTOR_THREADS = 4;
+    private static final int MAX_REDIRECT_HOPS = 5;
 
     public static final PluginHttpClient DEFAULT = new PluginHttpClient(10_000, 10_000, 10_000);
     public static final PluginHttpClient THIRTY_SECOND_TIMEOUTS = new PluginHttpClient(30_000, 30_000, 30_000);
@@ -67,11 +68,17 @@ public final class PluginHttpClient {
                 () -> {
                     HttpURLConnection connection = null;
                     try {
-                        connection = openConnection(url, method, formFields, headers);
-                        connectionRef.set(connection);
-                        int code = connection.getResponseCode();
-                        responseCode[0] = code;
-                        responseBody[0] = readBody(connection, code);
+                        if ("POST".equals(method) && formFields != null) {
+                            ExchangeResult result = performPostFormExchange(url, formFields, headers);
+                            responseCode[0] = result.code;
+                            responseBody[0] = result.body;
+                        } else {
+                            connection = openConnection(url, method, formFields, headers);
+                            connectionRef.set(connection);
+                            int code = connection.getResponseCode();
+                            responseCode[0] = code;
+                            responseBody[0] = readBody(connection, code);
+                        }
                     } catch (IOException e) {
                         error[0] = e;
                     } catch (RuntimeException e) {
@@ -120,6 +127,108 @@ public final class PluginHttpClient {
         });
     }
 
+    private static final class ExchangeResult {
+        final int code;
+        final String body;
+
+        ExchangeResult(int code, String body) {
+            this.code = code;
+            this.body = body;
+        }
+    }
+
+    private ExchangeResult performPostFormExchange(String urlString, Map<String, String> formFields, Map<String, String> headers)
+        throws IOException {
+        URL originalUrl = new URL(urlString);
+        byte[] body = encodeFormBody(formFields);
+        String currentUrl = urlString;
+
+        for (int hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+            HttpURLConnection connection = openPostFormConnection(currentUrl, body, headers);
+            try {
+                int code = connection.getResponseCode();
+                if (isRedirectStatus(code) && hop < MAX_REDIRECT_HOPS) {
+                    String location = connection.getHeaderField("Location");
+                    if (location == null || location.isEmpty()) {
+                        return new ExchangeResult(code, readBody(connection, code));
+                    }
+                    URL destination = resolveRedirectUrl(new URL(currentUrl), location);
+                    if (!isSafeRedirectDestination(originalUrl, destination)) {
+                        throw new IOException("Refusing redirect to unsafe destination: " + destination);
+                    }
+                    if (code != 307 && code != 308) {
+                        throw new IOException("POST form request cannot follow HTTP " + code + " redirect without losing credentials");
+                    }
+                    currentUrl = destination.toString();
+                    continue;
+                }
+                return new ExchangeResult(code, readBody(connection, code));
+            } finally {
+                connection.disconnect();
+            }
+        }
+        throw new IOException("Too many HTTP redirects (max " + MAX_REDIRECT_HOPS + ")");
+    }
+
+    static boolean isRedirectStatus(int code) {
+        return code == HttpURLConnection.HTTP_MOVED_PERM
+            || code == HttpURLConnection.HTTP_MOVED_TEMP
+            || code == 303
+            || code == 307
+            || code == 308;
+    }
+
+    static URL resolveRedirectUrl(URL base, String location) throws IOException {
+        return new URL(base, location);
+    }
+
+    /**
+     * OAuth form posts must not follow redirects to a different host or downgrade HTTPS.
+     */
+    static boolean isSafeRedirectDestination(URL original, URL destination) {
+        if (destination == null) {
+            return false;
+        }
+        if (destination.getUserInfo() != null) {
+            return false;
+        }
+        String originalHost = original.getHost();
+        String destinationHost = destination.getHost();
+        if (originalHost == null || destinationHost == null || originalHost.isEmpty() || destinationHost.isEmpty()) {
+            return false;
+        }
+        if (!originalHost.equalsIgnoreCase(destinationHost)) {
+            return false;
+        }
+        if ("https".equalsIgnoreCase(original.getProtocol()) && !"https".equalsIgnoreCase(destination.getProtocol())) {
+            return false;
+        }
+        return true;
+    }
+
+    private HttpURLConnection openPostFormConnection(String urlString, byte[] body, Map<String, String> headers) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
+        connection.setInstanceFollowRedirects(false);
+        connection.setConnectTimeout(connectTimeoutMs);
+        connection.setReadTimeout(readTimeoutMs);
+        connection.setRequestMethod("POST");
+        connection.setUseCaches(false);
+        if (headers != null) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                connection.setRequestProperty(entry.getKey(), entry.getValue());
+            }
+        }
+        connection.setDoOutput(true);
+        connection.setFixedLengthStreamingMode(body.length);
+        if (headers == null || !containsHeaderIgnoreCase(headers, "Content-Type")) {
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        }
+        try (OutputStream out = connection.getOutputStream()) {
+            writeBodyWithTimeout(out, body, writeTimeoutMs, connection);
+        }
+        return connection;
+    }
+
     private HttpURLConnection openConnection(String urlString, String method, Map<String, String> formFields, Map<String, String> headers)
         throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
@@ -131,18 +240,6 @@ public final class PluginHttpClient {
         if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 connection.setRequestProperty(entry.getKey(), entry.getValue());
-            }
-        }
-
-        if ("POST".equals(method) && formFields != null) {
-            byte[] body = encodeFormBody(formFields);
-            connection.setDoOutput(true);
-            connection.setFixedLengthStreamingMode(body.length);
-            if (headers == null || !containsHeaderIgnoreCase(headers, "Content-Type")) {
-                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-            }
-            try (OutputStream out = connection.getOutputStream()) {
-                writeBodyWithTimeout(out, body, writeTimeoutMs, connection);
             }
         }
 
