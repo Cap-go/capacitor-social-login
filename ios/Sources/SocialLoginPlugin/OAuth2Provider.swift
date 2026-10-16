@@ -390,7 +390,7 @@ class OAuth2Provider: NSObject {
         let storedIdToken = loadTokens(for: providerId)?.idToken
         UserDefaults.standard.removeObject(forKey: tokenStorageKey(for: providerId))
         ensureDiscovered(providerId: providerId) { [weak self] res in
-            guard let self = self else {
+            guard self != nil else {
                 completion(.success(()))
                 return
             }
