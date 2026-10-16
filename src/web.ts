@@ -17,6 +17,8 @@ import type {
   OAuth2LoginOptions,
   OAuth2LoginResponse,
   OAuth2ProviderConfig,
+  OpenAuthSessionOptions,
+  OpenAuthSessionResult,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
   FacebookGetProfileOptions,
@@ -25,7 +27,7 @@ import type {
   TikTokLoginOptions,
   RefreshTokenOptions,
 } from './definitions';
-import { inferUserCancelledError } from './errors';
+import { createUserCancelledError, inferUserCancelledError } from './errors';
 import { FacebookSocialLogin } from './facebook-provider';
 import { GoogleSocialLogin } from './google-provider';
 import {
@@ -54,6 +56,7 @@ import {
   TIKTOK_PROVIDER_ID,
 } from './tiktok-provider';
 import { TwitterSocialLogin } from './twitter-provider';
+import { nextPopupClosePollState, type PopupClosePollState } from './web-auth-popup-close';
 
 export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private static readonly OAUTH_STATE_KEY = OAUTH_STATE_KEY;
@@ -64,6 +67,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   private twitterProvider: TwitterSocialLogin;
   private telegramProvider: TelegramSocialLogin;
   private oauth2Provider: OAuth2SocialLogin;
+  private webAuthPopupInProgress = false;
 
   constructor() {
     super();
@@ -491,35 +495,164 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   }
 
   async openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse> {
-    const w = 600;
-    const h = 550;
-    const settings = [
-      ['width', w],
-      ['height', h],
-      ['left', screen.width / 2 - w / 2],
-      ['top', screen.height / 2 - h / 2],
-    ]
-      .map((x) => x.join('='))
-      .join(',');
+    const callbackURL = await this.runWebAuthPopup({
+      url: options.authEndpoint,
+      redirectPrefix: options.redirectUri,
+      broadcastChannelName: options.broadcastChannelName,
+    });
+    return { redirectedUri: callbackURL };
+  }
 
-    const popup = window.open(options.authEndpoint, 'Authorization', settings)!;
-    if (typeof popup.focus === 'function') {
-      popup.focus();
+  async openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult> {
+    const redirectPrefixes = [`${options.callbackURLScheme}://`];
+    try {
+      const authUrl = new URL(options.url);
+      const redirectUri = authUrl.searchParams.get('redirect_uri');
+      if (redirectUri && /^https?:\/\//i.test(redirectUri) && !redirectPrefixes.includes(redirectUri)) {
+        redirectPrefixes.unshift(redirectUri);
+      }
+    } catch {
+      // ignore malformed authorize URLs; scheme prefix remains the fallback
     }
+
+    const callbackURL = await this.runWebAuthPopup({
+      url: options.url,
+      redirectPrefixes,
+      broadcastChannelName: options.broadcastChannelName ?? 'capgo-auth-session',
+    });
+    return { callbackURL };
+  }
+
+  private runWebAuthPopup(options: {
+    url: string;
+    redirectPrefix?: string;
+    redirectPrefixes?: string[];
+    broadcastChannelName?: string;
+  }): Promise<string> {
+    if (this.webAuthPopupInProgress) {
+      return Promise.reject(new Error('Another auth session is already in progress'));
+    }
+    this.webAuthPopupInProgress = true;
+
+    let popup: Window | null = null;
+    let bc: BroadcastChannel | null = null;
+    let pollTimer = 0;
+    let timeoutTimer = 0;
+
+    const releasePopupGuard = () => {
+      this.webAuthPopupInProgress = false;
+      if (pollTimer) {
+        window.clearInterval(pollTimer);
+        pollTimer = 0;
+      }
+      if (timeoutTimer) {
+        window.clearTimeout(timeoutTimer);
+        timeoutTimer = 0;
+      }
+      if (bc) {
+        try {
+          bc.close();
+        } catch {
+          // ignore close errors
+        }
+        bc = null;
+      }
+    };
+
+    try {
+      const w = 600;
+      const h = 550;
+      const settings = [
+        ['width', w],
+        ['height', h],
+        ['left', screen.width / 2 - w / 2],
+        ['top', screen.height / 2 - h / 2],
+      ]
+        .map((x) => x.join('='))
+        .join(',');
+
+      popup = window.open(options.url, 'Authorization', settings);
+      if (!popup) {
+        releasePopupGuard();
+        return Promise.reject(new Error('Unable to open authorization popup. Allow popups for this origin.'));
+      }
+      if (typeof popup.focus === 'function') {
+        popup.focus();
+      }
+
+      const channelName = options.broadcastChannelName ?? 'oauth-channel';
+      bc = new BroadcastChannel(channelName);
+    } catch (error) {
+      releasePopupGuard();
+      if (popup && !popup.closed) {
+        try {
+          popup.close();
+        } catch {
+          // ignore cross-origin close errors
+        }
+      }
+      throw error;
+    }
+
+    const activePopup = popup;
+    const activeBc = bc;
+    if (!activeBc) {
+      releasePopupGuard();
+      return Promise.reject(new Error('Unable to open authorization channel'));
+    }
+
     return new Promise((resolve, reject) => {
-      const bc = new BroadcastChannel(options.broadcastChannelName || 'oauth-channel');
-      bc.addEventListener('message', (event) => {
-        if (event.data.startsWith(options.redirectUri)) {
-          bc.close();
-          resolve({ redirectedUri: event.data });
-        } else {
-          bc.close();
-          reject(new Error('Redirect URI does not match, expected ' + options.redirectUri + ' but got ' + event.data));
+      let settled = false;
+      const prefixes = options.redirectPrefixes ?? (options.redirectPrefix != null ? [options.redirectPrefix] : []);
+
+      const finish = (handler: () => void) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        releasePopupGuard();
+        handler();
+      };
+
+      activeBc.addEventListener('message', (event) => {
+        const data = typeof event.data === 'string' ? event.data : String(event.data ?? '');
+        if (prefixes.some((prefix) => data.startsWith(prefix))) {
+          finish(() => resolve(data));
+          return;
+        }
+        const looksLikeRedirect = /^https?:\/\//i.test(data) || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(data);
+        if (looksLikeRedirect) {
+          finish(() =>
+            reject(
+              new Error(
+                'Redirect URI does not match expected prefix. Received: ' +
+                  data +
+                  ' Expected one of: ' +
+                  prefixes.join(', '),
+              ),
+            ),
+          );
         }
       });
-      setTimeout(() => {
-        bc.close();
-        reject(new Error('The sign-in flow timed out'));
+
+      let popupClosePollState: PopupClosePollState = { graceStartedAtMs: null };
+
+      pollTimer = window.setInterval(() => {
+        try {
+          const closed = activePopup.closed;
+          const pollResult = nextPopupClosePollState(closed, popupClosePollState, Date.now());
+          popupClosePollState = pollResult.state;
+          if (pollResult.shouldCancel) {
+            finish(() => reject(createUserCancelledError('User cancelled authorization')));
+          }
+        } catch {
+          window.clearInterval(pollTimer);
+          pollTimer = 0;
+        }
+      }, 500);
+
+      timeoutTimer = window.setTimeout(() => {
+        finish(() => reject(new Error('The sign-in flow timed out')));
       }, 5 * 60000);
     });
   }
