@@ -118,7 +118,8 @@ public class AppleProvider implements SocialProvider {
             AppleProvider.this.idToken = idToken;
             AppleProvider.this.refreshToken = refreshToken;
             AppleProvider.this.accessToken = accessToken;
-            Log.i(SocialLoginPlugin.LOG_TAG, String.format("Apple restoreState: %s", object));
+            // The restored state holds the tokens, so it is not logged.
+            Log.i(SocialLoginPlugin.LOG_TAG, "Apple restoreState: restored");
         } catch (JSONException e) {
             Log.e(SocialLoginPlugin.LOG_TAG, "Apple restoreState: Failed to parse JSON", e);
         }
@@ -134,9 +135,9 @@ public class AppleProvider implements SocialProvider {
         String scheme = data.getScheme(); // "capgo-demo-app"
         String host = data.getHost(); // "path"
         String path = data.getPath(); // Additional path segments
-        String query = data.getQuery(); // Query parameters
 
-        Log.i(SocialLoginPlugin.LOG_TAG, String.format("Received apple login intent: %s, %s, %s, %s", scheme, host, path, query));
+        // The query carries the authorization code or the tokens, so it is not logged.
+        Log.i(SocialLoginPlugin.LOG_TAG, String.format("Received apple login intent: %s, %s, %s", scheme, host, path));
 
         handleUrl(data.toString());
         //    if (data.toString().contains("success=")) {
@@ -424,10 +425,7 @@ public class AppleProvider implements SocialProvider {
                                 AppleProvider.this.lastcall.resolve(appleResponse);
                                 AppleProvider.this.lastcall = null;
                             } else {
-                                Log.e(
-                                    SocialLoginPlugin.LOG_TAG,
-                                    "Cannot resolve access_token response: lastcall is null. Response: " + appleResponse.toString()
-                                );
+                                Log.e(SocialLoginPlugin.LOG_TAG, "Cannot resolve access_token response: lastcall is null");
                             }
                         } catch (Exception e) {
                             if (AppleProvider.this.lastcall != null) {
@@ -661,7 +659,7 @@ public class AppleProvider implements SocialProvider {
                 JSONObject messageData = data.getJSONObject("data");
 
                 Log.d("BroadcastChannel", "Received message from channel: " + channel);
-                Log.d("BroadcastChannel", "Message data: " + messageData.toString());
+                // The message data carries the tokens, so it is not logged.
 
                 // Handle authentication messages
                 if ("auth".equals(channel)) {

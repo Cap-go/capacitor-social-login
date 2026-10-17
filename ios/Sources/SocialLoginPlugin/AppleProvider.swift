@@ -189,11 +189,8 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         // Convert the object to JSON data
         let jsonData = try JSONSerialization.data(withJSONObject: object, options: [])
 
-        // Convert JSON data to a string for logging
+        // Convert JSON data to a string. It holds the tokens, so it is not logged.
         if let jsonString = String(data: jsonData, encoding: .utf8) {
-            // Log the object
-            print("Apple persistState: \(jsonString)")
-
             // Save the JSON string to UserDefaults or use your helper method
             UserDefaults.standard.set(jsonString, forKey: SHARED_PREFERENCE_NAME)
         } else {
@@ -232,9 +229,6 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         self.idToken = idToken
         self.refreshToken = refreshToken
         self.accessToken = accessToken
-
-        // Log the retrieved object
-        print("Apple retrieveState: \(object)")
     }
 
     func login(payload: [String: Any], completion: @escaping (Result<AppleProviderResponse, Error>) -> Void) {
@@ -336,7 +330,6 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
 
                 if let decodedData = Data(base64Encoded: base64String, options: []),
                    let payload = try? JSONSerialization.jsonObject(with: decodedData, options: []) as? [String: Any] {
-                    print("payload", payload)
                     decodedEmail = payload["email"] as? String ?? email
                 }
             }
@@ -444,14 +437,13 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                 // Check if the response is a redirect
                 if (300...399).contains(httpResponse.statusCode) {
                     if let location = httpResponse.value(forHTTPHeaderField: "Location") {
-                        print("Redirect Location: \(location)")
+                        // Neither the redirect URL nor its query items are logged: they carry
+                        // the authorization code or the tokens.
 
                         // Parse the redirect URL
                         if let redirectURL = URL(string: location),
                            let urlComponents = URLComponents(url: redirectURL, resolvingAgainstBaseURL: false),
                            let pathComponents = urlComponents.queryItems {
-
-                            print("Query items: \(String(describing: urlComponents.queryItems))")
 
                             // there are 4 main ways this can go:
                             // 1. it provides the "code" and we fetch apple servers in order to get the JWT (yuck)
@@ -543,10 +535,9 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                         return
                     }
                 } else {
-                    // Handle non-redirect responses
-                    if let data = data,
-                       let responseString = String(data: data, encoding: .utf8) {
-                        print("Response: \(responseString)")
+                    // Handle non-redirect responses. The body is not logged: it can carry tokens.
+                    if let data = data, !data.isEmpty {
+                        print("Received a non-redirect response (\(data.count) bytes)")
                     } else {
                         print("No response data received")
                     }
@@ -658,13 +649,6 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
                             idToken: idToken,
                             authorizationCode: nil
                         )
-
-                        // Log the tokens (replace with your logging mechanism)
-                        print("Apple Access Token is: \(accessToken)")
-                        print("Expires in: \(expiresIn)")
-                        print("Refresh token: \(refreshToken)")
-                        print("ID Token: \(idToken)")
-                        print("Apple User ID: \(userId)")
 
                         do {
                             try self.persistState(idToken: idToken, refreshToken: refreshToken, accessToken: accessToken)
