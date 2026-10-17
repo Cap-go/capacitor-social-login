@@ -266,7 +266,12 @@ class AppleProvider: NSObject, ASAuthorizationControllerDelegate, ASAuthorizatio
         }
     }
 
-    func logout(completion: @escaping (Result<Void, Error>) -> Void) {
+    func logout(clearCachedUserInfo: Bool = false, completion: @escaping (Result<Void, Error>) -> Void) {
+        // First, so it also happens without a session: the cached name outlives the tokens.
+        if clearCachedUserInfo {
+            UserDefaults.standard.removeObject(forKey: USER_INFO_KEY)
+        }
+
         // we check only idtoken, because with apple, refresh token MIGHT not be set
         if self.idToken == nil || ((self.idToken?.isEmpty) == true) {
 

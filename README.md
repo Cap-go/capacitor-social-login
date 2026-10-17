@@ -1062,14 +1062,14 @@ Login with the selected provider
 ### logout(...)
 
 ```typescript
-logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2'; providerId?: string; }) => Promise<void>
+logout(options: { provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2'; providerId?: string; clearCachedUserInfo?: boolean; }) => Promise<void>
 ```
 
 Logout
 
-| Param         | Type                                                                                                                                                |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'tiktok' \| 'oauth2' \| 'telegram'; providerId?: string; }</code> |
+| Param         | Type                                                                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`options`** | <code>{ provider: 'apple' \| 'google' \| 'facebook' \| 'twitter' \| 'linkedin' \| 'tiktok' \| 'oauth2' \| 'telegram'; providerId?: string; clearCachedUserInfo?: boolean; }</code> |
 
 --------------------
 

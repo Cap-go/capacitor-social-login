@@ -302,6 +302,7 @@ export class SocialLoginWeb extends WebPlugin implements SocialLoginPlugin {
   async logout(options: {
     provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
+    clearCachedUserInfo?: boolean;
   }): Promise<void> {
     switch (options.provider) {
       case 'google':

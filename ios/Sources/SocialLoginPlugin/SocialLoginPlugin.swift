@@ -589,7 +589,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Apple Sign-In provider is disabled in capacitor.config")
                 return
             }
-            apple.logout { result in
+            apple.logout(clearCachedUserInfo: call.getBool("clearCachedUserInfo") ?? false) { result in
                 self.handleLogoutResult(result, call: call)
             }
         case "twitter":

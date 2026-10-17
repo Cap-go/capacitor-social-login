@@ -120,6 +120,7 @@ class SocialLoginClient implements SocialLoginPlugin {
   async logout(options: {
     provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
+    clearCachedUserInfo?: boolean;
   }): Promise<void> {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.logout({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
