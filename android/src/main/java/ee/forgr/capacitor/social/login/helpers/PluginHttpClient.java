@@ -142,9 +142,10 @@ public final class PluginHttpClient {
         String currentUrl = urlString;
 
         for (int hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
-            HttpURLConnection connection = openPostFormConnection(currentUrl, body, headers);
+            HttpURLConnection connection = createPostFormConnection(currentUrl, body, headers);
             connectionRef.set(connection);
             try {
+                writePostFormBody(connection, body);
                 int code = connection.getResponseCode();
                 if (isRedirectStatus(code) && hop < MAX_REDIRECT_HOPS) {
                     String location = connection.getHeaderField("Location");
@@ -295,7 +296,7 @@ public final class PluginHttpClient {
         );
     }
 
-    private HttpURLConnection openPostFormConnection(String urlString, byte[] body, Map<String, String> headers) throws IOException {
+    private HttpURLConnection createPostFormConnection(String urlString, byte[] body, Map<String, String> headers) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
         connection.setInstanceFollowRedirects(false);
         connection.setConnectTimeout(connectTimeoutMs);
@@ -312,10 +313,13 @@ public final class PluginHttpClient {
         if (headers == null || !containsHeaderIgnoreCase(headers, "Content-Type")) {
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
         }
+        return connection;
+    }
+
+    private void writePostFormBody(HttpURLConnection connection, byte[] body) throws IOException {
         try (OutputStream out = connection.getOutputStream()) {
             writeBodyWithTimeout(out, body, writeTimeoutMs, connection);
         }
-        return connection;
     }
 
     private HttpURLConnection openGetConnection(String urlString, Map<String, String> headers) throws IOException {

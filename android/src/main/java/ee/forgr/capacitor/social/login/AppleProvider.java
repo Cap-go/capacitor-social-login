@@ -414,7 +414,7 @@ public class AppleProvider implements SocialProvider {
                 public void onFailure(IOException e) {
                     if (AppleProvider.this.lastcall != null) {
                         AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-                        AppleProvider.this.lastcall = null;
+                        clearPendingLoginCall();
                     } else {
                         Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
                     }
