@@ -170,8 +170,11 @@ public final class PluginHttpClient {
         throw new IOException("Too many HTTP redirects (max " + MAX_REDIRECT_HOPS + ")");
     }
 
-    private ExchangeResult performGetExchange(String urlString, Map<String, String> headers, AtomicReference<HttpURLConnection> connectionRef)
-        throws IOException {
+    private ExchangeResult performGetExchange(
+        String urlString,
+        Map<String, String> headers,
+        AtomicReference<HttpURLConnection> connectionRef
+    ) throws IOException {
         URL originalUrl = new URL(urlString);
         String currentUrl = urlString;
         Map<String, String> currentHeaders = headers;
