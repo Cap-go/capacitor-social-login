@@ -29,7 +29,7 @@ import org.json.JSONTokener;
 @CapacitorPlugin(name = "SocialLogin")
 public class SocialLoginPlugin extends Plugin {
 
-    private final String pluginVersion = "8.7.1";
+    private final String pluginVersion = "8.7.2";
 
     public static String LOG_TAG = "CapgoSocialLogin";
     private static final String USER_CANCELLED_CODE = "USER_CANCELLED";
@@ -934,6 +934,11 @@ public class SocialLoginPlugin extends Plugin {
         SocialProvider oauth2Provider = socialProviderHashMap.get("oauth2");
         if (oauth2Provider instanceof OAuth2Provider) {
             ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
+        }
+
+        SocialProvider appleProvider = socialProviderHashMap.get("apple");
+        if (appleProvider instanceof AppleProvider) {
+            ((AppleProvider) appleProvider).handleUserReturnedWithoutCallback();
         }
 
         // User returned without redirect: cancel when we saw pause, or after launch grace if pause was missed

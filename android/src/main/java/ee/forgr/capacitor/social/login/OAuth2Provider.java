@@ -950,7 +950,7 @@ public class OAuth2Provider implements SocialProvider {
     }
 
     private static String normalizePath(String path) {
-        if (path == null || path.isEmpty()) {
+        if (path == null || path.isEmpty() || "/".equals(path)) {
             return "";
         }
         if (path.length() > 1 && path.endsWith("/")) {

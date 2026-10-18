@@ -37,6 +37,34 @@ public class PluginHttpClientTest {
     }
 
     @Test
+    public void isSafeGetRedirectDestinationAllowsCrossHostHttps() throws Exception {
+        URL original = new URL("https://issuer.example.com/.well-known/openid-configuration");
+        URL destination = new URL("https://cdn.example.net/openid-configuration");
+        assertTrue(PluginHttpClient.isSafeGetRedirectDestination(original, destination));
+    }
+
+    @Test
+    public void isSafeGetRedirectDestinationRejectsHttpsDowngrade() throws Exception {
+        URL original = new URL("https://issuer.example.com/discovery");
+        URL destination = new URL("http://other.example.com/discovery");
+        assertFalse(PluginHttpClient.isSafeGetRedirectDestination(original, destination));
+    }
+
+    @Test
+    public void redirectChangesEffectiveOriginDetectsPortChange() throws Exception {
+        URL original = new URL("https://api.example.com/resource");
+        URL destination = new URL("https://api.example.com:8443/resource");
+        assertTrue(PluginHttpClient.redirectChangesEffectiveOrigin(original, destination));
+    }
+
+    @Test
+    public void redirectChangesEffectiveOriginIgnoresPathOnlyChange() throws Exception {
+        URL original = new URL("https://api.example.com/v1");
+        URL destination = new URL("https://api.example.com/v2");
+        assertFalse(PluginHttpClient.redirectChangesEffectiveOrigin(original, destination));
+    }
+
+    @Test
     public void writeBodyWithTimeoutCompletesSmallWrite() throws IOException {
         final byte[][] captured = new byte[1][];
         OutputStream out = new OutputStream() {

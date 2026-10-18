@@ -190,15 +190,11 @@ public final class PluginHttpClient {
                         return new ExchangeResult(code, readBody(connection, code));
                     }
                     URL destination = resolveRedirectUrl(new URL(currentUrl), location);
-                    if (!isSafeRedirectDestination(originalUrl, destination)) {
+                    if (!isSafeGetRedirectDestination(originalUrl, destination)) {
                         throw new IOException("Refusing redirect to unsafe destination: " + destination);
                     }
                     currentUrl = destination.toString();
-                    if (
-                        originalUrl.getHost() != null &&
-                        destination.getHost() != null &&
-                        !originalUrl.getHost().equalsIgnoreCase(destination.getHost())
-                    ) {
+                    if (redirectChangesEffectiveOrigin(originalUrl, destination)) {
                         currentHeaders = headersWithoutAuthorization(headers);
                     }
                     continue;
@@ -268,6 +264,35 @@ public final class PluginHttpClient {
             return false;
         }
         return true;
+    }
+
+    /**
+     * GET requests may follow cross-host redirects (OIDC discovery, tokeninfo) but must not downgrade HTTPS.
+     */
+    static boolean isSafeGetRedirectDestination(URL original, URL destination) {
+        if (destination == null || destination.getUserInfo() != null) {
+            return false;
+        }
+        String host = destination.getHost();
+        if (host == null || host.isEmpty()) {
+            return false;
+        }
+        return !("https".equalsIgnoreCase(original.getProtocol()) && !"https".equalsIgnoreCase(destination.getProtocol()));
+    }
+
+    static int effectivePort(URL url) {
+        return url.getPort() != -1 ? url.getPort() : url.getDefaultPort();
+    }
+
+    static boolean redirectChangesEffectiveOrigin(URL original, URL destination) {
+        if (original.getHost() == null || destination.getHost() == null) {
+            return true;
+        }
+        return (
+            !original.getProtocol().equalsIgnoreCase(destination.getProtocol()) ||
+            !original.getHost().equalsIgnoreCase(destination.getHost()) ||
+            effectivePort(original) != effectivePort(destination)
+        );
     }
 
     private HttpURLConnection openPostFormConnection(String urlString, byte[] body, Map<String, String> headers) throws IOException {
