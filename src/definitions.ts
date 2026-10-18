@@ -746,7 +746,9 @@ export interface GoogleLoginOptions {
    */
   scopes?: string[];
   /**
-   * Nonce
+   * Nonce. On iOS, a login with a nonce always shows the Google sign-in instead of restoring the
+   * previous sign-in: a restored ID token was minted without this nonce, so a backend that verifies
+   * it (for example Supabase `signInWithIdToken`) would reject the token.
    * @description nonce
    */
   nonce?: string;
