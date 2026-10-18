@@ -76,4 +76,60 @@ public class SocialLoginPluginUnitTest {
     public void getJwtPayloadSegmentRejectsTokenWithoutDotSeparator() {
         assertThrows(JSONException.class, () -> SocialLoginPlugin.getJwtPayloadSegment("not-a-jwt"));
     }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixUsesRedirectUriQueryParam() {
+        String authorizeUrl =
+            "https://login.example.com/oauth2/authorize?client_id=app&redirect_uri=myapp%3A%2F%2Fauth%2Fcallback&response_type=code";
+
+        assertEquals("myapp://auth/callback", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix(authorizeUrl, "myapp"));
+    }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixFallsBackToScheme() {
+        assertEquals("myapp:", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix("https://login.example.com", "myapp"));
+    }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixIgnoresAuthorizeUrlFragment() {
+        String authorizeUrl =
+            "https://login.example.com/oauth2/authorize?redirect_uri=myapp%3A%2F%2Fauth%2Fcallback&response_type=code#frag";
+
+        assertEquals("myapp://auth/callback", SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix(authorizeUrl, "myapp"));
+    }
+
+    @Test
+    public void resolveOpenAuthSessionExpectedCallbackPrefixDecodesRedirectUriOnce() {
+        String authorizeUrl =
+            "https://login.example.com/oauth2/authorize?redirect_uri=com.example.app%3A%2Foauth2redirect&response_type=code";
+
+        assertEquals(
+            "com.example.app:/oauth2redirect",
+            SocialLoginPlugin.resolveOpenAuthSessionExpectedCallbackPrefix(authorizeUrl, "com.example.app")
+        );
+    }
+
+    @Test
+    public void matchesOpenAuthSessionCallbackRejectsPrefixExtensionAttack() {
+        assertEquals(
+            false,
+            SocialLoginPlugin.matchesOpenAuthSessionCallback("myapp://auth/callback.evil", "myapp://auth/callback", "myapp")
+        );
+        assertEquals(
+            true,
+            SocialLoginPlugin.matchesOpenAuthSessionCallback("myapp://auth/callback?code=abc", "myapp://auth/callback", "myapp")
+        );
+    }
+
+    @Test
+    public void matchesOpenAuthSessionCallbackUsesSchemeWhenRedirectUriOmitted() {
+        assertEquals(
+            true,
+            SocialLoginPlugin.matchesOpenAuthSessionCallback(
+                "com.example.app:/oauth2redirect?code=1",
+                "com.example.app:",
+                "com.example.app"
+            )
+        );
+    }
 }

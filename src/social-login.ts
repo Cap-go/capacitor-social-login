@@ -9,6 +9,8 @@ import type {
   InitializeOptions,
   LinkedInLoginOptions,
   LoginOptions,
+  OpenAuthSessionOptions,
+  OpenAuthSessionResult,
   OpenSecureWindowOptions,
   OpenSecureWindowResponse,
   OAuth2LoginResponse,
@@ -118,6 +120,7 @@ class SocialLoginClient implements SocialLoginPlugin {
   async logout(options: {
     provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
+    clearCachedUserInfo?: boolean;
   }): Promise<void> {
     if (options.provider === 'linkedin') {
       return rawSocialLogin.logout({ provider: 'oauth2', providerId: LINKEDIN_PROVIDER_ID });
@@ -228,6 +231,10 @@ class SocialLoginClient implements SocialLoginPlugin {
 
   async openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse> {
     return rawSocialLogin.openSecureWindow(options);
+  }
+
+  async openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult> {
+    return rawSocialLogin.openAuthSession(options);
   }
 }
 

@@ -746,7 +746,9 @@ export interface GoogleLoginOptions {
    */
   scopes?: string[];
   /**
-   * Nonce
+   * Nonce. On iOS, a login with a nonce always shows the Google sign-in instead of restoring the
+   * previous sign-in: a restored ID token was minted without this nonce, so a backend that verifies
+   * it (for example Supabase `signInWithIdToken`) would reject the token.
    * @description nonce
    */
   nonce?: string;
@@ -1270,6 +1272,38 @@ export interface OpenSecureWindowResponse {
   redirectedUri: string;
 }
 
+export interface OpenAuthSessionOptions {
+  /**
+   * Authorization or login URL to open in the system browser session (OAuth/OIDC authorize endpoint, SSO login page, etc.).
+   * @example 'https://login.example.com/oauth2/authorize?client_id=...&redirect_uri=...&state=...'
+   */
+  url: string;
+  /**
+   * Custom URL scheme that receives the redirect (without `://`).
+   * Must match the scheme in your registered redirect URI and native URL handler (iOS/Android).
+   * On Web, the plugin also accepts HTTPS redirect URLs when `redirect_uri` is present in `url`, or messages prefixed with `${callbackURLScheme}://` on the BroadcastChannel.
+   * @example 'myapp'
+   */
+  callbackURLScheme: string;
+  /**
+   * iOS-only: prefer an ephemeral `ASWebAuthenticationSession` (no shared cookies with Safari).
+   * Defaults to `false` so SSO cookies in the system browser can be reused.
+   */
+  prefersEphemeralSession?: boolean;
+  /**
+   * Web-only: `BroadcastChannel` name used by the redirect page to post the callback URL back to the app.
+   * @default 'capgo-auth-session'
+   */
+  broadcastChannelName?: string;
+}
+
+export interface OpenAuthSessionResult {
+  /**
+   * Full redirect URI returned by the identity provider, including query or fragment (e.g. `myapp://auth/callback?code=...&state=...`).
+   */
+  callbackURL: string;
+}
+
 export type FacebookRequestTrackingOptions = Record<string, never>;
 
 export interface FacebookRequestTrackingResponse {
@@ -1352,11 +1386,24 @@ export interface SocialLoginPlugin {
    * When logging out from Google, the plugin also clears any stored Restore Credential
    * (`google#clearRestoreCredential`) in addition to Credential Manager sign-in state.
    *
+   * **Apple cached name (iOS):**
+   * The plugin keeps the name Apple returns only on the first authorization, and logging out
+   * keeps it. Pass `clearCachedUserInfo: true` to remove it too, for example on account deletion.
+   *
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
     provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
+    /**
+     * Apple on iOS: also remove the first and family name the plugin keeps on the device. Apple
+     * returns the name only on the first authorization, so the plugin caches it to fill `givenName`
+     * and `familyName` on later logins. Pass `true` when the user deletes their account, or should
+     * otherwise leave no trace on the device. The name is removed even if no Apple session is held.
+     * Ignored by other providers and platforms.
+     * @default false
+     */
+    clearCachedUserInfo?: boolean;
   }): Promise<void>;
   /**
    * IsLoggedIn
@@ -1543,4 +1590,20 @@ export interface SocialLoginPlugin {
    * @param options - the options for the openSecureWindow call
    */
   openSecureWindow(options: OpenSecureWindowOptions): Promise<OpenSecureWindowResponse>;
+
+  /**
+   * Opens a system auth session for generic OAuth/OIDC or enterprise SSO.
+   *
+   * Use this when you build the authorize URL yourself (or your IdP SDK returns one) and only need
+   * the plugin to run the secure browser flow and return the redirect callback URL. Exchange the
+   * authorization code or tokens on your backend or with your own client logic.
+   *
+   * **iOS/Android:** system browser session (`ASWebAuthenticationSession` / Chrome Custom Tabs).
+   * **Web:** popup window plus `BroadcastChannel` (not a native browser session).
+   *
+   * On user cancel or dismiss, the Promise rejects with `code === 'USER_CANCELLED'`.
+   *
+   * @param options - auth session options
+   */
+  openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult>;
 }

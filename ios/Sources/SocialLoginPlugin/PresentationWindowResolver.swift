@@ -23,7 +23,7 @@ enum PresentationWindowResolver {
             }
         }
 
-        return preferredWindow(from: UIApplication.shared.windows)
+        return preferredWindow(from: scenes.flatMap { $0.windows })
     }
 
     private static func preferredWindow(from windows: [UIWindow]) -> UIWindow? {
