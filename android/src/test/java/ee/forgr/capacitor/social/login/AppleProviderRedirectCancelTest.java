@@ -43,17 +43,11 @@ public class AppleProviderRedirectCancelTest {
     }
 
     @Test
-    public void handleUrlIgnoresCallbackWhenStateDoesNotMatchPendingLogin() throws Exception {
-        RecordingPluginCall call = new RecordingPluginCall();
-        AppleProvider provider = new AppleProvider("https://example.com/callback", "client-id", null, null, false, false);
-        setLastCall(provider, call);
-        setPendingRedirectState(provider, "expected-state");
-        getCoordinator(provider).onCustomTabLaunched();
-
-        provider.handleUrl("capgo-demo-app://path?success=true&state=other-state&access_token=tok");
-
-        assertFalse(call.rejected);
-        assertNotNull(getLastCall(provider));
+    public void matchesPendingRedirectStateRequiresEqualNonNullValues() {
+        assertTrue(AppleProvider.matchesPendingRedirectState("expected-state", "expected-state"));
+        assertFalse(AppleProvider.matchesPendingRedirectState("expected-state", "other-state"));
+        assertFalse(AppleProvider.matchesPendingRedirectState(null, "other-state"));
+        assertFalse(AppleProvider.matchesPendingRedirectState("expected-state", null));
     }
 
     @Test
@@ -85,12 +79,6 @@ public class AppleProviderRedirectCancelTest {
         Field coordinatorField = AppleProvider.class.getDeclaredField("redirectLoginCoordinator");
         coordinatorField.setAccessible(true);
         return (AppleRedirectLoginCoordinator) coordinatorField.get(provider);
-    }
-
-    private static void setPendingRedirectState(AppleProvider provider, String state) throws Exception {
-        Field stateField = AppleProvider.class.getDeclaredField("pendingRedirectState");
-        stateField.setAccessible(true);
-        stateField.set(provider, state);
     }
 
     private static void assertFalse(boolean condition) {

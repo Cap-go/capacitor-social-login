@@ -337,7 +337,7 @@ public class AppleProvider implements SocialProvider {
 
         Uri uri = Uri.parse(url);
         String callbackState = uri.getQueryParameter("state");
-        if (pendingRedirectState == null || !pendingRedirectState.equals(callbackState)) {
+        if (!matchesPendingRedirectState(pendingRedirectState, callbackState)) {
             return;
         }
 
@@ -397,6 +397,10 @@ public class AppleProvider implements SocialProvider {
         this.lastcall = null;
         this.pendingRedirectState = null;
         redirectLoginCoordinator.onLoginFinished();
+    }
+
+    static boolean matchesPendingRedirectState(String pendingState, String callbackState) {
+        return pendingState != null && pendingState.equals(callbackState);
     }
 
     private void requestForAccessToken(String code, String clientSecret) {
