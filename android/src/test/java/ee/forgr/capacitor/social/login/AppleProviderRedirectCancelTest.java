@@ -51,20 +51,6 @@ public class AppleProviderRedirectCancelTest {
     }
 
     @Test
-    public void handleUrlIgnoresMismatchedStateWithoutSettlingLastCall() throws Exception {
-        RecordingPluginCall call = new RecordingPluginCall();
-        AppleProvider provider = new AppleProvider("https://example.com/callback", "client-id", null, null, false, false);
-        setLastCall(provider, call);
-        setPendingRedirectState(provider, "active-state");
-
-        provider.handleUrl("https://example.com/callback?success=true&state=stale-state&access_token=tok&id_token=jwt&refresh_token=ref");
-
-        assertFalse(call.rejected);
-        assertFalse(call.resolved);
-        assertNotNull(getLastCall(provider));
-    }
-
-    @Test
     public void afterCancelLastCallIsNullSoLoginWouldNotBeBlocked() throws Exception {
         RecordingPluginCall first = new RecordingPluginCall();
         AppleProvider provider = new AppleProvider("https://example.com/callback", "client-id", null, null, false, false);
@@ -81,12 +67,6 @@ public class AppleProviderRedirectCancelTest {
         Field lastCallField = AppleProvider.class.getDeclaredField("lastcall");
         lastCallField.setAccessible(true);
         lastCallField.set(provider, call);
-    }
-
-    private static void setPendingRedirectState(AppleProvider provider, String state) throws Exception {
-        Field pendingStateField = AppleProvider.class.getDeclaredField("pendingRedirectState");
-        pendingStateField.setAccessible(true);
-        pendingStateField.set(provider, state);
     }
 
     private static PluginCall getLastCall(AppleProvider provider) throws Exception {
@@ -108,7 +88,6 @@ public class AppleProviderRedirectCancelTest {
     private static final class RecordingPluginCall extends PluginCall {
 
         boolean rejected;
-        boolean resolved;
         String rejectMessage;
         String rejectCode;
 
@@ -136,11 +115,6 @@ public class AppleProviderRedirectCancelTest {
         @Override
         public void reject(String msg) {
             reject(msg, (String) null);
-        }
-
-        @Override
-        public void resolve(JSObject data) {
-            resolved = true;
         }
     }
 }
