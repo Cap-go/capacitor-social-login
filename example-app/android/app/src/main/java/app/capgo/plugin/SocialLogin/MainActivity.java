@@ -49,9 +49,9 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
         Uri data = intent.getData();
         
         if (Intent.ACTION_VIEW.equals(action) && data != null) {
-            // Check if this is an Apple Sign-In callback (contains id_token)
+            // Forward success and error callbacks; error callbacks can omit id_token.
             String idToken = data.getQueryParameter("id_token");
-            if (idToken != null) {
+            if (idToken != null || data.getQueryParameter("state") != null) {
                 PluginHandle pluginHandle = getBridge().getPlugin("SocialLogin");
                 if (pluginHandle == null) {
                     Log.i("Apple Login Intent", "SocialLogin plugin handle is null");

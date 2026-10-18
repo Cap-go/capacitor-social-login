@@ -61,6 +61,8 @@ public class AppleProvider implements SocialProvider {
     private static final String APPLE_DATA_PREFERENCE = "APPLE_LOGIN_APPLE_DATA_83b2d6db-17fe-49c9-8c33-e3f5d02f9f84";
 
     private PluginCall lastcall;
+    private String pendingRedirectState;
+    private final AppleRedirectLoginCoordinator redirectLoginCoordinator = new AppleRedirectLoginCoordinator();
     private String appleAuthURLFull;
 
     private String idToken;
@@ -123,6 +125,19 @@ public class AppleProvider implements SocialProvider {
         } catch (JSONException e) {
             Log.e(SocialLoginPlugin.LOG_TAG, "Apple restoreState: Failed to parse JSON", e);
         }
+    }
+
+    /**
+     * Called when the host activity resumes after Custom Tabs without receiving a redirect.
+     */
+    void handleUserReturnedWithoutCallback() {
+        if (!redirectLoginCoordinator.shouldRejectOnActivityResume()) {
+            return;
+        }
+        if (lastcall != null) {
+            lastcall.reject(AppleRedirectLoginCoordinator.USER_CANCELLED_MESSAGE, AppleRedirectLoginCoordinator.USER_CANCELLED_CODE);
+        }
+        clearPendingLoginCall();
     }
 
     public void handleIntent(Intent intent) {
@@ -222,6 +237,7 @@ public class AppleProvider implements SocialProvider {
 
     private void loginWithRedirect(PluginCall call, JSONObject config) {
         String state = UUID.randomUUID().toString();
+        this.pendingRedirectState = state;
 
         // Extract scopes from config
         String scopes = DEFAULT_SCOPE;
@@ -262,7 +278,7 @@ public class AppleProvider implements SocialProvider {
 
         if (context == null || activity == null) {
             this.lastcall.reject("Context or Activity is null");
-            this.lastcall = null;
+            clearPendingLoginCall();
             return;
         }
 
@@ -320,6 +336,13 @@ public class AppleProvider implements SocialProvider {
         }
 
         Uri uri = Uri.parse(url);
+        String callbackState = uri.getQueryParameter("state");
+        if (!matchesPendingRedirectState(pendingRedirectState, callbackState)) {
+            return;
+        }
+
+        redirectLoginCoordinator.onRedirectReceived();
+
         String success = uri.getQueryParameter("success");
         if ("true".equals(success)) {
             String accessToken = uri.getQueryParameter("access_token");
@@ -359,6 +382,7 @@ public class AppleProvider implements SocialProvider {
                     this.lastcall.reject("Expected proper tokens from backend but received authorization code only");
                 } else {
                     // Legacy mode: exchange the authorization code for tokens
+                    redirectLoginCoordinator.onTokenExchangeStarted();
                     requestForAccessToken(appleAuthCode, appleClientSecret);
                     return; // Don't clear lastcall here, it will be cleared in the callback
                 }
@@ -366,7 +390,17 @@ public class AppleProvider implements SocialProvider {
         } else {
             this.lastcall.reject("We couldn't get the Auth Code");
         }
+        clearPendingLoginCall();
+    }
+
+    private void clearPendingLoginCall() {
         this.lastcall = null;
+        this.pendingRedirectState = null;
+        redirectLoginCoordinator.onLoginFinished();
+    }
+
+    static boolean matchesPendingRedirectState(String pendingState, String callbackState) {
+        return pendingState != null && pendingState.equals(callbackState);
     }
 
     private void requestForAccessToken(String code, String clientSecret) {
@@ -389,7 +423,7 @@ public class AppleProvider implements SocialProvider {
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
                         if (AppleProvider.this.lastcall != null) {
                             AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-                            AppleProvider.this.lastcall = null;
+                            clearPendingLoginCall();
                         } else {
                             Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
                         }
@@ -423,14 +457,14 @@ public class AppleProvider implements SocialProvider {
 
                             if (AppleProvider.this.lastcall != null) {
                                 AppleProvider.this.lastcall.resolve(appleResponse);
-                                AppleProvider.this.lastcall = null;
+                                clearPendingLoginCall();
                             } else {
                                 Log.e(SocialLoginPlugin.LOG_TAG, "Cannot resolve access_token response: lastcall is null");
                             }
                         } catch (Exception e) {
                             if (AppleProvider.this.lastcall != null) {
                                 AppleProvider.this.lastcall.reject("Cannot get access_token", e);
-                                AppleProvider.this.lastcall = null;
+                                clearPendingLoginCall();
                             } else {
                                 Log.e(SocialLoginPlugin.LOG_TAG, "Cannot get access_token: lastcall is null. Error: " + e.getMessage(), e);
                             }
@@ -472,6 +506,7 @@ public class AppleProvider implements SocialProvider {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebview(Context context, Activity activity, PluginCall call, String url) {
+        redirectLoginCoordinator.onCustomTabLaunched();
         CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(getCustomTabsSession());
 
         builder.build().launchUrl(context, Uri.parse(url));

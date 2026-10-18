@@ -887,6 +887,11 @@ public class SocialLoginPlugin extends Plugin {
             ((OAuth2Provider) oauth2Provider).handleUserReturnedWithoutCallback();
         }
 
+        SocialProvider appleProvider = socialProviderHashMap.get("apple");
+        if (appleProvider instanceof AppleProvider) {
+            ((AppleProvider) appleProvider).handleUserReturnedWithoutCallback();
+        }
+
         // User returned without redirect: cancel when we saw pause, or after launch grace if pause was missed
         if (openAuthSessionSavedCall != null) {
             boolean pausedAfterLaunch = openAuthSessionPaused;

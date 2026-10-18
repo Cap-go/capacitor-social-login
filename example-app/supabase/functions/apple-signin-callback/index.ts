@@ -169,7 +169,10 @@ Deno.serve(async (req) => {
       const redirectUrl = new URL(env.BASE_REDIRECT_URL);
       redirectUrl.searchParams.set("success", "false");
       redirectUrl.searchParams.set("error", errorDescription || error);
-      
+      if (state) {
+        redirectUrl.searchParams.set("state", state);
+      }
+
       return new Response(null, {
         status: 302,
         headers: {
@@ -184,7 +187,10 @@ Deno.serve(async (req) => {
       const redirectUrl = new URL(env.BASE_REDIRECT_URL);
       redirectUrl.searchParams.set("success", "false");
       redirectUrl.searchParams.set("error", "Missing authorization code");
-      
+      if (state) {
+        redirectUrl.searchParams.set("state", state);
+      }
+
       return new Response(null, {
         status: 302,
         headers: {
