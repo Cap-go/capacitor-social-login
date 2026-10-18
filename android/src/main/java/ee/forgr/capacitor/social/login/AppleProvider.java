@@ -338,7 +338,6 @@ public class AppleProvider implements SocialProvider {
         Uri uri = Uri.parse(url);
         String callbackState = uri.getQueryParameter("state");
         if (pendingRedirectState == null || !pendingRedirectState.equals(callbackState)) {
-            Log.e(SocialLoginPlugin.LOG_TAG, "Ignoring Apple callback for a different login attempt");
             return;
         }
 
