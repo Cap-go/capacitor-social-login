@@ -16,7 +16,7 @@ import GoogleSignIn
  */
 @objc(SocialLoginPlugin)
 public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
-    private let pluginVersion: String = "8.6.0"
+    private let pluginVersion: String = "8.7.1"
     public let identifier = "SocialLoginPlugin"
     public let jsName = "SocialLogin"
     private static let userCancelledCode = "USER_CANCELLED"
@@ -589,7 +589,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.reject("Apple Sign-In provider is disabled in capacitor.config")
                 return
             }
-            apple.logout { result in
+            apple.logout(clearCachedUserInfo: call.getBool("clearCachedUserInfo") ?? false) { result in
                 self.handleLogoutResult(result, call: call)
             }
         case "twitter":

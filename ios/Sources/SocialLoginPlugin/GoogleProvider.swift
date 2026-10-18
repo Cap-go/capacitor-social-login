@@ -40,6 +40,9 @@ class GoogleProvider {
                 self.forceAuthCode = false
             }
 
+            // Extract nonce from payload if provided
+            let nonce = payload["nonce"] as? String
+
             func login() {
                 guard let presentingVc = PresentationWindowResolver
                         .window(hostViewController: self.hostViewController)?.rootViewController else {
@@ -52,9 +55,6 @@ class GoogleProvider {
                 if shouldGrantOfflineAccess {
                     scopes = Array(Set(scopes + ["offline_access"]))
                 }
-
-                // Extract nonce from payload if provided
-                let nonce = payload["nonce"] as? String
 
                 GIDSignIn.sharedInstance.signIn(
                     withPresenting: presentingVc,
@@ -82,7 +82,9 @@ class GoogleProvider {
                 }
             }
 
-            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode && self.mode != .OFFLINE {
+            // A restored sign-in returns an ID token minted without this call's nonce, which a
+            // backend that checks the nonce rejects. So a login with a nonce always signs in.
+            if GIDSignIn.sharedInstance.hasPreviousSignIn() && !self.forceAuthCode && self.mode != .OFFLINE && nonce == nil {
                 GIDSignIn.sharedInstance.restorePreviousSignIn { user, error in
                     if error != nil {
                         // Retry interactive login when restoring the previous session fails.

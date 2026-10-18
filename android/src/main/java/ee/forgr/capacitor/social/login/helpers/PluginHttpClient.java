@@ -10,6 +10,7 @@ import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,27 +67,19 @@ public final class PluginHttpClient {
 
             Thread worker = new Thread(
                 () -> {
-                    HttpURLConnection connection = null;
                     try {
+                        ExchangeResult result;
                         if ("POST".equals(method) && formFields != null) {
-                            ExchangeResult result = performPostFormExchange(url, formFields, headers);
-                            responseCode[0] = result.code;
-                            responseBody[0] = result.body;
+                            result = performPostFormExchange(url, formFields, headers, connectionRef);
                         } else {
-                            connection = openConnection(url, method, formFields, headers);
-                            connectionRef.set(connection);
-                            int code = connection.getResponseCode();
-                            responseCode[0] = code;
-                            responseBody[0] = readBody(connection, code);
+                            result = performGetExchange(url, headers, connectionRef);
                         }
+                        responseCode[0] = result.code;
+                        responseBody[0] = result.body;
                     } catch (IOException e) {
                         error[0] = e;
                     } catch (RuntimeException e) {
                         error[0] = new IOException(e);
-                    } finally {
-                        if (connection != null) {
-                            connection.disconnect();
-                        }
                     }
                 },
                 "PluginHttpClient-request"
@@ -138,14 +131,19 @@ public final class PluginHttpClient {
         }
     }
 
-    private ExchangeResult performPostFormExchange(String urlString, Map<String, String> formFields, Map<String, String> headers)
-        throws IOException {
+    private ExchangeResult performPostFormExchange(
+        String urlString,
+        Map<String, String> formFields,
+        Map<String, String> headers,
+        AtomicReference<HttpURLConnection> connectionRef
+    ) throws IOException {
         URL originalUrl = new URL(urlString);
         byte[] body = encodeFormBody(formFields);
         String currentUrl = urlString;
 
         for (int hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
             HttpURLConnection connection = openPostFormConnection(currentUrl, body, headers);
+            connectionRef.set(connection);
             try {
                 int code = connection.getResponseCode();
                 if (isRedirectStatus(code) && hop < MAX_REDIRECT_HOPS) {
@@ -166,9 +164,69 @@ public final class PluginHttpClient {
                 return new ExchangeResult(code, readBody(connection, code));
             } finally {
                 connection.disconnect();
+                clearConnectionRef(connectionRef, connection);
             }
         }
         throw new IOException("Too many HTTP redirects (max " + MAX_REDIRECT_HOPS + ")");
+    }
+
+    private ExchangeResult performGetExchange(String urlString, Map<String, String> headers, AtomicReference<HttpURLConnection> connectionRef)
+        throws IOException {
+        URL originalUrl = new URL(urlString);
+        String currentUrl = urlString;
+        Map<String, String> currentHeaders = headers;
+
+        for (int hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+            HttpURLConnection connection = openGetConnection(currentUrl, currentHeaders);
+            connectionRef.set(connection);
+            try {
+                int code = connection.getResponseCode();
+                if (isRedirectStatus(code) && hop < MAX_REDIRECT_HOPS) {
+                    String location = connection.getHeaderField("Location");
+                    if (location == null || location.isEmpty()) {
+                        return new ExchangeResult(code, readBody(connection, code));
+                    }
+                    URL destination = resolveRedirectUrl(new URL(currentUrl), location);
+                    if (!isSafeRedirectDestination(originalUrl, destination)) {
+                        throw new IOException("Refusing redirect to unsafe destination: " + destination);
+                    }
+                    currentUrl = destination.toString();
+                    if (
+                        originalUrl.getHost() != null &&
+                        destination.getHost() != null &&
+                        !originalUrl.getHost().equalsIgnoreCase(destination.getHost())
+                    ) {
+                        currentHeaders = headersWithoutAuthorization(headers);
+                    }
+                    continue;
+                }
+                return new ExchangeResult(code, readBody(connection, code));
+            } finally {
+                connection.disconnect();
+                clearConnectionRef(connectionRef, connection);
+            }
+        }
+        throw new IOException("Too many HTTP redirects (max " + MAX_REDIRECT_HOPS + ")");
+    }
+
+    private static void clearConnectionRef(AtomicReference<HttpURLConnection> connectionRef, HttpURLConnection connection) {
+        if (connectionRef.get() == connection) {
+            connectionRef.set(null);
+        }
+    }
+
+    private static Map<String, String> headersWithoutAuthorization(Map<String, String> headers) {
+        if (headers == null || headers.isEmpty()) {
+            return headers;
+        }
+        Map<String, String> filtered = new HashMap<>();
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase("Authorization")) {
+                continue;
+            }
+            filtered.put(entry.getKey(), entry.getValue());
+        }
+        return filtered;
     }
 
     static boolean isRedirectStatus(int code) {
@@ -232,20 +290,18 @@ public final class PluginHttpClient {
         return connection;
     }
 
-    private HttpURLConnection openConnection(String urlString, String method, Map<String, String> formFields, Map<String, String> headers)
-        throws IOException {
+    private HttpURLConnection openGetConnection(String urlString, Map<String, String> headers) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(urlString).openConnection();
-        connection.setInstanceFollowRedirects(true);
+        connection.setInstanceFollowRedirects(false);
         connection.setConnectTimeout(connectTimeoutMs);
         connection.setReadTimeout(readTimeoutMs);
-        connection.setRequestMethod(method);
+        connection.setRequestMethod("GET");
         connection.setUseCaches(false);
         if (headers != null) {
             for (Map.Entry<String, String> entry : headers.entrySet()) {
                 connection.setRequestProperty(entry.getKey(), entry.getValue());
             }
         }
-
         return connection;
     }
 

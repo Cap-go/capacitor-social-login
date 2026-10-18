@@ -29,7 +29,7 @@ import org.json.JSONTokener;
 @CapacitorPlugin(name = "SocialLogin")
 public class SocialLoginPlugin extends Plugin {
 
-    private final String pluginVersion = "8.6.0";
+    private final String pluginVersion = "8.7.1";
 
     public static String LOG_TAG = "CapgoSocialLogin";
     private static final String USER_CANCELLED_CODE = "USER_CANCELLED";

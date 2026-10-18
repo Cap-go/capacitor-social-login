@@ -1097,6 +1097,12 @@ public class OAuth2Provider implements SocialProvider {
         final String providerId = pendingState.providerId;
 
         Map<String, String> form = new LinkedHashMap<>();
+        if (config.additionalTokenParameters != null) {
+            for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
+                form.put(entry.getKey(), entry.getValue());
+            }
+        }
+
         form.put("grant_type", "authorization_code");
         form.put(config.clientIdParamName, config.appId);
         form.put("code", code);
@@ -1108,12 +1114,6 @@ public class OAuth2Provider implements SocialProvider {
 
         if (config.clientSecret != null) {
             form.put(config.clientSecretParamName, config.clientSecret);
-        }
-
-        if (config.additionalTokenParameters != null) {
-            for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
-                form.put(entry.getKey(), entry.getValue());
-            }
         }
 
         if (config.logsEnabled) {
@@ -1189,14 +1189,6 @@ public class OAuth2Provider implements SocialProvider {
         }
 
         Map<String, String> form = new LinkedHashMap<>();
-        form.put("grant_type", "refresh_token");
-        form.put("refresh_token", refreshToken);
-        form.put(config.clientIdParamName, config.appId);
-
-        if (config.clientSecret != null) {
-            form.put(config.clientSecretParamName, config.clientSecret);
-        }
-
         if (config.additionalTokenParameters != null) {
             for (Map.Entry<String, String> entry : config.additionalTokenParameters.entrySet()) {
                 form.put(entry.getKey(), entry.getValue());
@@ -1214,6 +1206,15 @@ public class OAuth2Provider implements SocialProvider {
                 Log.w(LOG_TAG, "Failed to parse additionalParameters for refresh", e);
             }
         }
+
+        form.put(config.clientIdParamName, config.appId);
+
+        if (config.clientSecret != null) {
+            form.put(config.clientSecretParamName, config.clientSecret);
+        }
+
+        form.put("grant_type", "refresh_token");
+        form.put("refresh_token", refreshToken);
 
         httpClient.enqueuePostForm(
             config.accessTokenEndpoint,

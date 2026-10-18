@@ -746,7 +746,9 @@ export interface GoogleLoginOptions {
    */
   scopes?: string[];
   /**
-   * Nonce
+   * Nonce. On iOS, a login with a nonce always shows the Google sign-in instead of restoring the
+   * previous sign-in: a restored ID token was minted without this nonce, so a backend that verifies
+   * it (for example Supabase `signInWithIdToken`) would reject the token.
    * @description nonce
    */
   nonce?: string;
@@ -1384,11 +1386,24 @@ export interface SocialLoginPlugin {
    * When logging out from Google, the plugin also clears any stored Restore Credential
    * (`google#clearRestoreCredential`) in addition to Credential Manager sign-in state.
    *
+   * **Apple cached name (iOS):**
+   * The plugin keeps the name Apple returns only on the first authorization, and logging out
+   * keeps it. Pass `clearCachedUserInfo: true` to remove it too, for example on account deletion.
+   *
    * @throws Error if Google provider is in offline mode
    */
   logout(options: {
     provider: 'apple' | 'google' | 'facebook' | 'twitter' | 'telegram' | 'linkedin' | 'tiktok' | 'oauth2';
     providerId?: string;
+    /**
+     * Apple on iOS: also remove the first and family name the plugin keeps on the device. Apple
+     * returns the name only on the first authorization, so the plugin caches it to fill `givenName`
+     * and `familyName` on later logins. Pass `true` when the user deletes their account, or should
+     * otherwise leave no trace on the device. The name is removed even if no Apple session is held.
+     * Ignored by other providers and platforms.
+     * @default false
+     */
+    clearCachedUserInfo?: boolean;
   }): Promise<void>;
   /**
    * IsLoggedIn
