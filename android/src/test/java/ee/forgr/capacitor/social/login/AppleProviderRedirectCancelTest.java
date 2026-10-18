@@ -57,9 +57,7 @@ public class AppleProviderRedirectCancelTest {
         setLastCall(provider, call);
         setPendingRedirectState(provider, "active-state");
 
-        provider.handleUrl(
-            "https://example.com/callback?success=true&state=stale-state&access_token=tok&id_token=jwt&refresh_token=ref"
-        );
+        provider.handleUrl("https://example.com/callback?success=true&state=stale-state&access_token=tok&id_token=jwt&refresh_token=ref");
 
         assertFalse(call.rejected);
         assertFalse(call.resolved);
