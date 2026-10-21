@@ -194,7 +194,6 @@ public class DependencyAvailabilityChecker {
 
         // Check multiple critical classes to be resilient
         String[] appleClasses = {
-            "com.auth0.android.jwt.JWT",
             "androidx.browser.customtabs.CustomTabsSession",
             "androidx.browser.customtabs.CustomTabsServiceConnection",
             "androidx.browser.customtabs.CustomTabsClient",
@@ -214,8 +213,7 @@ public class DependencyAvailabilityChecker {
         if (!allAvailable) {
             Log.w(
                 LOG_TAG,
-                "Apple Sign-In dependencies are not available. " +
-                    "Ensure JWT decode and CustomTabs dependencies are included in your app's build.gradle"
+                "Apple Sign-In dependencies are not available. " + "Ensure CustomTabs dependencies are included in your app's build.gradle"
             );
         }
 
@@ -223,9 +221,7 @@ public class DependencyAvailabilityChecker {
     }
 
     /**
-     * Check if Twitter OAuth dependencies are available.
-     * Checks config first (for "fake disable"), then checks classes.
-     * Result is cached after first check.
+     * Twitter OAuth uses built-in Android APIs only (no external SDK). Respects config disable flag.
      */
     private static boolean isTwitterAvailable() {
         if (twitterDependenciesAvailable != null) {
@@ -239,28 +235,8 @@ public class DependencyAvailabilityChecker {
             return false;
         }
 
-        // Check multiple critical classes to be resilient
-        // Twitter uses OkHttp and standard Android APIs, but we check anyway for user control
-        String[] twitterClasses = { "okhttp3.OkHttpClient", "okhttp3.Request", "okhttp3.Response", "okhttp3.FormBody" };
-
-        boolean allAvailable = true;
-        for (String className : twitterClasses) {
-            if (!isClassAvailable(className)) {
-                allAvailable = false;
-                Log.w(LOG_TAG, "Twitter dependency class not available: " + className);
-            }
-        }
-
-        twitterDependenciesAvailable = allAvailable;
-
-        if (!allAvailable) {
-            Log.w(
-                LOG_TAG,
-                "Twitter OAuth dependencies are not available. " + "Ensure OkHttp dependencies are included in your app's build.gradle"
-            );
-        }
-
-        return allAvailable;
+        twitterDependenciesAvailable = true;
+        return true;
     }
 
     /**

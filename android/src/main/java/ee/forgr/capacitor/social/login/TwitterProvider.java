@@ -11,6 +11,7 @@ import android.util.Log;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PluginCall;
+import ee.forgr.capacitor.social.login.helpers.PluginHttpClient;
 import ee.forgr.capacitor.social.login.helpers.SocialProvider;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,15 +21,10 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,7 +41,7 @@ public class TwitterProvider implements SocialProvider {
 
     private final Activity activity;
     private final Context context;
-    private final OkHttpClient httpClient;
+    private final PluginHttpClient httpClient;
 
     private String clientId;
     private String redirectUri;
@@ -74,7 +70,7 @@ public class TwitterProvider implements SocialProvider {
     public TwitterProvider(Activity activity, Context context) {
         this.activity = activity;
         this.context = context;
-        this.httpClient = new OkHttpClient.Builder().connectTimeout(30, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).build();
+        this.httpClient = PluginHttpClient.THIRTY_SECOND_TIMEOUTS;
     }
 
     public void initialize(JSONObject config) throws JSONException {
@@ -266,86 +262,80 @@ public class TwitterProvider implements SocialProvider {
             return;
         }
 
-        FormBody body = new FormBody.Builder()
-            .add("grant_type", "authorization_code")
-            .add("client_id", clientId)
-            .add("code", code)
-            .add("redirect_uri", pendingState.redirectUri)
-            .add("code_verifier", pendingState.codeVerifier)
-            .build();
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", "authorization_code");
+        form.put("client_id", clientId);
+        form.put("code", code);
+        form.put("redirect_uri", pendingState.redirectUri);
+        form.put("code_verifier", pendingState.codeVerifier);
 
-        Request request = new Request.Builder().url(TOKEN_ENDPOINT).post(body).build();
-        httpClient
-            .newCall(request)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
+        httpClient.enqueuePostForm(
+            TOKEN_ENDPOINT,
+            form,
+            null,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    if (pendingCall != null) {
+                        pendingCall.reject("Twitter token exchange failed", e);
+                    }
+                    cleanupPending();
+                }
+
+                @Override
+                public void onResponse(int code, String responseBody) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
                         if (pendingCall != null) {
-                            pendingCall.reject("Twitter token exchange failed", e);
+                            pendingCall.reject("Twitter token exchange failed: " + responseBody);
+                        }
+                        cleanupPending();
+                        return;
+                    }
+                    try {
+                        JSONObject tokenPayload = new JSONObject(responseBody);
+                        handleTokenSuccess(tokenPayload);
+                    } catch (JSONException e) {
+                        if (pendingCall != null) {
+                            pendingCall.reject("Failed to parse Twitter token response", e);
                         }
                         cleanupPending();
                     }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            String errorBody = response.body() != null ? response.body().string() : "";
-                            if (pendingCall != null) {
-                                pendingCall.reject("Twitter token exchange failed: " + errorBody);
-                            }
-                            cleanupPending();
-                            return;
-                        }
-                        String responseBody = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject tokenPayload = new JSONObject(responseBody);
-                            handleTokenSuccess(tokenPayload);
-                        } catch (JSONException e) {
-                            if (pendingCall != null) {
-                                pendingCall.reject("Failed to parse Twitter token response", e);
-                            }
-                            cleanupPending();
-                        }
-                    }
                 }
-            );
+            }
+        );
     }
 
     private void refreshWithToken(final PluginCall pluginCall, String refreshToken) {
-        FormBody body = new FormBody.Builder()
-            .add("grant_type", "refresh_token")
-            .add("refresh_token", refreshToken)
-            .add("client_id", clientId)
-            .build();
+        Map<String, String> form = new LinkedHashMap<>();
+        form.put("grant_type", "refresh_token");
+        form.put("refresh_token", refreshToken);
+        form.put("client_id", clientId);
 
-        Request request = new Request.Builder().url(TOKEN_ENDPOINT).post(body).build();
-        httpClient
-            .newCall(request)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        pluginCall.reject("Twitter refresh failed", e);
+        httpClient.enqueuePostForm(
+            TOKEN_ENDPOINT,
+            form,
+            null,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    pluginCall.reject("Twitter refresh failed", e);
+                }
+
+                @Override
+                public void onResponse(int code, String responseBody) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
+                        pluginCall.reject("Twitter refresh failed: " + responseBody);
+                        return;
                     }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            String errorBody = response.body() != null ? response.body().string() : "";
-                            pluginCall.reject("Twitter refresh failed: " + errorBody);
-                            return;
-                        }
-                        String responseBody = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject tokenPayload = new JSONObject(responseBody);
-                            handleTokenSuccess(tokenPayload, pluginCall);
-                        } catch (JSONException e) {
-                            pluginCall.reject("Failed to parse Twitter refresh response", e);
-                        }
+                    try {
+                        JSONObject tokenPayload = new JSONObject(responseBody);
+                        handleTokenSuccess(tokenPayload, pluginCall);
+                    } catch (JSONException e) {
+                        pluginCall.reject("Failed to parse Twitter refresh response", e);
                     }
                 }
-            );
+            }
+        );
     }
 
     private void handleTokenSuccess(JSONObject tokenPayload) throws JSONException {
@@ -409,46 +399,44 @@ public class TwitterProvider implements SocialProvider {
             .buildUpon()
             .appendQueryParameter("user.fields", "profile_image_url,verified,name,username")
             .build();
-        Request request = new Request.Builder().url(uri.toString()).addHeader("Authorization", "Bearer " + accessToken).build();
+        Map<String, String> headers = Collections.singletonMap("Authorization", "Bearer " + accessToken);
 
-        httpClient
-            .newCall(request)
-            .enqueue(
-                new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        callback.onError("Failed to fetch Twitter profile: " + e.getMessage());
+        httpClient.enqueueGet(
+            uri.toString(),
+            headers,
+            new PluginHttpClient.Callback() {
+                @Override
+                public void onFailure(IOException e) {
+                    callback.onError("Failed to fetch Twitter profile: " + e.getMessage());
+                }
+
+                @Override
+                public void onResponse(int code, String responseBody) throws IOException {
+                    if (!PluginHttpClient.isSuccessfulHttpCode(code)) {
+                        callback.onError("Failed to fetch Twitter profile: " + responseBody);
+                        return;
                     }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        if (!response.isSuccessful()) {
-                            String errorBody = response.body() != null ? response.body().string() : "";
-                            callback.onError("Failed to fetch Twitter profile: " + errorBody);
-                            return;
+                    try {
+                        JSONObject payload = new JSONObject(responseBody);
+                        JSONObject data = payload.getJSONObject("data");
+                        JSONObject profile = new JSONObject();
+                        profile.put("id", data.optString("id"));
+                        profile.put("username", data.optString("username"));
+                        profile.put("name", data.optString("name"));
+                        profile.put("profileImageUrl", data.optString("profile_image_url", ""));
+                        profile.put("verified", data.optBoolean("verified", false));
+                        if (data.has("email")) {
+                            profile.put("email", data.optString("email", null));
+                        } else {
+                            profile.put("email", JSONObject.NULL);
                         }
-                        String responseBody = response.body() != null ? response.body().string() : "";
-                        try {
-                            JSONObject payload = new JSONObject(responseBody);
-                            JSONObject data = payload.getJSONObject("data");
-                            JSONObject profile = new JSONObject();
-                            profile.put("id", data.optString("id"));
-                            profile.put("username", data.optString("username"));
-                            profile.put("name", data.optString("name"));
-                            profile.put("profileImageUrl", data.optString("profile_image_url", ""));
-                            profile.put("verified", data.optBoolean("verified", false));
-                            if (data.has("email")) {
-                                profile.put("email", data.optString("email", null));
-                            } else {
-                                profile.put("email", JSONObject.NULL);
-                            }
-                            callback.onSuccess(profile);
-                        } catch (JSONException e) {
-                            callback.onError("Failed to parse Twitter profile response");
-                        }
+                        callback.onSuccess(profile);
+                    } catch (JSONException e) {
+                        callback.onError("Failed to parse Twitter profile response");
                     }
                 }
-            );
+            }
+        );
     }
 
     private void persistTokens(String accessToken, String refreshToken, String tokenType, int expiresIn, JSONObject profile) {
