@@ -95,6 +95,7 @@ public class GoogleProvider implements SocialProvider {
 
         private final AtomicBoolean finished = new AtomicBoolean(false);
         private final int[] slotIndex = new int[] { -1 };
+        private CallbackToFutureAdapter.Completer<AuthorizationResult> slotCompleter = null;
 
         private void markFinished() {
             finished.set(true);
@@ -572,12 +573,16 @@ public class GoogleProvider implements SocialProvider {
             .apply();
     }
 
-    private void clearAuthorizationSlot(int index) {
+    private void clearAuthorizationSlot(int index, CallbackToFutureAdapter.Completer<AuthorizationResult> expectedCompleter) {
         if (index < 0) {
             return;
         }
         synchronized (this) {
-            if (index >= 0 && index < futuresList.size()) {
+            if (index < futuresList.size()) {
+                CallbackToFutureAdapter.Completer<AuthorizationResult> current = futuresList.get(index);
+                if (expectedCompleter != null && current != expectedCompleter) {
+                    return;
+                }
                 futuresList.set(index, null);
             }
             if (Objects.equals(pendingAuthorizationSlotIndex, index)) {
@@ -649,52 +654,54 @@ public class GoogleProvider implements SocialProvider {
                             return;
                         }
 
-                        // Find an index to put the future into.
-                        int fututeIndex = -1;
-                        for (int i = 0; i < futuresList.size(); i++) {
-                            if (futuresList.get(i) == null) {
-                                fututeIndex = i;
-                                break;
-                            }
-                        }
-
-                        if (fututeIndex == -1) {
-                            completer.setException(new RuntimeException("Cannot find index for future"));
-                            Log.e(LOG_TAG, "Cannot find index for future. Too many login requests??");
-                            return;
-                        }
-
-                        if (waitContext.isFinished()) {
-                            return;
-                        }
-
-                        futuresList.set(fututeIndex, completer);
-                        waitContext.slotIndex[0] = fututeIndex;
                         synchronized (GoogleProvider.this) {
+                            if (waitContext.isFinished()) {
+                                return;
+                            }
+
+                            int fututeIndex = -1;
+                            for (int i = 0; i < futuresList.size(); i++) {
+                                if (futuresList.get(i) == null) {
+                                    fututeIndex = i;
+                                    break;
+                                }
+                            }
+
+                            if (fututeIndex == -1) {
+                                completer.setException(new RuntimeException("Cannot find index for future"));
+                                Log.e(LOG_TAG, "Cannot find index for future. Too many login requests??");
+                                return;
+                            }
+
+                            futuresList.set(fututeIndex, completer);
+                            waitContext.slotIndex[0] = fututeIndex;
+                            waitContext.slotCompleter = completer;
                             pendingAuthorizationSlotIndex = fututeIndex;
-                        }
 
-                        if (waitContext.isFinished()) {
-                            clearAuthorizationSlot(fututeIndex);
-                            waitContext.slotIndex[0] = -1;
-                            return;
-                        }
+                            if (waitContext.isFinished()) {
+                                clearAuthorizationSlot(fututeIndex, completer);
+                                waitContext.slotIndex[0] = -1;
+                                waitContext.slotCompleter = null;
+                                return;
+                            }
 
-                        try {
-                            activity.startIntentSenderForResult(
-                                pendingIntent.getIntentSender(),
-                                GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN + fututeIndex,
-                                null,
-                                0,
-                                0,
-                                0,
-                                null
-                            );
-                        } catch (IntentSender.SendIntentException e) {
-                            Log.e(LOG_TAG, "Couldn't start Authorization UI: " + e.getLocalizedMessage());
-                            clearAuthorizationSlot(fututeIndex);
-                            waitContext.slotIndex[0] = -1;
-                            completer.setException(e);
+                            try {
+                                activity.startIntentSenderForResult(
+                                    pendingIntent.getIntentSender(),
+                                    GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN + fututeIndex,
+                                    null,
+                                    0,
+                                    0,
+                                    0,
+                                    null
+                                );
+                            } catch (IntentSender.SendIntentException e) {
+                                Log.e(LOG_TAG, "Couldn't start Authorization UI: " + e.getLocalizedMessage());
+                                clearAuthorizationSlot(fututeIndex, completer);
+                                waitContext.slotIndex[0] = -1;
+                                waitContext.slotCompleter = null;
+                                completer.setException(e);
+                            }
                         }
                     } else {
                         if (waitContext.isFinished()) {
@@ -795,11 +802,11 @@ public class GoogleProvider implements SocialProvider {
                                     }
                                 } catch (TimeoutException e) {
                                     authorizationWaitContext.markFinished();
-                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
+                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0], authorizationWaitContext.slotCompleter);
                                     call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
                                 } catch (Exception e) {
                                     authorizationWaitContext.markFinished();
-                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
+                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0], authorizationWaitContext.slotCompleter);
                                     // AuthorizationClient failed after Credential Manager returned a valid ID token.
                                     // For authentication-only online scopes, resolve with idToken + profile.
                                     if (
@@ -836,24 +843,27 @@ public class GoogleProvider implements SocialProvider {
 
     public void handleAuthorizationIntent(int requestCode, Intent data) {
         int futureIndex = requestCode - GoogleProvider.REQUEST_AUTHORIZE_GOOGLE_MIN;
-        if (futureIndex < 0 || futureIndex >= futuresList.size()) {
-            Log.e(
-                LOG_TAG,
-                String.format(
-                    "Invalid future index. REQUEST_AUTHORIZE_GOOGLE_MIN: %d, requestCode: %d, futures list length: %d, futureIndex: %d",
-                    REQUEST_AUTHORIZE_GOOGLE_MIN,
-                    requestCode,
-                    futuresList.size(),
-                    futureIndex
-                )
-            );
-            return;
-        }
+        CallbackToFutureAdapter.Completer<AuthorizationResult> future;
+        synchronized (this) {
+            if (futureIndex < 0 || futureIndex >= futuresList.size()) {
+                Log.e(
+                    LOG_TAG,
+                    String.format(
+                        "Invalid future index. REQUEST_AUTHORIZE_GOOGLE_MIN: %d, requestCode: %d, futures list length: %d, futureIndex: %d",
+                        REQUEST_AUTHORIZE_GOOGLE_MIN,
+                        requestCode,
+                        futuresList.size(),
+                        futureIndex
+                    )
+                );
+                return;
+            }
 
-        CallbackToFutureAdapter.Completer<AuthorizationResult> future = futuresList.get(futureIndex);
-        if (future == null) {
-            Log.w(LOG_TAG, "Authorization result arrived after the login request ended");
-            return;
+            future = futuresList.get(futureIndex);
+            if (future == null) {
+                Log.w(LOG_TAG, "Authorization result arrived after the login request ended");
+                return;
+            }
         }
 
         try {
@@ -863,12 +873,7 @@ public class GoogleProvider implements SocialProvider {
             Log.e(LOG_TAG, "Cannot get getAuthorizationResultFromIntent", e);
             future.setException(new RuntimeException("Cannot get getAuthorizationResultFromIntent"));
         } finally {
-            futuresList.set(futureIndex, null);
-            synchronized (this) {
-                if (Objects.equals(pendingAuthorizationSlotIndex, futureIndex)) {
-                    pendingAuthorizationSlotIndex = null;
-                }
-            }
+            clearAuthorizationSlot(futureIndex, future);
         }
     }
 
@@ -1489,11 +1494,17 @@ public class GoogleProvider implements SocialProvider {
                                         call.resolve();
                                     } catch (TimeoutException e) {
                                         authorizationWaitContext.markFinished();
-                                        clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
+                                        clearAuthorizationSlot(
+                                            authorizationWaitContext.slotIndex[0],
+                                            authorizationWaitContext.slotCompleter
+                                        );
                                         call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
                                     } catch (Exception e) {
                                         authorizationWaitContext.markFinished();
-                                        clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
+                                        clearAuthorizationSlot(
+                                            authorizationWaitContext.slotIndex[0],
+                                            authorizationWaitContext.slotCompleter
+                                        );
                                         if (GoogleAuthorizationDecision.isAuthenticationOnlyScopes(GoogleProvider.this.scopes)) {
                                             try {
                                                 // Authorization failed; still keep the refreshed ID token.
