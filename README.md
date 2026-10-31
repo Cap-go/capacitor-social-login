@@ -425,7 +425,7 @@ await SocialLogin.initialize({
 - `iOSClientId`: Required for iOS platform  
 - `iOSServerClientId`: Required when using `mode: 'offline'` on iOS or when you need to verify the token on the server (should be the same value as `webClientId`)
 - `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data, and `refresh()` is not available in-app. Exchange `serverAuthCode` on your backend and refresh there.
-- `mode: 'online'`: Returns user profile data and access tokens (default)
+- `mode: 'online'`: Returns user profile data and access tokens (default). On Android with default (authentication-only) scopes, the plugin resolves login from the Credential Manager ID token and **`accessToken` is always `null`**; use `idToken` for user authentication. Call `authorize()`-style access tokens appear when you request additional Google API scopes (requires modified `MainActivity` on Android).
 
 ### Android configuration
 
@@ -439,12 +439,27 @@ await SocialLogin.initialize({
     webClientId: 'your-web-client-id', // Required: the web client id for Android and Web
   },
 });
+// Default login (authentication-only scopes). On Android, result.accessToken is often null; use result.idToken for auth.
 const res = await SocialLogin.login({
   provider: 'google',
+});
+```
+
+**Custom Google API scopes on Android** require a modified `MainActivity` that implements `ModifiedMainActivityForSocialLoginPlugin` and forwards `onActivityResult` to the plugin (see [example-app/android/.../MainActivity.java](example-app/android/app/src/main/java/app/capgo/plugin/SocialLogin/MainActivity.java)). On a stock `BridgeActivity`, do not pass a `scopes` array to `login()`; even `['email', 'profile']` is rejected because those scopes are already included by default.
+
+```typescript
+// Only after MainActivity implements ModifiedMainActivityForSocialLoginPlugin:
+const resWithScopes = await SocialLogin.login({
+  provider: 'google',
   options: {
-    scopes: ['email', 'profile'],
+    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
   },
 });
+```
+
+```typescript
+// Misleading on stock BridgeActivity (will reject at runtime):
+// await SocialLogin.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
 ```
 
 #### Android troubleshooting (Credential Manager, SHA-1, and Firebase)

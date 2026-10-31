@@ -14,7 +14,7 @@
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/ios": "^8.5.2",
-    "@capacitor/privacy-screen": "^1.1.1",
+    "@capacitor/privacy-screen": "^2.0.1",
     "@capgo/capacitor-social-login": "file:../",
     "@supabase/supabase-js": "^2.86.0",
     "firebase": "^12.6.0",
