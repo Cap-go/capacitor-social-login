@@ -52,6 +52,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -89,6 +90,20 @@ public class GoogleProvider implements SocialProvider {
     private GoogleProviderLoginType mode = GoogleProviderLoginType.ONLINE;
     private String hostedDomain = null;
     private Integer pendingAuthorizationSlotIndex = null;
+
+    private static final class AuthorizationWaitContext {
+
+        private final AtomicBoolean finished = new AtomicBoolean(false);
+        private final int[] slotIndex = new int[] { -1 };
+
+        private void markFinished() {
+            finished.set(true);
+        }
+
+        private boolean isFinished() {
+            return finished.get();
+        }
+    }
 
     private static String maskClientId(String clientId) {
         if (clientId == null || clientId.isEmpty()) {
@@ -557,20 +572,25 @@ public class GoogleProvider implements SocialProvider {
             .apply();
     }
 
-    private void clearPendingAuthorizationSlot() {
+    private void clearAuthorizationSlot(int index) {
+        if (index < 0) {
+            return;
+        }
         synchronized (this) {
-            if (pendingAuthorizationSlotIndex == null) {
-                return;
-            }
-            int index = pendingAuthorizationSlotIndex;
-            pendingAuthorizationSlotIndex = null;
             if (index >= 0 && index < futuresList.size()) {
                 futuresList.set(index, null);
+            }
+            if (Objects.equals(pendingAuthorizationSlotIndex, index)) {
+                pendingAuthorizationSlotIndex = null;
             }
         }
     }
 
-    private ListenableFuture<AuthorizationResult> getAuthorizationResult(Boolean forceRefreshToken, String googleAccountId) {
+    private ListenableFuture<AuthorizationResult> getAuthorizationResult(
+        Boolean forceRefreshToken,
+        String googleAccountId,
+        AuthorizationWaitContext waitContext
+    ) {
         //      Account account = new Account(credential.getId(), "com.google");
         //      String scopesString = "oauth2:" + TextUtils.join(" ", this.scopes);
         //      String token = GoogleAuthUtil.getToken(
@@ -609,6 +629,9 @@ public class GoogleProvider implements SocialProvider {
             Identity.getAuthorizationClient(context)
                 .authorize(authorizationRequest)
                 .addOnSuccessListener((authorizationResult) -> {
+                    if (waitContext.isFinished()) {
+                        return;
+                    }
                     if (authorizationResult.hasResolution()) {
                         // Access needs to be granted by the user
                         PendingIntent pendingIntent = authorizationResult.getPendingIntent();
@@ -641,9 +664,20 @@ public class GoogleProvider implements SocialProvider {
                             return;
                         }
 
+                        if (waitContext.isFinished()) {
+                            return;
+                        }
+
                         futuresList.set(fututeIndex, completer);
+                        waitContext.slotIndex[0] = fututeIndex;
                         synchronized (GoogleProvider.this) {
                             pendingAuthorizationSlotIndex = fututeIndex;
+                        }
+
+                        if (waitContext.isFinished()) {
+                            clearAuthorizationSlot(fututeIndex);
+                            waitContext.slotIndex[0] = -1;
+                            return;
                         }
 
                         try {
@@ -658,15 +692,14 @@ public class GoogleProvider implements SocialProvider {
                             );
                         } catch (IntentSender.SendIntentException e) {
                             Log.e(LOG_TAG, "Couldn't start Authorization UI: " + e.getLocalizedMessage());
-                            futuresList.set(fututeIndex, null);
-                            synchronized (GoogleProvider.this) {
-                                if (Objects.equals(pendingAuthorizationSlotIndex, fututeIndex)) {
-                                    pendingAuthorizationSlotIndex = null;
-                                }
-                            }
+                            clearAuthorizationSlot(fututeIndex);
+                            waitContext.slotIndex[0] = -1;
                             completer.setException(e);
                         }
                     } else {
+                        if (waitContext.isFinished()) {
+                            return;
+                        }
                         // Access already granted, continue with user action.
                         // Online mode: a null access token is allowed (ID-token auth still succeeds).
                         // Offline mode still requires serverAuthCode.
@@ -683,6 +716,9 @@ public class GoogleProvider implements SocialProvider {
                     }
                 })
                 .addOnFailureListener((e) -> {
+                    if (waitContext.isFinished()) {
+                        return;
+                    }
                     completer.setException(new RuntimeException("Failed to authorize"));
                     Log.e(LOG_TAG, "Failed to authorize", e);
                 });
@@ -725,7 +761,12 @@ public class GoogleProvider implements SocialProvider {
                         return;
                     }
 
-                    ListenableFuture<AuthorizationResult> future = getAuthorizationResult(forceRefreshToken, googleAccountId);
+                    AuthorizationWaitContext authorizationWaitContext = new AuthorizationWaitContext();
+                    ListenableFuture<AuthorizationResult> future = getAuthorizationResult(
+                        forceRefreshToken,
+                        googleAccountId,
+                        authorizationWaitContext
+                    );
 
                     // Use ExecutorService to retrieve the access token
                     ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -753,10 +794,12 @@ public class GoogleProvider implements SocialProvider {
                                         }
                                     }
                                 } catch (TimeoutException e) {
-                                    clearPendingAuthorizationSlot();
+                                    authorizationWaitContext.markFinished();
+                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
                                     call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
                                 } catch (Exception e) {
-                                    clearPendingAuthorizationSlot();
+                                    authorizationWaitContext.markFinished();
+                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
                                     // AuthorizationClient failed after Credential Manager returned a valid ID token.
                                     // For authentication-only online scopes, resolve with idToken + profile.
                                     if (
@@ -808,6 +851,10 @@ public class GoogleProvider implements SocialProvider {
         }
 
         CallbackToFutureAdapter.Completer<AuthorizationResult> future = futuresList.get(futureIndex);
+        if (future == null) {
+            Log.w(LOG_TAG, "Authorization result arrived after the login request ended");
+            return;
+        }
 
         try {
             AuthorizationResult authorizationResult = Identity.getAuthorizationClient(this.activity).getAuthorizationResultFromIntent(data);
@@ -1403,8 +1450,24 @@ public class GoogleProvider implements SocialProvider {
                         );
                         String newIdToken = googleIdTokenCredential.getIdToken();
 
+                        if (
+                            GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
+                                GoogleProvider.this.mode,
+                                GoogleProvider.this.scopes
+                            )
+                        ) {
+                            persistState(newIdToken, null, GoogleProvider.this.scopes);
+                            call.resolve();
+                            return;
+                        }
+
                         String googleAccountId = googleIdTokenCredential.getId();
-                        ListenableFuture<AuthorizationResult> future = getAuthorizationResult(false, googleAccountId);
+                        AuthorizationWaitContext authorizationWaitContext = new AuthorizationWaitContext();
+                        ListenableFuture<AuthorizationResult> future = getAuthorizationResult(
+                            false,
+                            googleAccountId,
+                            authorizationWaitContext
+                        );
 
                         ExecutorService authExecutor = Executors.newSingleThreadExecutor();
                         authExecutor.execute(
@@ -1425,10 +1488,12 @@ public class GoogleProvider implements SocialProvider {
                                         );
                                         call.resolve();
                                     } catch (TimeoutException e) {
-                                        clearPendingAuthorizationSlot();
+                                        authorizationWaitContext.markFinished();
+                                        clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
                                         call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
                                     } catch (Exception e) {
-                                        clearPendingAuthorizationSlot();
+                                        authorizationWaitContext.markFinished();
+                                        clearAuthorizationSlot(authorizationWaitContext.slotIndex[0]);
                                         if (GoogleAuthorizationDecision.isAuthenticationOnlyScopes(GoogleProvider.this.scopes)) {
                                             try {
                                                 // Authorization failed; still keep the refreshed ID token.

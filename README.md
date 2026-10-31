@@ -425,7 +425,7 @@ await SocialLogin.initialize({
 - `iOSClientId`: Required for iOS platform  
 - `iOSServerClientId`: Required when using `mode: 'offline'` on iOS or when you need to verify the token on the server (should be the same value as `webClientId`)
 - `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data, and `refresh()` is not available in-app. Exchange `serverAuthCode` on your backend and refresh there.
-- `mode: 'online'`: Returns user profile data and access tokens (default). On Android with default (authentication-only) scopes, the plugin resolves login from the Credential Manager ID token and **`accessToken` is often `null`**; use `idToken` for user authentication. Call `authorize()`-style access tokens appear when you request additional Google API scopes (requires modified `MainActivity` on Android).
+- `mode: 'online'`: Returns user profile data and access tokens (default). On Android with default (authentication-only) scopes, the plugin resolves login from the Credential Manager ID token and **`accessToken` is always `null`**; use `idToken` for user authentication. Call `authorize()`-style access tokens appear when you request additional Google API scopes (requires modified `MainActivity` on Android).
 
 ### Android configuration
 
