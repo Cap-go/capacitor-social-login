@@ -31,7 +31,7 @@ Config changes in Google Cloud can take several hours to take effect.
 
 Default Google login uses Credential Manager with OIDC scopes (`openid`, email, profile). The plugin skips the extra `AuthorizationClient` round trip for **online** mode with those scopes and returns `accessToken: null` while still providing a valid `idToken` and profile.
 
-If you pass **custom** `scopes` (any scope beyond the defaults), or use **offline** mode, you must:
+If you pass an explicit `scopes` array, including the default scopes, or use **offline** mode, you must:
 
 1. Implement `ModifiedMainActivityForSocialLoginPlugin` on your `MainActivity`.
 2. Forward `onActivityResult` to the social login plugin so Google authorization UI results are not dropped.
