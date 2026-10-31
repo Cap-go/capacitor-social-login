@@ -26,3 +26,14 @@ See the **Android troubleshooting** section in [README.md](../README.md#android-
 See [README.md](../README.md#google-sign-in-16-account-reauth-failed-android). The plugin clears stale Credential Manager credentials and retries once automatically. Persistent failures for specific users are usually OAuth consent (External vs Internal, test users), Family Link accounts, or the user disabling Sign in with Google for your app.
 
 Config changes in Google Cloud can take several hours to take effect.
+
+### Custom scopes and MainActivity (Android)
+
+Default Google login uses Credential Manager with OIDC scopes (`openid`, email, profile). The plugin skips the extra `AuthorizationClient` round trip for **online** mode with those scopes and returns `accessToken: null` while still providing a valid `idToken` and profile.
+
+If you pass **custom** `scopes` (any scope beyond the defaults), or use **offline** mode, you must:
+
+1. Implement `ModifiedMainActivityForSocialLoginPlugin` on your `MainActivity`.
+2. Forward `onActivityResult` to the social login plugin so Google authorization UI results are not dropped.
+
+Without that wiring, login can hang or fail when Google shows an authorization resolution. See the example app `MainActivity` in this repository.
