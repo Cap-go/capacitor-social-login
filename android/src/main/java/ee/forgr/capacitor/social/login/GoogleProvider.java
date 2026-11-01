@@ -47,6 +47,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -95,6 +96,7 @@ public class GoogleProvider implements SocialProvider {
     private static final class AuthorizationWaitContext {
 
         private final AtomicBoolean finished = new AtomicBoolean(false);
+        private final AtomicBoolean consentUiLaunched = new AtomicBoolean(false);
         private final int[] slotIndex = new int[] { -1 };
         private CallbackToFutureAdapter.Completer<AuthorizationResult> slotCompleter = null;
 
@@ -104,6 +106,14 @@ public class GoogleProvider implements SocialProvider {
 
         private boolean isFinished() {
             return finished.get();
+        }
+
+        private void markConsentUiLaunched() {
+            consentUiLaunched.set(true);
+        }
+
+        private boolean isConsentUiLaunched() {
+            return consentUiLaunched.get();
         }
     }
 
@@ -609,6 +619,26 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    private AuthorizationResult awaitAuthorizationResult(ListenableFuture<AuthorizationResult> future, AuthorizationWaitContext waitContext)
+        throws ExecutionException, InterruptedException, TimeoutException {
+        long preLaunchDeadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_SECONDS);
+        while (true) {
+            if (waitContext.isConsentUiLaunched()) {
+                return future.get(GoogleAuthorizationDecision.AUTHORIZATION_CONSENT_WAIT_SECONDS, TimeUnit.SECONDS);
+            }
+            long remainingNanos = preLaunchDeadlineNanos - System.nanoTime();
+            if (remainingNanos <= 0) {
+                throw new TimeoutException(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
+            }
+            long pollNanos = Math.min(remainingNanos, TimeUnit.SECONDS.toNanos(1));
+            try {
+                return future.get(pollNanos, TimeUnit.NANOSECONDS);
+            } catch (TimeoutException ignored) {
+                // Poll until authorize completes, consent UI launches, or pre-launch deadline.
+            }
+        }
+    }
+
     private ListenableFuture<AuthorizationResult> getAuthorizationResult(
         Boolean forceRefreshToken,
         String googleAccountId,
@@ -713,6 +743,7 @@ public class GoogleProvider implements SocialProvider {
                                     0,
                                     null
                                 );
+                                waitContext.markConsentUiLaunched();
                             } catch (IntentSender.SendIntentException e) {
                                 Log.e(LOG_TAG, "Couldn't start Authorization UI: " + e.getLocalizedMessage());
                                 clearAuthorizationSlot(fututeIndex, completer);
@@ -802,10 +833,7 @@ public class GoogleProvider implements SocialProvider {
                             @Override
                             public void run() {
                                 try {
-                                    AuthorizationResult authResult = future.get(
-                                        GoogleAuthorizationDecision.AUTHORIZATION_WAIT_SECONDS,
-                                        TimeUnit.SECONDS
-                                    );
+                                    AuthorizationResult authResult = awaitAuthorizationResult(future, authorizationWaitContext);
                                     if (GoogleProvider.this.mode == GoogleProviderLoginType.ONLINE) {
                                         // accessToken may be null: Credential Manager auth still succeeded.
                                         resolveOnlineLogin(call, response, resultObj, user, idToken, authResult.getAccessToken());
@@ -821,7 +849,10 @@ public class GoogleProvider implements SocialProvider {
                                     }
                                 } catch (TimeoutException e) {
                                     finishWaitAndClearSlot(authorizationWaitContext);
-                                    call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
+                                    String timeoutMessage = authorizationWaitContext.isConsentUiLaunched()
+                                        ? GoogleAuthorizationDecision.AUTHORIZATION_CONSENT_WAIT_TIMEOUT_MESSAGE
+                                        : GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE;
+                                    call.reject(timeoutMessage);
                                 } catch (Exception e) {
                                     finishWaitAndClearSlot(authorizationWaitContext);
                                     if (GoogleAuthorizationDecision.isUnroutableAuthorizationResolutionFailure(e)) {
@@ -1502,10 +1533,7 @@ public class GoogleProvider implements SocialProvider {
                                 @Override
                                 public void run() {
                                     try {
-                                        AuthorizationResult authResult = future.get(
-                                            GoogleAuthorizationDecision.AUTHORIZATION_WAIT_SECONDS,
-                                            TimeUnit.SECONDS
-                                        );
+                                        AuthorizationResult authResult = awaitAuthorizationResult(future, authorizationWaitContext);
                                         String newAccessToken = authResult.getAccessToken();
                                         // Persist ID token even when access token is unavailable.
                                         persistState(
@@ -1516,7 +1544,10 @@ public class GoogleProvider implements SocialProvider {
                                         call.resolve();
                                     } catch (TimeoutException e) {
                                         finishWaitAndClearSlot(authorizationWaitContext);
-                                        call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
+                                        String timeoutMessage = authorizationWaitContext.isConsentUiLaunched()
+                                            ? GoogleAuthorizationDecision.AUTHORIZATION_CONSENT_WAIT_TIMEOUT_MESSAGE
+                                            : GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE;
+                                        call.reject(timeoutMessage);
                                     } catch (Exception e) {
                                         finishWaitAndClearSlot(authorizationWaitContext);
                                         if (GoogleAuthorizationDecision.isUnroutableAuthorizationResolutionFailure(e)) {

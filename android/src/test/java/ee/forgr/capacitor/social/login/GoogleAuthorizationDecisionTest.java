@@ -95,6 +95,9 @@ public class GoogleAuthorizationDecisionTest {
         assertTrue(
             GoogleAuthorizationDecision.UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE.contains("ModifiedMainActivityForSocialLoginPlugin")
         );
+        assertTrue(
+            GoogleAuthorizationDecision.UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE.contains("skipAuthOnlyAuthorizationAfterSignIn")
+        );
     }
 
     @Test

@@ -9,11 +9,16 @@ public final class GoogleAuthorizationDecision {
 
     public static final long AUTHORIZATION_WAIT_SECONDS = 60L;
 
+    public static final long AUTHORIZATION_CONSENT_WAIT_SECONDS = 600L;
+
     public static final String UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE =
-        "Google authorization requires user interaction, but the host Activity does not implement ModifiedMainActivityForSocialLoginPlugin and forward onActivityResult. Use login without custom scopes on a stock BridgeActivity, or update MainActivity as documented in the README.";
+        "Google authorization requires user interaction, but the host Activity does not implement ModifiedMainActivityForSocialLoginPlugin and forward onActivityResult. For authentication-only scopes in online mode, set google.skipAuthOnlyAuthorizationAfterSignIn to true. For custom scopes or offline mode, update MainActivity as documented in the README.";
 
     public static final String AUTHORIZATION_WAIT_TIMEOUT_MESSAGE =
         "Timed out waiting for Google authorization after " + AUTHORIZATION_WAIT_SECONDS + " seconds";
+
+    public static final String AUTHORIZATION_CONSENT_WAIT_TIMEOUT_MESSAGE =
+        "Timed out waiting for Google authorization consent after " + AUTHORIZATION_CONSENT_WAIT_SECONDS + " seconds";
 
     private GoogleAuthorizationDecision() {}
 

@@ -425,7 +425,7 @@ await SocialLogin.initialize({
 - `iOSClientId`: Required for iOS platform  
 - `iOSServerClientId`: Required when using `mode: 'offline'` on iOS or when you need to verify the token on the server (should be the same value as `webClientId`)
 - `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data, and `refresh()` is not available in-app. Exchange `serverAuthCode` on your backend and refresh there.
-- `mode: 'online'`: Returns user profile data and access tokens (default). On Android, default online login still runs `AuthorizationClient` and returns an `accessToken` when Google provides one. Set `skipAuthOnlyAuthorizationAfterSignIn: true` in `initialize()` only if authorize hangs on stock `BridgeActivity` (then `accessToken` may be `null`; use `idToken` for auth).
+- `mode: 'online'`: Returns user profile data and access tokens (default). On Android, default online login still runs `AuthorizationClient` and returns an `accessToken` when Google provides one. Set `skipAuthOnlyAuthorizationAfterSignIn: true` in `initialize()` if authorize hangs on stock `BridgeActivity`, or if login rejects because authorization needs user interaction that stock `BridgeActivity` cannot route (then `accessToken` may be `null`; use `idToken` for auth).
 
 ### Android configuration
 
@@ -441,6 +441,7 @@ await SocialLogin.initialize({
 });
 const res = await SocialLogin.login({
   provider: 'google',
+  options: {},
 });
 ```
 
