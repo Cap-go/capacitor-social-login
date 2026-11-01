@@ -1140,7 +1140,28 @@ Get the current authorization code
 refresh(options: LoginOptions) => Promise<void>
 ```
 
-Refresh the access token
+Refresh the access token when saved Google tokens are expired or missing.
+
+On Android, when the saved ID token is still valid and the saved access token is valid or absent,
+`refresh()` resolves without updating either token. That early return applies regardless of
+`skipAuthOnlyAuthorizationAfterSignIn`.
+
+**Google Offline Mode Limitation:**
+This method is NOT supported when Google is initialized with `mode: 'offline'`.
+Offline mode only returns `serverAuthCode` for backend token exchange, so token refresh must happen on your backend.
+The plugin logs and rejects with a message explaining that you should send `serverAuthCode` to your backend,
+refresh the Google tokens there, or switch to `mode: 'online'` for client-side refresh.
+
+**Google Android `skipAuthOnlyAuthorizationAfterSignIn`:**
+When initialize sets `google.skipAuthOnlyAuthorizationAfterSignIn: true` and only default OIDC scopes are
+requested, a refresh that runs past the early return skips `AuthorizationClient.authorize()`, updates the
+saved `idToken`, and clears any saved access token; no new access token is obtained. Enabling the option
+does not clear an existing valid access token while the early return applies. With default `false`, refresh
+still skips authorize on the early return when no access token is stored but the ID token is valid.
+
+**Google Web Limitation:**
+On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
+Call `login()` again on Web to obtain a fresh token instead.
 
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
