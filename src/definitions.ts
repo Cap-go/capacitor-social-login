@@ -436,6 +436,17 @@ export interface InitializeOptions {
      * Google Redirect URL, should be your backend url that is configured in your google app
      */
     redirectUrl?: string;
+    /**
+     * Android only. When `true`, skip `AuthorizationClient.authorize()` after Credential Manager sign-in
+     * when `mode` is `online` and only default OIDC scopes are requested. Use this on stock `BridgeActivity`
+     * apps that hit a hang during authorize; login may return `accessToken: null` while still returning
+     * `idToken` and profile. Default `false` keeps prior behavior: authorize runs and `accessToken` is
+     * returned when Google provides one.
+     *
+     * @default false
+     * @since 8.8.0
+     */
+    skipAuthOnlyAuthorizationAfterSignIn?: boolean;
   };
   apple?: {
     /**
@@ -816,10 +827,9 @@ export interface GoogleLoginResponseOnline {
   /**
    * OAuth access token for Google APIs.
    *
-   * May be `null` on Android when Credential Manager authentication succeeds but
-   * AuthorizationClient does not return an access token (authentication-only /
-   * ID-token login with default OIDC scopes). Use `idToken` for user authentication;
-   * request additional Google API scopes when an access token is required.
+   * May be `null` on Android when AuthorizationClient does not return an access token, or when
+   * `skipAuthOnlyAuthorizationAfterSignIn` is enabled during initialize (opt-in). Use `idToken`
+   * for user authentication; request additional Google API scopes when an access token is required.
    */
   accessToken: AccessToken | null;
   /**

@@ -88,6 +88,7 @@ public class GoogleProvider implements SocialProvider {
     private String idToken = null;
     private String accessToken = null;
     private GoogleProviderLoginType mode = GoogleProviderLoginType.ONLINE;
+    private boolean skipAuthOnlyAuthorizationAfterSignIn = false;
     private String hostedDomain = null;
     private Integer pendingAuthorizationSlotIndex = null;
 
@@ -190,9 +191,19 @@ public class GoogleProvider implements SocialProvider {
     }
 
     public void initialize(String clientId, GoogleProviderLoginType mode, String hostedDomain) {
+        initialize(clientId, mode, hostedDomain, false);
+    }
+
+    public void initialize(
+        String clientId,
+        GoogleProviderLoginType mode,
+        String hostedDomain,
+        boolean skipAuthOnlyAuthorizationAfterSignIn
+    ) {
         this.credentialManager = CredentialManager.create(activity);
         this.clientId = clientId;
         this.mode = mode;
+        this.skipAuthOnlyAuthorizationAfterSignIn = skipAuthOnlyAuthorizationAfterSignIn;
         this.hostedDomain = hostedDomain;
         logGoogleCloudDiagnostics("initialize");
 
@@ -761,7 +772,8 @@ public class GoogleProvider implements SocialProvider {
                     if (
                         GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
                             GoogleProvider.this.mode,
-                            GoogleProvider.this.scopes
+                            GoogleProvider.this.scopes,
+                            GoogleProvider.this.skipAuthOnlyAuthorizationAfterSignIn
                         )
                     ) {
                         resolveOnlineLogin(call, response, resultObj, user, idToken, null);
@@ -1458,7 +1470,8 @@ public class GoogleProvider implements SocialProvider {
                         if (
                             GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
                                 GoogleProvider.this.mode,
-                                GoogleProvider.this.scopes
+                                GoogleProvider.this.scopes,
+                                GoogleProvider.this.skipAuthOnlyAuthorizationAfterSignIn
                             )
                         ) {
                             persistState(newIdToken, null, GoogleProvider.this.scopes);

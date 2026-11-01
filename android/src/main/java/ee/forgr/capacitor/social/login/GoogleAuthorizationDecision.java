@@ -44,10 +44,18 @@ public final class GoogleAuthorizationDecision {
 
     /**
      * Skip AuthorizationClient when online login already has an ID token and only default OIDC scopes are requested.
-     * Offline mode still needs authorize() for serverAuthCode.
+     * Requires {@code skipAuthOnlyAuthorizationAfterSignIn} (opt-in, default false). Offline mode still needs authorize() for serverAuthCode.
      */
-    public static boolean shouldSkipAuthorizationAfterCredentialSignIn(GoogleProvider.GoogleProviderLoginType mode, String[] scopes) {
-        return mode == GoogleProvider.GoogleProviderLoginType.ONLINE && isAuthenticationOnlyScopes(scopes);
+    public static boolean shouldSkipAuthorizationAfterCredentialSignIn(
+        GoogleProvider.GoogleProviderLoginType mode,
+        String[] scopes,
+        boolean skipAuthOnlyAuthorizationAfterSignIn
+    ) {
+        return (
+            skipAuthOnlyAuthorizationAfterSignIn &&
+            mode == GoogleProvider.GoogleProviderLoginType.ONLINE &&
+            isAuthenticationOnlyScopes(scopes)
+        );
     }
 
     public static boolean canRouteAuthorizationResolution(Activity activity) {

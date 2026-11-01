@@ -29,9 +29,11 @@ Config changes in Google Cloud can take several hours to take effect.
 
 ### Custom scopes and MainActivity (Android)
 
-Default Google login uses Credential Manager with OIDC scopes (`openid`, email, profile). The plugin skips the extra `AuthorizationClient` round trip for **online** mode with those scopes and returns `accessToken: null` while still providing a valid `idToken` and profile.
+Default Google login uses Credential Manager with OIDC scopes (`openid`, email, profile). By default the plugin still calls `AuthorizationClient` after sign-in so online login can return an OAuth `accessToken` when Google provides one.
 
-If you pass an explicit `scopes` array, including the default scopes, or use **offline** mode, you must:
+Set `skipAuthOnlyAuthorizationAfterSignIn: true` in `SocialLogin.initialize({ google: ... })` to skip that authorize step for authentication-only online scopes. That avoids hangs on stock `BridgeActivity` but login may return `accessToken: null` while still providing `idToken` and profile.
+
+If you pass an explicit `scopes` array with additional Google API scopes, or use **offline** mode, you must:
 
 1. Implement `ModifiedMainActivityForSocialLoginPlugin` on your `MainActivity`.
 2. Forward `onActivityResult` to the social login plugin so Google authorization UI results are not dropped.

@@ -222,7 +222,8 @@ public class SocialLoginPlugin extends Plugin {
                     call.reject("google.mode != (online || offline)");
                     return;
             }
-            googleProvider.initialize(googleClientId, mode, hostedDomain);
+            boolean skipAuthOnlyAuthorizationAfterSignIn = google.getBoolean("skipAuthOnlyAuthorizationAfterSignIn", false);
+            googleProvider.initialize(googleClientId, mode, hostedDomain, skipAuthOnlyAuthorizationAfterSignIn);
             this.socialProviderHashMap.put("google", googleProvider);
         }
 

@@ -14,34 +14,59 @@ import org.robolectric.RobolectricTestRunner;
 public class GoogleAuthorizationDecisionTest {
 
     @Test
-    public void shouldSkipAuthorizationForOnlineAuthenticationOnlyScopes() {
-        assertTrue(
+    public void shouldNotSkipAuthorizationByDefaultForOnlineAuthenticationOnlyScopes() {
+        assertFalse(
             GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
                 GoogleProvider.GoogleProviderLoginType.ONLINE,
-                new String[] { "openid", "email", "profile" }
+                new String[] { "openid", "email", "profile" },
+                false
             )
         );
-        assertTrue(
-            GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(GoogleProvider.GoogleProviderLoginType.ONLINE, null)
+        assertFalse(
+            GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
+                GoogleProvider.GoogleProviderLoginType.ONLINE,
+                null,
+                false
+            )
         );
     }
 
     @Test
-    public void shouldNotSkipAuthorizationForOfflineMode() {
+    public void shouldSkipAuthorizationWhenOptInForOnlineAuthenticationOnlyScopes() {
+        assertTrue(
+            GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
+                GoogleProvider.GoogleProviderLoginType.ONLINE,
+                new String[] { "openid", "email", "profile" },
+                true
+            )
+        );
+        assertTrue(
+            GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
+                GoogleProvider.GoogleProviderLoginType.ONLINE,
+                null,
+                true
+            )
+        );
+    }
+
+    @Test
+    public void shouldNotSkipAuthorizationForOfflineModeEvenWhenOptIn() {
         assertFalse(
             GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
                 GoogleProvider.GoogleProviderLoginType.OFFLINE,
-                new String[] { "openid", "email" }
+                new String[] { "openid", "email" },
+                true
             )
         );
     }
 
     @Test
-    public void shouldNotSkipAuthorizationWhenExtraScopesRequested() {
+    public void shouldNotSkipAuthorizationWhenExtraScopesRequestedEvenWhenOptIn() {
         assertFalse(
             GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
                 GoogleProvider.GoogleProviderLoginType.ONLINE,
-                new String[] { "https://www.googleapis.com/auth/drive.readonly" }
+                new String[] { "https://www.googleapis.com/auth/drive.readonly" },
+                true
             )
         );
         assertFalse(GoogleAuthorizationDecision.isAuthenticationOnlyScopes(new String[] { "https://www.googleapis.com/auth/calendar" }));
