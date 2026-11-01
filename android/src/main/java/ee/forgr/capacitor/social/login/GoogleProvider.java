@@ -226,8 +226,16 @@ public class GoogleProvider implements SocialProvider {
         try {
             JSONObject object = new JSONObject(data);
             GoogleProvider.this.idToken = object.optString("idToken", null);
-            String restoredAccessToken = object.optString("accessToken", null);
-            GoogleProvider.this.accessToken = restoredAccessToken != null && !restoredAccessToken.isEmpty() ? restoredAccessToken : null;
+            if (!object.has("accessToken") || object.isNull("accessToken")) {
+                GoogleProvider.this.accessToken = null;
+            } else {
+                String restoredAccessToken = object.optString("accessToken", null);
+                if (restoredAccessToken == null || restoredAccessToken.isEmpty() || "null".equals(restoredAccessToken)) {
+                    GoogleProvider.this.accessToken = null;
+                } else {
+                    GoogleProvider.this.accessToken = restoredAccessToken;
+                }
+            }
             JSONArray storedScopes = object.optJSONArray("scopes");
             if (storedScopes != null && storedScopes.length() > 0) {
                 List<String> scopesList = new ArrayList<>(storedScopes.length());
