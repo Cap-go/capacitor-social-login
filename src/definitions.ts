@@ -440,8 +440,9 @@ export interface InitializeOptions {
      * Android only. When `true`, skip `AuthorizationClient.authorize()` after Credential Manager sign-in
      * when `mode` is `online` and only default OIDC scopes are requested. Use this on stock `BridgeActivity`
      * apps that hit a hang during authorize; login may return `accessToken: null` while still returning
-     * `idToken` and profile. Default `false` keeps prior behavior: authorize runs and `accessToken` is
-     * returned when Google provides one.
+     * `idToken` and profile. With authentication-only scopes, `refresh()` also skips authorize, updates the
+     * saved `idToken`, and clears any saved access token instead of refreshing it. Default `false` keeps
+     * prior behavior: authorize runs and `accessToken` is returned when Google provides one.
      *
      * @default false
      * @since 8.8.0
@@ -1451,6 +1452,12 @@ export interface SocialLoginPlugin {
    * Offline mode only returns `serverAuthCode` for backend token exchange, so token refresh must happen on your backend.
    * The plugin logs and rejects with a message explaining that you should send `serverAuthCode` to your backend,
    * refresh the Google tokens there, or switch to `mode: 'online'` for client-side refresh.
+   *
+   * **Google Android `skipAuthOnlyAuthorizationAfterSignIn`:**
+   * When initialize sets `google.skipAuthOnlyAuthorizationAfterSignIn: true` and only default OIDC scopes are
+   * requested, Android skips `AuthorizationClient.authorize()` during `refresh()`. The saved `idToken` is updated
+   * and any saved access token is cleared; no new access token is obtained. Use default `false` when you need
+   * `refresh()` to renew the access token via authorize.
    *
    * **Google Web Limitation:**
    * On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
