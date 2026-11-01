@@ -61,4 +61,15 @@ public final class GoogleAuthorizationDecision {
     public static boolean canRouteAuthorizationResolution(Activity activity) {
         return activity instanceof ModifiedMainActivityForSocialLoginPlugin;
     }
+
+    public static boolean isUnroutableAuthorizationResolutionFailure(Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE.equals(current.getMessage())) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
 }

@@ -33,7 +33,7 @@ Default Google login uses Credential Manager with OIDC scopes (`openid`, email, 
 
 Set `skipAuthOnlyAuthorizationAfterSignIn: true` in `SocialLogin.initialize({ google: ... })` to skip that authorize step for authentication-only online scopes. That avoids hangs on stock `BridgeActivity` but login may return `accessToken: null` while still providing `idToken` and profile.
 
-If you pass an explicit `scopes` array with additional Google API scopes, or use **offline** mode, you must:
+If you pass an explicit `scopes` array, including the default scopes, or use **offline** mode, you must:
 
 1. Implement `ModifiedMainActivityForSocialLoginPlugin` on your `MainActivity`.
 2. Forward `onActivityResult` to the social login plugin so Google authorization UI results are not dropped.

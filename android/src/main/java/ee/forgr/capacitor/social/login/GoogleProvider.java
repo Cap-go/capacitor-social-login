@@ -602,6 +602,13 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    private void finishWaitAndClearSlot(AuthorizationWaitContext waitContext) {
+        synchronized (this) {
+            waitContext.markFinished();
+            clearAuthorizationSlot(waitContext.slotIndex[0], waitContext.slotCompleter);
+        }
+    }
+
     private ListenableFuture<AuthorizationResult> getAuthorizationResult(
         Boolean forceRefreshToken,
         String googleAccountId,
@@ -813,12 +820,14 @@ public class GoogleProvider implements SocialProvider {
                                         }
                                     }
                                 } catch (TimeoutException e) {
-                                    authorizationWaitContext.markFinished();
-                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0], authorizationWaitContext.slotCompleter);
+                                    finishWaitAndClearSlot(authorizationWaitContext);
                                     call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
                                 } catch (Exception e) {
-                                    authorizationWaitContext.markFinished();
-                                    clearAuthorizationSlot(authorizationWaitContext.slotIndex[0], authorizationWaitContext.slotCompleter);
+                                    finishWaitAndClearSlot(authorizationWaitContext);
+                                    if (GoogleAuthorizationDecision.isUnroutableAuthorizationResolutionFailure(e)) {
+                                        call.reject(GoogleAuthorizationDecision.UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE);
+                                        return;
+                                    }
                                     // AuthorizationClient failed after Credential Manager returned a valid ID token.
                                     // For authentication-only online scopes, resolve with idToken + profile.
                                     if (
@@ -1506,18 +1515,14 @@ public class GoogleProvider implements SocialProvider {
                                         );
                                         call.resolve();
                                     } catch (TimeoutException e) {
-                                        authorizationWaitContext.markFinished();
-                                        clearAuthorizationSlot(
-                                            authorizationWaitContext.slotIndex[0],
-                                            authorizationWaitContext.slotCompleter
-                                        );
+                                        finishWaitAndClearSlot(authorizationWaitContext);
                                         call.reject(GoogleAuthorizationDecision.AUTHORIZATION_WAIT_TIMEOUT_MESSAGE);
                                     } catch (Exception e) {
-                                        authorizationWaitContext.markFinished();
-                                        clearAuthorizationSlot(
-                                            authorizationWaitContext.slotIndex[0],
-                                            authorizationWaitContext.slotCompleter
-                                        );
+                                        finishWaitAndClearSlot(authorizationWaitContext);
+                                        if (GoogleAuthorizationDecision.isUnroutableAuthorizationResolutionFailure(e)) {
+                                            call.reject(GoogleAuthorizationDecision.UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE);
+                                            return;
+                                        }
                                         if (GoogleAuthorizationDecision.isAuthenticationOnlyScopes(GoogleProvider.this.scopes)) {
                                             try {
                                                 // Authorization failed; still keep the refreshed ID token.

@@ -97,6 +97,13 @@ public class GoogleAuthorizationDecisionTest {
         );
     }
 
+    @Test
+    public void isUnroutableAuthorizationResolutionFailureWalksCauseChain() {
+        RuntimeException cause = new RuntimeException(GoogleAuthorizationDecision.UNROUTABLE_AUTHORIZATION_RESOLUTION_MESSAGE);
+        assertTrue(GoogleAuthorizationDecision.isUnroutableAuthorizationResolutionFailure(new RuntimeException("wrapper", cause)));
+        assertFalse(GoogleAuthorizationDecision.isUnroutableAuthorizationResolutionFailure(new RuntimeException("other failure")));
+    }
+
     public static class ModifiedMainActivityStub extends Activity implements ModifiedMainActivityForSocialLoginPlugin {
 
         @Override
