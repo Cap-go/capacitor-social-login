@@ -1449,8 +1449,9 @@ export interface SocialLoginPlugin {
    */
   getAuthorizationCode(options: AuthorizationCodeOptions): Promise<AuthorizationCode>;
   /**
-   * Refresh the access token when saved Google tokens are expired or missing.
+   * Refresh the access token for the logged-in provider.
    *
+   * **Google Android refresh behavior:**
    * On Android, when the saved ID token is still valid and either no access token is stored or Google access
    * token validation succeeds within the timeout, `refresh()` resolves without updating either token. That
    * early return applies regardless of `skipAuthOnlyAuthorizationAfterSignIn`.
