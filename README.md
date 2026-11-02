@@ -425,7 +425,7 @@ await SocialLogin.initialize({
 - `iOSClientId`: Required for iOS platform  
 - `iOSServerClientId`: Required when using `mode: 'offline'` on iOS or when you need to verify the token on the server (should be the same value as `webClientId`)
 - `mode: 'offline'`: Returns only `serverAuthCode` for backend authentication, no user profile data, and `refresh()` is not available in-app. Exchange `serverAuthCode` on your backend and refresh there.
-- `mode: 'online'`: Returns user profile data and access tokens (default)
+- `mode: 'online'`: Returns user profile data and access tokens (default). On Android, default online login still runs `AuthorizationClient` and returns an `accessToken` when Google provides one. Set `skipAuthOnlyAuthorizationAfterSignIn: true` in `initialize()` if authorize hangs on stock `BridgeActivity`, or if login rejects because authorization needs user interaction that stock `BridgeActivity` cannot route (then `accessToken` may be `null`; use `idToken` for auth).
 
 ### Android configuration
 
@@ -441,10 +441,36 @@ await SocialLogin.initialize({
 });
 const res = await SocialLogin.login({
   provider: 'google',
-  options: {
-    scopes: ['email', 'profile'],
+  options: {},
+});
+```
+
+Optional hang workaround on stock `BridgeActivity` (skips authorize; `accessToken` may be `null`):
+
+```typescript
+await SocialLogin.initialize({
+  google: {
+    webClientId: 'your-web-client-id',
+    skipAuthOnlyAuthorizationAfterSignIn: true,
   },
 });
+```
+
+**Custom Google API scopes on Android** require a modified `MainActivity` that implements `ModifiedMainActivityForSocialLoginPlugin` and forwards `onActivityResult` to the plugin (see [example-app/android/.../MainActivity.java](example-app/android/app/src/main/java/app/capgo/plugin/SocialLogin/MainActivity.java)). On a stock `BridgeActivity`, do not pass a `scopes` array to `login()`; even `['email', 'profile']` is rejected because those scopes are already included by default.
+
+```typescript
+// Only after MainActivity implements ModifiedMainActivityForSocialLoginPlugin:
+const resWithScopes = await SocialLogin.login({
+  provider: 'google',
+  options: {
+    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+  },
+});
+```
+
+```typescript
+// Misleading on stock BridgeActivity (will reject at runtime):
+// await SocialLogin.login({ provider: 'google', options: { scopes: ['email', 'profile'] } });
 ```
 
 #### Android troubleshooting (Credential Manager, SHA-1, and Firebase)
@@ -1114,7 +1140,33 @@ Get the current authorization code
 refresh(options: LoginOptions) => Promise<void>
 ```
 
-Refresh the access token
+Refresh the access token for the logged-in provider.
+
+**Google Android refresh behavior:**
+On Android, when the saved ID token is still valid and either no access token is stored or Google access
+token validation succeeds within the timeout, `refresh()` resolves without updating either token. That
+early return applies regardless of `skipAuthOnlyAuthorizationAfterSignIn`.
+If validation fails or times out, `refresh()` continues even when a token remains stored; with
+`skipAuthOnlyAuthorizationAfterSignIn: true` and default OIDC scopes, a successful credential refresh
+then clears that access token without obtaining a new one.
+
+**Google Offline Mode Limitation:**
+This method is NOT supported when Google is initialized with `mode: 'offline'`.
+Offline mode only returns `serverAuthCode` for backend token exchange, so token refresh must happen on your backend.
+The plugin logs and rejects with a message explaining that you should send `serverAuthCode` to your backend,
+refresh the Google tokens there, or switch to `mode: 'online'` for client-side refresh.
+
+**Google Android `skipAuthOnlyAuthorizationAfterSignIn`:**
+When initialize sets `google.skipAuthOnlyAuthorizationAfterSignIn: true` and only default OIDC scopes are
+requested, a refresh that runs past the early return skips `AuthorizationClient.authorize()`, updates the
+saved `idToken`, and clears any saved access token; no new access token is obtained. Enabling the option
+does not clear a stored access token while the early return applies (validation succeeded or no token
+stored). With default `false`, refresh still skips authorize on the early return when no access token is
+stored but the ID token is valid.
+
+**Google Web Limitation:**
+On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
+Call `login()` again on Web to obtain a fresh token instead.
 
 | Param         | Type                                                  |
 | ------------- | ----------------------------------------------------- |
@@ -1393,16 +1445,16 @@ On user cancel or dismiss, the Promise rejects with `code === 'USER_CANCELLED'`.
 
 #### InitializeOptions
 
-| Prop           | Type                                                                                                                                                                | Description                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **`oauth2`**   | <code><a href="#record">Record</a>&lt;string, <a href="#oauth2providerconfig">OAuth2ProviderConfig</a>&gt;</code>                                                   | OAuth2 provider configurations. Supports multiple providers by using a <a href="#record">Record</a> with provider IDs as keys. |
-| **`telegram`** | <code>{ botId: string; redirectUrl?: string; origin?: string; requestAccess?: 'read' \| 'write'; languageCode?: string; }</code>                                    | Telegram Login Widget configuration. Uses Telegram's OAuth widget (`oauth.telegram.org`), not standard OAuth2.                 |
-| **`linkedin`** | <code><a href="#linkedinproviderconfig">LinkedInProviderConfig</a></code>                                                                                           | LinkedIn configuration. Convenience wrapper that maps to the OAuth2 provider using LinkedIn defaults.                          |
-| **`tiktok`**   | <code><a href="#tiktokproviderconfig">TikTokProviderConfig</a></code>                                                                                               | TikTok Login Kit configuration. Convenience wrapper that maps to the OAuth2 provider using TikTok defaults (`client_key`).     |
-| **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                          |                                                                                                                                |
-| **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                              |                                                                                                                                |
-| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; }</code> |                                                                                                                                |
-| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; useBroadcastChannel?: boolean; }</code>                                          |                                                                                                                                |
+| Prop           | Type                                                                                                                                                                                                                | Description                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **`oauth2`**   | <code><a href="#record">Record</a>&lt;string, <a href="#oauth2providerconfig">OAuth2ProviderConfig</a>&gt;</code>                                                                                                   | OAuth2 provider configurations. Supports multiple providers by using a <a href="#record">Record</a> with provider IDs as keys. |
+| **`telegram`** | <code>{ botId: string; redirectUrl?: string; origin?: string; requestAccess?: 'read' \| 'write'; languageCode?: string; }</code>                                                                                    | Telegram Login Widget configuration. Uses Telegram's OAuth widget (`oauth.telegram.org`), not standard OAuth2.                 |
+| **`linkedin`** | <code><a href="#linkedinproviderconfig">LinkedInProviderConfig</a></code>                                                                                                                                           | LinkedIn configuration. Convenience wrapper that maps to the OAuth2 provider using LinkedIn defaults.                          |
+| **`tiktok`**   | <code><a href="#tiktokproviderconfig">TikTokProviderConfig</a></code>                                                                                                                                               | TikTok Login Kit configuration. Convenience wrapper that maps to the OAuth2 provider using TikTok defaults (`client_key`).     |
+| **`twitter`**  | <code>{ clientId: string; redirectUrl: string; defaultScopes?: string[]; forceLogin?: boolean; audience?: string; }</code>                                                                                          |                                                                                                                                |
+| **`facebook`** | <code>{ appId: string; clientToken?: string; locale?: string; }</code>                                                                                                                                              |                                                                                                                                |
+| **`google`**   | <code>{ iOSClientId?: string; iOSServerClientId?: string; webClientId?: string; mode?: 'online' \| 'offline'; hostedDomain?: string; redirectUrl?: string; skipAuthOnlyAuthorizationAfterSignIn?: boolean; }</code> |                                                                                                                                |
+| **`apple`**    | <code>{ clientId?: string; redirectUrl?: string; useProperTokenExchange?: boolean; useBroadcastChannel?: boolean; }</code>                                                                                          |                                                                                                                                |
 
 
 #### OAuth2ProviderConfig
@@ -1504,12 +1556,12 @@ Uses TikTok OAuth 2.0 endpoints and `client_key` instead of `client_id`.
 
 #### GoogleLoginResponseOnline
 
-| Prop               | Type                                                                                                                                                               | Description                                                                                                                                                                                                                                                                                                                                         |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`accessToken`**  | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                                                                        | OAuth access token for Google APIs. May be `null` on Android when Credential Manager authentication succeeds but AuthorizationClient does not return an access token (authentication-only / ID-token login with default OIDC scopes). Use `idToken` for user authentication; request additional Google API scopes when an access token is required. |
-| **`idToken`**      | <code>string \| null</code>                                                                                                                                        | OpenID Connect ID token (JWT). Includes an `email_verified` claim when the `email` scope is granted. Use `SocialLogin.decodeIdToken({ idToken })` to read claims on the client, but always verify the token signature, `iss`, `aud`, and `exp` on your backend before trusting `email_verified` for account linking.                                |
-| **`profile`**      | <code>{ email: string \| null; familyName: string \| null; givenName: string \| null; id: string \| null; name: string \| null; imageUrl: string \| null; }</code> |                                                                                                                                                                                                                                                                                                                                                     |
-| **`responseType`** | <code>'online'</code>                                                                                                                                              |                                                                                                                                                                                                                                                                                                                                                     |
+| Prop               | Type                                                                                                                                                               | Description                                                                                                                                                                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`accessToken`**  | <code><a href="#accesstoken">AccessToken</a> \| null</code>                                                                                                        | OAuth access token for Google APIs. May be `null` on Android when AuthorizationClient does not return an access token, or when `skipAuthOnlyAuthorizationAfterSignIn` is enabled during initialize (opt-in). Use `idToken` for user authentication; request additional Google API scopes when an access token is required. |
+| **`idToken`**      | <code>string \| null</code>                                                                                                                                        | OpenID Connect ID token (JWT). Includes an `email_verified` claim when the `email` scope is granted. Use `SocialLogin.decodeIdToken({ idToken })` to read claims on the client, but always verify the token signature, `iss`, `aud`, and `exp` on your backend before trusting `email_verified` for account linking.       |
+| **`profile`**      | <code>{ email: string \| null; familyName: string \| null; givenName: string \| null; id: string \| null; name: string \| null; imageUrl: string \| null; }</code> |                                                                                                                                                                                                                                                                                                                            |
+| **`responseType`** | <code>'online'</code>                                                                                                                                              |                                                                                                                                                                                                                                                                                                                            |
 
 
 #### GoogleLoginResponseOffline
