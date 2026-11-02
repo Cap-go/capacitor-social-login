@@ -440,11 +440,12 @@ export interface InitializeOptions {
      * Android only. When `true`, skip `AuthorizationClient.authorize()` after Credential Manager sign-in
      * when `mode` is `online` and only default OIDC scopes are requested. Use this on stock `BridgeActivity`
      * apps that hit a hang during authorize; login may return `accessToken: null` while still returning
-     * `idToken` and profile. When refresh runs past its early return (saved tokens expired or missing),
-     * authentication-only scopes skip authorize, update the saved `idToken`, and clear any saved access token.
-     * Enabling this after a session still has valid saved tokens does not clear a valid access token because
-     * refresh returns without changing tokens when the saved ID token is valid and the access token is valid
-     * or absent. Default `false` keeps prior behavior: authorize runs on login and refresh when needed, and
+     * `idToken` and profile. When refresh runs past its early return (saved ID token expired or missing, or
+     * access token validation failed or timed out), authentication-only scopes skip authorize, update the saved
+     * `idToken`, and clear any saved access token.
+     * Enabling this after a session still has valid saved tokens does not clear a stored access token when
+     * refresh's early return applies: saved ID token valid and either no access token stored or validation
+     * succeeds. Default `false` keeps prior behavior: authorize runs on login and refresh when needed, and
      * `accessToken` is returned when Google provides one. With default `false`, refresh still returns without
      * authorize when saved tokens are already valid, including when no access token is stored.
      *
@@ -1450,9 +1451,12 @@ export interface SocialLoginPlugin {
   /**
    * Refresh the access token when saved Google tokens are expired or missing.
    *
-   * On Android, when the saved ID token is still valid and the saved access token is valid or absent,
-   * `refresh()` resolves without updating either token. That early return applies regardless of
-   * `skipAuthOnlyAuthorizationAfterSignIn`.
+   * On Android, when the saved ID token is still valid and either no access token is stored or Google access
+   * token validation succeeds within the timeout, `refresh()` resolves without updating either token. That
+   * early return applies regardless of `skipAuthOnlyAuthorizationAfterSignIn`.
+   * If validation fails or times out, `refresh()` continues even when a token remains stored; with
+   * `skipAuthOnlyAuthorizationAfterSignIn: true` and default OIDC scopes, a successful credential refresh
+   * then clears that access token without obtaining a new one.
    *
    * **Google Offline Mode Limitation:**
    * This method is NOT supported when Google is initialized with `mode: 'offline'`.
@@ -1464,8 +1468,9 @@ export interface SocialLoginPlugin {
    * When initialize sets `google.skipAuthOnlyAuthorizationAfterSignIn: true` and only default OIDC scopes are
    * requested, a refresh that runs past the early return skips `AuthorizationClient.authorize()`, updates the
    * saved `idToken`, and clears any saved access token; no new access token is obtained. Enabling the option
-   * does not clear an existing valid access token while the early return applies. With default `false`, refresh
-   * still skips authorize on the early return when no access token is stored but the ID token is valid.
+   * does not clear a stored access token while the early return applies (validation succeeded or no token
+   * stored). With default `false`, refresh still skips authorize on the early return when no access token is
+   * stored but the ID token is valid.
    *
    * **Google Web Limitation:**
    * On Web, Google `refresh()` is not implemented, even when using `mode: 'online'`.
