@@ -326,7 +326,7 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 }
 ```
 
-This plugin also forwards Facebook URL callbacks when it receives Capacitor's `capacitorOpenURL` notification, so explicit SceneDelegate code is optional for Facebook-only setups.
+This plugin calls the Facebook SDK URL handler when it receives Capacitor's `capacitorOpenURL` notification, so direct Facebook SDK calls in SceneDelegate are not needed. Forwarding every URL context to `SceneDelegateProxy` is still required: without it, `capacitorOpenURL` is never posted and the plugin never sees the callback.
 
 #### Before Capacitor 8.5 (AppDelegate URL handler)
 
@@ -608,7 +608,7 @@ const res = await SocialLogin.login({
 
 Google Sign-In completes through a custom URL scheme callback. On **Capacitor 8.5+** with the [UIScene lifecycle](https://capacitorjs.com/docs/updating/8-5), that callback is delivered to `SceneDelegate.scene(_:openURLContexts:)`, not `AppDelegate.application(_:open:options:)`. See [docs/setup_google.md](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_google.md#url-opens-with-capacitor-85-uiscene) for the `SceneDelegate.swift` snippet.
 
-**Automatic handling:** This plugin listens for Capacitor's `capacitorOpenURL` notification (posted from both AppDelegate and SceneDelegate paths) and calls `GIDSignIn.sharedInstance.handle(url)` when the Google Sign-In SDK is linked. Explicit `SceneDelegate` or `AppDelegate` code is optional for Google once `SocialLogin.initialize()` runs, but the snippets in `docs/setup_google.md` are recommended if you combine providers or want handlers in your app target.
+**Automatic handling:** This plugin listens for Capacitor's `capacitorOpenURL` notification (posted from both AppDelegate and SceneDelegate paths) and calls `GIDSignIn.sharedInstance.handle(url)` when the Google Sign-In SDK is linked. Direct `GIDSignIn.sharedInstance.handle(url)` calls in `SceneDelegate` or `AppDelegate` are not needed once `SocialLogin.initialize()` runs. Forwarding URL opens to `SceneDelegateProxy` (UIScene) or `ApplicationDelegateProxy` (AppDelegate) is still required, since that is what posts `capacitorOpenURL`.
 
 **Offline Mode Behavior:**
 When using `mode: 'offline'`, the login response will only contain:
