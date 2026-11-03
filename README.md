@@ -606,7 +606,7 @@ const res = await SocialLogin.login({
 
 #### iOS OAuth redirect URLs (Google Sign-In)
 
-Google Sign-In completes through a custom URL scheme callback. On **Capacitor 8.5+** with the [UIScene lifecycle](https://capacitorjs.com/docs/updating/8-5), that callback is delivered to `SceneDelegate.scene(_:openURLContexts:)`, not `AppDelegate.application(_:open:options:)`. See [docs/setup_google.md](./docs/setup_google.md#url-opens-with-capacitor-85-uiscene) for the `SceneDelegate.swift` snippet.
+Google Sign-In completes through a custom URL scheme callback. On **Capacitor 8.5+** with the [UIScene lifecycle](https://capacitorjs.com/docs/updating/8-5), that callback is delivered to `SceneDelegate.scene(_:openURLContexts:)`, not `AppDelegate.application(_:open:options:)`. See [docs/setup_google.md](https://github.com/Cap-go/capacitor-social-login/blob/main/docs/setup_google.md#url-opens-with-capacitor-85-uiscene) for the `SceneDelegate.swift` snippet.
 
 **Automatic handling:** This plugin listens for Capacitor's `capacitorOpenURL` notification (posted from both AppDelegate and SceneDelegate paths) and calls `GIDSignIn.sharedInstance.handle(url)` when the Google Sign-In SDK is linked. Explicit `SceneDelegate` or `AppDelegate` code is optional for Google once `SocialLogin.initialize()` runs, but the snippets in `docs/setup_google.md` are recommended if you combine providers or want handlers in your app target.
 
@@ -1888,7 +1888,9 @@ BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authenticati
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### ProviderResponseMap
@@ -1939,7 +1941,9 @@ Construct a type with the properties of T except for those in type K.
 
 From T, pick a set of properties whose keys are in the union K
 
-<code>{ [P in K]: T[P]; }</code>
+<code>{
+ [P in K]: T[P];
+ }</code>
 
 
 #### Exclude
