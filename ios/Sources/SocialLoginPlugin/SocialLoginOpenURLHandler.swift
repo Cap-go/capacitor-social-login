@@ -35,7 +35,7 @@ enum SocialLoginOpenURLHandler {
         #endif
     }
 
-    @objc static func handleCapacitorOpenURLNotification(_ notification: Notification) {
+    static func handleCapacitorOpenURLNotification(_ notification: Notification) {
         guard let parsed = parseOpenURLNotification(notification) else {
             return
         }

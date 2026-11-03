@@ -142,11 +142,12 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
 
     public override func load() {
         NotificationCenter.default.addObserver(
-            SocialLoginOpenURLHandler.self,
-            selector: #selector(SocialLoginOpenURLHandler.handleCapacitorOpenURLNotification(_:)),
-            name: .capacitorOpenURL,
-            object: nil
-        )
+            forName: .capacitorOpenURL,
+            object: nil,
+            queue: nil
+        ) { notification in
+            SocialLoginOpenURLHandler.handleCapacitorOpenURLNotification(notification)
+        }
     }
 
     @objc func getPluginVersion(_ call: CAPPluginCall) {
