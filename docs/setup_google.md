@@ -42,7 +42,7 @@ Without that wiring, login can hang or fail when Google shows an authorization r
 
 ## iOS setup
 
-See also the [Google iOS section in README.md](../README.md#ios-configuration-1).
+See also the [Google iOS section in README.md](../README.md#ios-configuration-2).
 
 ### Automatic OAuth redirect handling
 
@@ -61,7 +61,7 @@ Add your iOS OAuth client reversed ID to `ios/App/App/Info.plist`. If `CFBundleU
     <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-            <string>com.googleusercontent.apps.YOUR_IOS_CLIENT_ID</string>
+            <string>com.googleusercontent.apps.YOUR_REVERSED_IOS_CLIENT_ID_SUFFIX</string>
         </array>
     </dict>
 </array>

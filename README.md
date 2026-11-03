@@ -313,31 +313,16 @@ const res = await SocialLogin.login({
 
 #### Capacitor 8.5+ (UIScene)
 
-If your app uses `UIApplicationSceneManifest` (Capacitor 8.5+ / `npx cap migrate`), URL opens go to `SceneDelegate.swift`. Keep `FBSDKCoreKit.ApplicationDelegate.shared.application` in `didFinishLaunchingWithOptions`, and handle URLs in `scene(_:openURLContexts:)`:
+If your app uses `UIApplicationSceneManifest` (Capacitor 8.5+ / `npx cap migrate`), URL opens go to `SceneDelegate.swift`. Keep `FBSDKCoreKit.ApplicationDelegate.shared.application` in `didFinishLaunchingWithOptions`, and forward all URL contexts to `SceneDelegateProxy` in `scene(_:openURLContexts:)`. Do not also call the Facebook SDK URL handler there, or the URL reaches the SDK twice:
 
 ```swift
 import UIKit
 import Capacitor
-import FBSDKCoreKit
 
 func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-    var unhandledContexts = Set<UIOpenURLContext>()
-    for context in URLContexts {
-        let url = context.url
-        let options = context.options
-        if ApplicationDelegate.shared.application(
-            UIApplication.shared,
-            open: url,
-            sourceApplication: options.sourceApplication,
-            annotation: options.annotation
-        ) {
-            continue
-        }
-        unhandledContexts.insert(context)
-    }
-    if !unhandledContexts.isEmpty {
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: unhandledContexts)
-    }
+    // Forward every context. SceneDelegateProxy posts capacitorOpenURL, and this
+    // plugin's observer passes the URL to the Facebook SDK exactly once.
+    SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
 }
 ```
 
@@ -1903,7 +1888,9 @@ BackupAgent `onRestoreFinished`). Your backend must supply WebAuthn authenticati
 
 Construct a type with a set of properties K of type T
 
-<code>{ [P in K]: T; }</code>
+<code>{
+ [P in K]: T;
+ }</code>
 
 
 #### ProviderResponseMap
@@ -1954,7 +1941,9 @@ Construct a type with the properties of T except for those in type K.
 
 From T, pick a set of properties whose keys are in the union K
 
-<code>{ [P in K]: T[P]; }</code>
+<code>{
+ [P in K]: T[P];
+ }</code>
 
 
 #### Exclude
@@ -2057,7 +2046,7 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
 
 ## Combine facebook and google URL handler
 
-Use **AppDelegate** handlers only when your app does **not** use the Capacitor 8.5 UIScene manifest. With UIScene, put the same logic in `SceneDelegate.scene(_:openURLContexts:)` before `SceneDelegateProxy.shared.scene(scene, openURLContexts:)` (see [Google iOS setup](./docs/setup_google.md#url-opens-with-capacitor-85-uiscene) and the Facebook iOS section above).
+Use **AppDelegate** handlers only when your app does **not** use the Capacitor 8.5 UIScene manifest. With UIScene, forward all contexts from `SceneDelegate.scene(_:openURLContexts:)` to `SceneDelegateProxy.shared.scene(scene, openURLContexts:)` and let the plugin observer call the SDK handlers (see [Google iOS setup](./docs/setup_google.md#url-opens-with-capacitor-85-uiscene) and the Facebook iOS section above).
 
 This plugin listens for Capacitor's `capacitorOpenURL` notification and calls the Facebook and Google URL handlers for you when those SDKs are linked, so custom native URL code is optional.
 
@@ -2089,23 +2078,9 @@ This plugin listens for Capacitor's `capacitorOpenURL` notification and calls th
 
 ```swift
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        var unhandledContexts = Set<UIOpenURLContext>()
-        for context in URLContexts {
-            let url = context.url
-            let options = context.options
-            if FBSDKCoreKit.ApplicationDelegate.shared.application(
-                UIApplication.shared,
-                open: url,
-                sourceApplication: options.sourceApplication,
-                annotation: options.annotation
-            ) || GIDSignIn.sharedInstance.handle(url) {
-                continue
-            }
-            unhandledContexts.insert(context)
-        }
-        if !unhandledContexts.isEmpty {
-            SceneDelegateProxy.shared.scene(scene, openURLContexts: unhandledContexts)
-        }
+        // Forward every context. The plugin observer calls the Facebook and Google
+        // URL handlers once per URL, so do not call them here as well.
+        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 ```
 
