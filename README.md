@@ -313,7 +313,9 @@ const res = await SocialLogin.login({
 
 #### Info.plist (all Capacitor versions)
 
-Every app, with or without UIScene, needs these settings. Add the following in the `ios/App/App/Info.plist` file inside of the outermost `<dict>`:
+Every app, with or without UIScene, needs these settings. Add the following in the `ios/App/App/Info.plist` file inside the outermost `<dict>`.
+
+If `Info.plist` already has a `CFBundleURLTypes` key (for example from the Google setup), do not add a second one. Append only the Facebook `<dict>` (the one with `fb[APP_ID]`) to the existing `CFBundleURLTypes` array and keep every existing URL type, otherwise another provider's callback scheme can stop working.
 
 ```xml
 
