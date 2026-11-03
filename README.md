@@ -317,6 +317,8 @@ Every app, with or without UIScene, needs these settings. Add the following in t
 
 If `Info.plist` already has a `CFBundleURLTypes` key (for example from the Google setup), do not add a second one. Append only the Facebook `<dict>` (the one with `fb[APP_ID]`) to the existing `CFBundleURLTypes` array and keep every existing URL type, otherwise another provider's callback scheme can stop working.
 
+The same applies to `LSApplicationQueriesSchemes`: if it already exists, do not add a second key. Append the Facebook `<string>` entries to the existing array and keep every existing scheme, otherwise `canOpenURL` checks for other integrations can stop working.
+
 ```xml
 
 <key>CFBundleURLTypes</key>
