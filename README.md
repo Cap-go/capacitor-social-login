@@ -311,6 +311,39 @@ const res = await SocialLogin.login({
 
 ### iOS configuration
 
+#### Info.plist (all Capacitor versions)
+
+Every app, with or without UIScene, needs these settings. Add the following in the `ios/App/App/Info.plist` file inside of the outermost `<dict>`:
+
+```xml
+
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>fb[APP_ID]</string>
+        </array>
+    </dict>
+</array>
+<key>FacebookAppID</key>
+<string>[APP_ID]</string>
+<key>FacebookClientToken</key>
+<string>[CLIENT_TOKEN]</string>
+<key>FacebookDisplayName</key>
+<string>[APP_NAME]</string>
+<key>LSApplicationQueriesSchemes</key>
+<array>
+    <string>fbapi</string>
+    <string>fbauth</string>
+    <string>fb-messenger-share-api</string>
+    <string>fbauth2</string>
+    <string>fbshareextension</string>
+</array>
+```
+
+More information can be found here: https://developers.facebook.com/docs/facebook-login/ios
+
 #### Capacitor 8.5+ (UIScene)
 
 If your app uses `UIApplicationSceneManifest` (Capacitor 8.5+ / `npx cap migrate`), URL opens go to `SceneDelegate.swift`. Keep `FBSDKCoreKit.ApplicationDelegate.shared.application` in `didFinishLaunchingWithOptions`, and forward all URL contexts to `SceneDelegateProxy` in `scene(_:openURLContexts:)`. Do not also call the Facebook SDK URL handler there, or the URL reaches the SDK twice:
@@ -372,37 +405,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 ```
 
-Add the following in the `ios/App/App/info.plist` file inside of the outermost `<dict>`:
 
-```xml
 
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>fb[APP_ID]</string>
-        </array>
-    </dict>
-</array>
-<key>FacebookAppID</key>
-<string>[APP_ID]</string>
-<key>FacebookClientToken</key>
-<string>[CLIENT_TOKEN]</string>
-<key>FacebookDisplayName</key>
-<string>[APP_NAME]</string>
-<key>LSApplicationQueriesSchemes</key>
-<array>
-    <string>fbapi</string>
-    <string>fbauth</string>
-    <string>fb-messenger-share-api</string>
-    <string>fbauth2</string>
-    <string>fbshareextension</string>
-</array>
-```
-
-More information can be found here: https://developers.facebook.com/docs/facebook-login/ios
-
+#### Initialize the Facebook provider
 
 Then call the `initialize` method with the `facebook` provider
 
