@@ -140,8 +140,13 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    private static var capacitorOpenURLObserver: NSObjectProtocol?
+
     public override func load() {
-        NotificationCenter.default.addObserver(
+        guard SocialLoginPlugin.capacitorOpenURLObserver == nil else {
+            return
+        }
+        SocialLoginPlugin.capacitorOpenURLObserver = NotificationCenter.default.addObserver(
             forName: .capacitorOpenURL,
             object: nil,
             queue: nil

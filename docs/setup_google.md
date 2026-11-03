@@ -52,11 +52,12 @@ You still need `SocialLogin.initialize({ google: { iOSClientId: ... } })` and th
 
 ### Using Google login on iOS
 
-Add your iOS OAuth client reversed ID to `ios/App/App/Info.plist`:
+Add your iOS OAuth client reversed ID to `ios/App/App/Info.plist`. If `CFBundleURLTypes` already exists (for example Facebook or another provider), append the Google entry to that array instead of adding a second `CFBundleURLTypes` key:
 
 ```xml
 <key>CFBundleURLTypes</key>
 <array>
+    <!-- existing URL type dicts stay here -->
     <dict>
         <key>CFBundleURLSchemes</key>
         <array>
@@ -120,7 +121,7 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 }
 ```
 
-See [Combine facebook and google URL handler](../README.md#combine-facebook-and-google-url-handler-in-appdelegateswift) in the README if you use multiple providers.
+See [Combine facebook and google URL handler](../README.md#combine-facebook-and-google-url-handler) in the README if you use multiple providers.
 
 **Capgo website:** mirror this section on [capgo.app Google iOS docs](https://capgo.app/docs/plugins/social-login/google/ios/) from the `Cap-go/capgo` content tree (typically under `content/docs/plugins/social-login/google/ios.md` or the equivalent MDX path used by the docs site).
 

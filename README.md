@@ -321,6 +321,7 @@ import Capacitor
 import FBSDKCoreKit
 
 func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    var unhandledContexts = Set<UIOpenURLContext>()
     for context in URLContexts {
         let url = context.url
         let options = context.options
@@ -332,8 +333,11 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
         ) {
             continue
         }
+        unhandledContexts.insert(context)
     }
-    SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+    if !unhandledContexts.isEmpty {
+        SceneDelegateProxy.shared.scene(scene, openURLContexts: unhandledContexts)
+    }
 }
 ```
 
@@ -2085,6 +2089,7 @@ This plugin listens for Capacitor's `capacitorOpenURL` notification and calls th
 
 ```swift
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        var unhandledContexts = Set<UIOpenURLContext>()
         for context in URLContexts {
             let url = context.url
             let options = context.options
@@ -2096,8 +2101,11 @@ This plugin listens for Capacitor's `capacitorOpenURL` notification and calls th
             ) || GIDSignIn.sharedInstance.handle(url) {
                 continue
             }
+            unhandledContexts.insert(context)
         }
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+        if !unhandledContexts.isEmpty {
+            SceneDelegateProxy.shared.scene(scene, openURLContexts: unhandledContexts)
+        }
     }
 ```
 
