@@ -13,9 +13,9 @@ This plugin uses **Google Credential Manager** on Android. You need OAuth client
 
 After `SocialLogin.initialize()` and on failed login, filter Logcat for `GoogleProvider` or `CapgoSocialLogin`. The plugin logs:
 
-- `package` — must match your Android OAuth client
-- `signingSha1` — must be registered on that Android OAuth client
-- masked `webClientId` — must be the **Web** client ID
+- `package`: must match your Android OAuth client
+- `signingSha1`: must be registered on that Android OAuth client
+- masked `webClientId`: must be the **Web** client ID
 
 ### `[28444] Developer console is not set up correctly`
 
@@ -76,7 +76,6 @@ In `ios/App/App/SceneDelegate.swift`:
 ```swift
 import UIKit
 import Capacitor
-import GoogleSignIn
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -92,9 +91,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        for context in URLContexts {
-            _ = GIDSignIn.sharedInstance.handle(context.url)
-        }
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 
@@ -108,18 +104,17 @@ Use this when your app has migrated with `npx cap migrate` or follows the Capaci
 
 #### URL opens before Capacitor 8.5 (AppDelegate only)
 
-If your app does **not** use the scene manifest, handle URLs in `ios/App/App/AppDelegate.swift`:
+If your app does **not** use the scene manifest, forward every URL to Capacitor in `ios/App/App/AppDelegate.swift`:
 
 ```swift
-import GoogleSignIn
-
 func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-    if GIDSignIn.sharedInstance.handle(url) {
-        return true
-    }
     return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
 }
 ```
+
+The plugin listens for Capacitor's `capacitorOpenURL` notification and calls `GIDSignIn.sharedInstance.handle(url)` once for you. Forwarding every URL keeps `App.getLaunchUrl()` and other `appUrlOpen` listeners working, so do not return early when Google handles a URL.
+
+If your app does not load this plugin and uses the Google SDK directly, call `GIDSignIn.sharedInstance.handle(url)` yourself before forwarding the URL to `ApplicationDelegateProxy`.
 
 See [Combine facebook and google URL handler](../README.md#combine-facebook-and-google-url-handler) in the README if you use multiple providers.
 
