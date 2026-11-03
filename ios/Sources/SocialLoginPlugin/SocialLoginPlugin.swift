@@ -140,6 +140,15 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    public override func load() {
+        NotificationCenter.default.addObserver(
+            SocialLoginOpenURLHandler.self,
+            selector: #selector(SocialLoginOpenURLHandler.handleCapacitorOpenURLNotification(_:)),
+            name: .capacitorOpenURL,
+            object: nil
+        )
+    }
+
     @objc func getPluginVersion(_ call: CAPPluginCall) {
         call.resolve(["version": self.pluginVersion])
     }

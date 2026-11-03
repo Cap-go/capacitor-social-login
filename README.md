@@ -311,6 +311,36 @@ const res = await SocialLogin.login({
 
 ### iOS configuration
 
+#### Capacitor 8.5+ (UIScene)
+
+If your app uses `UIApplicationSceneManifest` (Capacitor 8.5+ / `npx cap migrate`), URL opens go to `SceneDelegate.swift`. Keep `FBSDKCoreKit.ApplicationDelegate.shared.application` in `didFinishLaunchingWithOptions`, and handle URLs in `scene(_:openURLContexts:)`:
+
+```swift
+import UIKit
+import Capacitor
+import FBSDKCoreKit
+
+func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    for context in URLContexts {
+        let url = context.url
+        let options = context.options
+        if ApplicationDelegate.shared.application(
+            UIApplication.shared,
+            open: url,
+            sourceApplication: options.sourceApplication,
+            annotation: options.annotation
+        ) {
+            continue
+        }
+    }
+    SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+}
+```
+
+This plugin also forwards Facebook URL callbacks when it receives Capacitor's `capacitorOpenURL` notification, so explicit SceneDelegate code is optional for Facebook-only setups.
+
+#### Before Capacitor 8.5 (AppDelegate URL handler)
+
 In file `ios/App/App/AppDelegate.swift` add or replace the following:
 
 ```swift
@@ -584,6 +614,12 @@ const res = await SocialLogin.login({
   },
 });
 ```
+
+#### iOS OAuth redirect URLs (Google Sign-In)
+
+Google Sign-In completes through a custom URL scheme callback. On **Capacitor 8.5+** with the [UIScene lifecycle](https://capacitorjs.com/docs/updating/8-5), that callback is delivered to `SceneDelegate.scene(_:openURLContexts:)`, not `AppDelegate.application(_:open:options:)`. See [docs/setup_google.md](./docs/setup_google.md#url-opens-with-capacitor-85-uiscene) for the `SceneDelegate.swift` snippet.
+
+**Automatic handling:** This plugin listens for Capacitor's `capacitorOpenURL` notification (posted from both AppDelegate and SceneDelegate paths) and calls `GIDSignIn.sharedInstance.handle(url)` when the Google Sign-In SDK is linked. Explicit `SceneDelegate` or `AppDelegate` code is optional for Google once `SocialLogin.initialize()` runs, but the snippets in `docs/setup_google.md` are recommended if you combine providers or want handlers in your app target.
 
 **Offline Mode Behavior:**
 When using `mode: 'offline'`, the login response will only contain:
@@ -2015,7 +2051,13 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
 - Adjust the data types to match your app's usage and the SDK documentation.
 - See [Apple docs](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/) for all allowed keys and values.
 
-## Combine facebook and google URL handler in `AppDelegate.swift`
+## Combine facebook and google URL handler
+
+Use **AppDelegate** handlers only when your app does **not** use the Capacitor 8.5 UIScene manifest. With UIScene, put the same logic in `SceneDelegate.scene(_:openURLContexts:)` before `SceneDelegateProxy.shared.scene(scene, openURLContexts:)` (see [Google iOS setup](./docs/setup_google.md#url-opens-with-capacitor-85-uiscene) and the Facebook iOS section above).
+
+This plugin listens for Capacitor's `capacitorOpenURL` notification and calls the Facebook and Google URL handlers for you when those SDKs are linked, so custom native URL code is optional.
+
+### AppDelegate.swift (pre-8.5 / no scene manifest)
 
 ```swift
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
@@ -2036,6 +2078,26 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
 
         // If URL wasn't handled by auth services, pass it to Capacitor for processing
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+```
+
+### SceneDelegate.swift (Capacitor 8.5+)
+
+```swift
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        for context in URLContexts {
+            let url = context.url
+            let options = context.options
+            if FBSDKCoreKit.ApplicationDelegate.shared.application(
+                UIApplication.shared,
+                open: url,
+                sourceApplication: options.sourceApplication,
+                annotation: options.annotation
+            ) || GIDSignIn.sharedInstance.handle(url) {
+                continue
+            }
+        }
+        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 ```
 
