@@ -100,6 +100,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 ```
 
+The plugin calls `GIDSignIn.sharedInstance.handle(url)` from Capacitor's `capacitorOpenURL` notification, so this delegate only forwards URLs. If your app does not load this plugin and uses the Google SDK directly, add `import GoogleSignIn` and call Google for each URL before forwarding:
+
+```swift
+func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    for context in URLContexts {
+        _ = GIDSignIn.sharedInstance.handle(context.url)
+    }
+    SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+}
+```
+
 Use this when your app has migrated with `npx cap migrate` or follows the Capacitor 8.5 SceneDelegate template.
 
 #### URL opens before Capacitor 8.5 (AppDelegate only)
