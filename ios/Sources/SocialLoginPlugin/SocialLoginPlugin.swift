@@ -170,6 +170,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
                 fbProvider.initialize()
+                SocialLoginOpenURLHandler.isFacebookIntegrationConfigured = true
                 initialized = true
             }
         }

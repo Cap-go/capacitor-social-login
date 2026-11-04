@@ -11,6 +11,9 @@ import GoogleSignIn
 #endif
 
 enum SocialLoginOpenURLHandler {
+    /// True after `SocialLogin.initialize()` includes Facebook settings.
+    static var isFacebookIntegrationConfigured = false
+
     static func parseOpenURLNotification(_ notification: Notification) -> (url: URL, options: [UIApplication.OpenURLOptionsKey: Any])? {
         guard let data = notification.object as? [String: Any],
               let url = data["url"] as? URL else {
@@ -22,12 +25,14 @@ enum SocialLoginOpenURLHandler {
 
     static func handleOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) {
         #if canImport(FBSDKCoreKit)
-        _ = ApplicationDelegate.shared.application(
-            UIApplication.shared,
-            open: url,
-            sourceApplication: options[.sourceApplication] as? String,
-            annotation: options[.annotation]
-        )
+        if isFacebookIntegrationConfigured {
+            _ = ApplicationDelegate.shared.application(
+                UIApplication.shared,
+                open: url,
+                sourceApplication: options[.sourceApplication] as? String,
+                annotation: options[.annotation]
+            )
+        }
         #endif
 
         #if canImport(GoogleSignIn)

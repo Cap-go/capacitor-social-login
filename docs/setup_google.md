@@ -71,7 +71,11 @@ Add your iOS OAuth client reversed ID to `ios/App/App/Info.plist`. If `CFBundleU
 
 From [Capacitor 8.5](https://capacitorjs.com/docs/updating/8-5), apps with `UIApplicationSceneManifest` in `Info.plist` receive custom URL scheme opens in `SceneDelegate.swift`, not in `AppDelegate.application(_:open:options:)`. Keep Capacitor's `SceneDelegateProxy` forwarding call.
 
-Add or keep these methods in your existing `ios/App/App/SceneDelegate.swift`. Do not replace a custom `CAPBridgeViewController` subclass or your existing `scene(_:willConnectTo:options:)` window setup. Only add the URL and universal-link forwarding if they are missing (see the [Capacitor 8.5 migration guide](https://capacitorjs.com/docs/updating/8-5)):
+Add or keep these methods in your existing `ios/App/App/SceneDelegate.swift`. Do not replace a custom `CAPBridgeViewController` subclass or your existing `scene(_:willConnectTo:options:)` window setup. Ensure that existing `willConnectTo` also forwards `scene`, `session`, and `connectionOptions` to `SceneDelegateProxy`; only add the URL and universal-link forwarding if those methods are missing (see the [Capacitor 8.5 migration guide](https://capacitorjs.com/docs/updating/8-5)):
+
+```swift
+SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+```
 
 ```swift
 import Capacitor
