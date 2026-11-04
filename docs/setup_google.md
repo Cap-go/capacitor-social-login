@@ -71,32 +71,17 @@ Add your iOS OAuth client reversed ID to `ios/App/App/Info.plist`. If `CFBundleU
 
 From [Capacitor 8.5](https://capacitorjs.com/docs/updating/8-5), apps with `UIApplicationSceneManifest` in `Info.plist` receive custom URL scheme opens in `SceneDelegate.swift`, not in `AppDelegate.application(_:open:options:)`. Keep Capacitor's `SceneDelegateProxy` forwarding call.
 
-In `ios/App/App/SceneDelegate.swift`:
+Add or keep these methods in your existing `ios/App/App/SceneDelegate.swift`. Do not replace a custom `CAPBridgeViewController` subclass or your existing `scene(_:willConnectTo:options:)` window setup. Only add the URL and universal-link forwarding if they are missing (see the [Capacitor 8.5 migration guide](https://capacitorjs.com/docs/updating/8-5)):
 
 ```swift
-import UIKit
 import Capacitor
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-    var window: UIWindow?
+func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
+}
 
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let windowScene = scene as? UIWindowScene else { return }
-
-        window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
-        window?.makeKeyAndVisible()
-
-        SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
-    }
-
-    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
-    }
-
-    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-        SceneDelegateProxy.shared.scene(scene, continue: userActivity)
-    }
+func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    SceneDelegateProxy.shared.scene(scene, continue: userActivity)
 }
 ```
 
