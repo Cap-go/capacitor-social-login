@@ -14,6 +14,28 @@ enum SocialLoginOpenURLHandler {
     /// True after `SocialLogin.initialize()` includes Facebook settings.
     static var isFacebookIntegrationConfigured = false
 
+    #if canImport(FBSDKCoreKit)
+    private static var pendingFacebookOpenURL: (url: URL, options: [UIApplication.OpenURLOptionsKey: Any])?
+
+    private static func deliverFacebookOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) {
+        _ = ApplicationDelegate.shared.application(
+            UIApplication.shared,
+            open: url,
+            sourceApplication: options[.sourceApplication] as? String,
+            annotation: options[.annotation]
+        )
+    }
+
+    /// Delivers a Facebook OAuth URL that arrived before `initialize()` completed.
+    static func flushPendingFacebookOpenURLIfNeeded() {
+        guard isFacebookIntegrationConfigured, let pending = pendingFacebookOpenURL else {
+            return
+        }
+        pendingFacebookOpenURL = nil
+        deliverFacebookOpenURL(pending.url, options: pending.options)
+    }
+    #endif
+
     static func parseOpenURLNotification(_ notification: Notification) -> (url: URL, options: [UIApplication.OpenURLOptionsKey: Any])? {
         guard let data = notification.object as? [String: Any],
               let url = data["url"] as? URL else {
@@ -26,12 +48,9 @@ enum SocialLoginOpenURLHandler {
     static func handleOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) {
         #if canImport(FBSDKCoreKit)
         if isFacebookIntegrationConfigured {
-            _ = ApplicationDelegate.shared.application(
-                UIApplication.shared,
-                open: url,
-                sourceApplication: options[.sourceApplication] as? String,
-                annotation: options[.annotation]
-            )
+            deliverFacebookOpenURL(url, options: options)
+        } else {
+            pendingFacebookOpenURL = (url, options)
         }
         #endif
 
