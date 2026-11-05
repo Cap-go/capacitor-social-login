@@ -25,4 +25,15 @@ class SocialLoginOpenURLHandlerTests: XCTestCase {
 
         XCTAssertNil(SocialLoginOpenURLHandler.parseOpenURLNotification(notification))
     }
+    func testIsLikelyFacebookOpenURLAcceptsFacebookSchemesAndHosts() {
+        XCTAssertTrue(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "fb123456789://authorize")!))
+        XCTAssertTrue(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "https://www.facebook.com/connect/login_success.html")!))
+        XCTAssertTrue(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "https://fb.me/abc")!))
+    }
+
+    func testIsLikelyFacebookOpenURLRejectsUnrelatedURLs() {
+        XCTAssertFalse(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "com.googleusercontent.apps.test:/oauth2callback")!))
+        XCTAssertFalse(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "https://example.com/oauth")!))
+        XCTAssertFalse(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "myapp://callback")!))
+    }
 }

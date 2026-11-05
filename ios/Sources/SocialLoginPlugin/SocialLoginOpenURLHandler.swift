@@ -15,7 +15,21 @@ enum SocialLoginOpenURLHandler {
     static var isFacebookIntegrationConfigured = false
 
     #if canImport(FBSDKCoreKit)
-    private static var pendingFacebookOpenURL: (url: URL, options: [UIApplication.OpenURLOptionsKey: Any])?
+    private static var pendingFacebookOpenURLs: [(url: URL, options: [UIApplication.OpenURLOptionsKey: Any])] = []
+
+    /// Facebook custom schemes are `fb{app-id}`; also accept https hosts Facebook uses for redirects.
+    static func isLikelyFacebookOpenURL(_ url: URL) -> Bool {
+        if let scheme = url.scheme?.lowercased(), scheme.hasPrefix("fb") {
+            return true
+        }
+        let host = (url.host ?? "").lowercased()
+        return host == "facebook.com"
+            || host.hasSuffix(".facebook.com")
+            || host == "fb.com"
+            || host.hasSuffix(".fb.com")
+            || host == "fb.me"
+            || host.hasSuffix(".fb.me")
+    }
 
     private static func deliverFacebookOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) {
         _ = ApplicationDelegate.shared.application(
@@ -26,14 +40,17 @@ enum SocialLoginOpenURLHandler {
         )
     }
 
-    /// Delivers a Facebook OAuth URL that arrived before `initialize()` completed.
+    /// Delivers Facebook OAuth URLs that arrived before `initialize()` completed.
     static func flushPendingFacebookOpenURLIfNeeded() {
         assert(Thread.isMainThread)
-        guard isFacebookIntegrationConfigured, let pending = pendingFacebookOpenURL else {
+        guard isFacebookIntegrationConfigured, !pendingFacebookOpenURLs.isEmpty else {
             return
         }
-        pendingFacebookOpenURL = nil
-        deliverFacebookOpenURL(pending.url, options: pending.options)
+        let pending = pendingFacebookOpenURLs
+        pendingFacebookOpenURLs.removeAll()
+        for item in pending {
+            deliverFacebookOpenURL(item.url, options: item.options)
+        }
     }
 
     /// Call after Facebook `initialize()` from the plugin. Runs on the main queue.
@@ -64,8 +81,8 @@ enum SocialLoginOpenURLHandler {
         #if canImport(FBSDKCoreKit)
         if isFacebookIntegrationConfigured {
             deliverFacebookOpenURL(url, options: options)
-        } else {
-            pendingFacebookOpenURL = (url, options)
+        } else if isLikelyFacebookOpenURL(url) {
+            pendingFacebookOpenURLs.append((url, options))
         }
         #endif
 
