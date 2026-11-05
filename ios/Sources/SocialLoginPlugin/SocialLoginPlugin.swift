@@ -149,7 +149,7 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
         SocialLoginPlugin.capacitorOpenURLObserver = NotificationCenter.default.addObserver(
             forName: .capacitorOpenURL,
             object: nil,
-            queue: nil
+            queue: .main
         ) { notification in
             SocialLoginOpenURLHandler.handleCapacitorOpenURLNotification(notification)
         }
@@ -170,8 +170,9 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
                     return
                 }
                 fbProvider.initialize()
-                SocialLoginOpenURLHandler.isFacebookIntegrationConfigured = true
-                SocialLoginOpenURLHandler.flushPendingFacebookOpenURLIfNeeded()
+                #if canImport(FBSDKCoreKit)
+                SocialLoginOpenURLHandler.markFacebookIntegrationConfiguredAndFlushPending()
+                #endif
                 initialized = true
             }
         }
