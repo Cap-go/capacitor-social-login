@@ -14,10 +14,8 @@ enum SocialLoginOpenURLHandler {
     /// True after `SocialLogin.initialize()` includes Facebook settings.
     static var isFacebookIntegrationConfigured = false
 
-    #if canImport(FBSDKCoreKit)
-    private static var pendingFacebookOpenURLs: [(url: URL, options: [UIApplication.OpenURLOptionsKey: Any])] = []
-
     /// Facebook custom schemes are `fb{app-id}`; also accept https hosts Facebook uses for redirects.
+    /// Kept outside FBSDK `canImport` so unit tests compile when Facebook deps are disabled.
     static func isLikelyFacebookOpenURL(_ url: URL) -> Bool {
         if let scheme = url.scheme?.lowercased(), scheme.hasPrefix("fb") {
             return true
@@ -30,6 +28,9 @@ enum SocialLoginOpenURLHandler {
             || host == "fb.me"
             || host.hasSuffix(".fb.me")
     }
+
+    #if canImport(FBSDKCoreKit)
+    private static var pendingFacebookOpenURLs: [(url: URL, options: [UIApplication.OpenURLOptionsKey: Any])] = []
 
     private static func deliverFacebookOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) {
         _ = ApplicationDelegate.shared.application(
