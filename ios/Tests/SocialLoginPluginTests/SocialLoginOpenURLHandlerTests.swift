@@ -36,4 +36,22 @@ class SocialLoginOpenURLHandlerTests: XCTestCase {
         XCTAssertFalse(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "https://example.com/oauth")!))
         XCTAssertFalse(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "myapp://callback")!))
     }
+
+    func testShouldDeliverURLToFacebookSDKAcceptsFacebookAndAppLinkURLs() {
+        XCTAssertTrue(SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(URL(string: "fb123456789://authorize")!))
+        XCTAssertTrue(
+            SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(
+                URL(string: "https://example.com/deeplink?al_applink_data=eyJ0ZXN0IjoidHJ1ZSJ9")!
+            )
+        )
+    }
+
+    func testShouldDeliverURLToFacebookSDKRejectsUnrelatedOAuthURLs() {
+        XCTAssertFalse(
+            SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(
+                URL(string: "com.googleusercontent.apps.test:/oauth2callback?code=secret")!
+            )
+        )
+        XCTAssertFalse(SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(URL(string: "https://example.com/oauth?code=secret")!))
+    }
 }

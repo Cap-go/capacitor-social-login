@@ -29,6 +29,24 @@ enum SocialLoginOpenURLHandler {
             || host.hasSuffix(".fb.me")
     }
 
+    /// URLs safe to pass to Facebook SDK `ApplicationDelegate` (OAuth callbacks, Facebook hosts, or App Links).
+    static func shouldDeliverURLToFacebookSDK(_ url: URL) -> Bool {
+        if isLikelyFacebookOpenURL(url) {
+            return true
+        }
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return false
+        }
+        if components.queryItems?.contains(where: { $0.name.caseInsensitiveCompare("al_applink_data") == .orderedSame }) == true {
+            return true
+        }
+        if let fragment = components.fragment,
+           fragment.range(of: "al_applink_data", options: .caseInsensitive) != nil {
+            return true
+        }
+        return false
+    }
+
     #if canImport(FBSDKCoreKit)
     private static var pendingFacebookOpenURLs: [(url: URL, options: [UIApplication.OpenURLOptionsKey: Any])] = []
 
@@ -80,10 +98,12 @@ enum SocialLoginOpenURLHandler {
     static func handleOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) {
         assert(Thread.isMainThread)
         #if canImport(FBSDKCoreKit)
-        if isFacebookIntegrationConfigured {
-            deliverFacebookOpenURL(url, options: options)
-        } else if isLikelyFacebookOpenURL(url) {
-            pendingFacebookOpenURLs.append((url, options))
+        if shouldDeliverURLToFacebookSDK(url) {
+            if isFacebookIntegrationConfigured {
+                deliverFacebookOpenURL(url, options: options)
+            } else {
+                pendingFacebookOpenURLs.append((url, options))
+            }
         }
         #endif
 
