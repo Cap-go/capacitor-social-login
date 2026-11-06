@@ -15,6 +15,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        // SceneDelegateProxy posts capacitorOpenURL; the plugin observer calls the Google and Facebook handlers once.
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 
