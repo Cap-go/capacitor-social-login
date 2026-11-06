@@ -50,11 +50,11 @@ class SocialLoginOpenURLHandlerTests: XCTestCase {
         XCTAssertFalse(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "myapp://callback")!))
     }
 
-    func testShouldDeliverURLToFacebookSDKAcceptsFacebookAndAppLinkURLs() {
+    func testShouldDeliverURLToFacebookSDKAcceptsFacebookSchemesAndHosts() {
         XCTAssertTrue(SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(URL(string: "fb123456789://authorize")!))
         XCTAssertTrue(
             SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(
-                URL(string: "https://example.com/deeplink?al_applink_data=eyJ0ZXN0IjoidHJ1ZSJ9")!
+                URL(string: "https://www.facebook.com/connect/login_success.html")!
             )
         )
     }
@@ -66,5 +66,24 @@ class SocialLoginOpenURLHandlerTests: XCTestCase {
             )
         )
         XCTAssertFalse(SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(URL(string: "https://example.com/oauth?code=secret")!))
+    }
+
+    func testShouldDeliverURLToFacebookSDKRejectsAppLinkMarkerOnUntrustedURL() {
+        // Regression: al_applink_data must not unlock delivery for unrelated schemes/hosts.
+        XCTAssertFalse(
+            SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(
+                URL(string: "myapp://callback?code=secret&al_applink_data=%7B%7D")!
+            )
+        )
+        XCTAssertFalse(
+            SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(
+                URL(string: "https://example.com/deeplink?al_applink_data=eyJ0ZXN0IjoidHJ1ZSJ9")!
+            )
+        )
+        XCTAssertFalse(
+            SocialLoginOpenURLHandler.shouldDeliverURLToFacebookSDK(
+                URL(string: "myapp://callback#al_applink_data=%7B%7D")!
+            )
+        )
     }
 }

@@ -350,7 +350,25 @@ More information can be found here: https://developers.facebook.com/docs/faceboo
 
 #### Capacitor 8.5+ (UIScene)
 
-If your app uses `UIApplicationSceneManifest` (Capacitor 8.5+ / `npx cap migrate`), URL opens go to `SceneDelegate.swift`. Keep `FBSDKCoreKit.ApplicationDelegate.shared.application` in `didFinishLaunchingWithOptions`, and forward all URL contexts to `SceneDelegateProxy` in `scene(_:openURLContexts:)`. Do not also call the Facebook SDK URL handler there, or the URL reaches the SDK twice:
+If your app uses `UIApplicationSceneManifest` (Capacitor 8.5+ / `npx cap migrate`), URL opens go to `SceneDelegate.swift`. Keep Facebook SDK startup in `AppDelegate.application(_:didFinishLaunchingWithOptions:)`, and forward all URL contexts to `SceneDelegateProxy` in `scene(_:openURLContexts:)`. Do not also call the Facebook SDK URL handler in SceneDelegate, or the URL reaches the SDK twice.
+
+`AppDelegate.swift` (required for UIScene apps too; Facebook SDK still initializes at launch):
+
+```swift
+import UIKit
+import Capacitor
+import FBSDKCoreKit
+
+func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    FBSDKCoreKit.ApplicationDelegate.shared.application(
+        application,
+        didFinishLaunchingWithOptions: launchOptions
+    )
+    return true
+}
+```
+
+`SceneDelegate.swift` (URL opens only; no direct Facebook SDK calls):
 
 ```swift
 import UIKit

@@ -29,22 +29,14 @@ enum SocialLoginOpenURLHandler {
             || host.hasSuffix(".fb.me")
     }
 
-    /// URLs safe to pass to Facebook SDK `ApplicationDelegate` (OAuth callbacks, Facebook hosts, or App Links).
+    /// URLs safe to pass to Facebook SDK `ApplicationDelegate`.
+    /// Only Facebook OAuth schemes (`fb…`) and Facebook HTTPS hosts are trusted.
+    /// Do not treat `al_applink_data` alone as proof of trust: any sender can add that marker
+    /// (for example `myapp://callback?code=secret&al_applink_data=%7B%7D`), and the SDK may log
+    /// the full URL. Custom-domain App Links need an explicit host allowlist before they can be
+    /// forwarded; until then they are rejected here.
     static func shouldDeliverURLToFacebookSDK(_ url: URL) -> Bool {
-        if isLikelyFacebookOpenURL(url) {
-            return true
-        }
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            return false
-        }
-        if components.queryItems?.contains(where: { $0.name.caseInsensitiveCompare("al_applink_data") == .orderedSame }) == true {
-            return true
-        }
-        if let fragment = components.fragment,
-           fragment.range(of: "al_applink_data", options: .caseInsensitive) != nil {
-            return true
-        }
-        return false
+        return isLikelyFacebookOpenURL(url)
     }
 
     #if canImport(FBSDKCoreKit)
