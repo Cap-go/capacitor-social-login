@@ -25,6 +25,19 @@ class SocialLoginOpenURLHandlerTests: XCTestCase {
 
         XCTAssertNil(SocialLoginOpenURLHandler.parseOpenURLNotification(notification))
     }
+
+    func testParseUniversalLinkNotificationReturnsURL() {
+        let url = URL(string: "https://www.facebook.com/connect/login_success.html")!
+        let notification = Notification(name: .capacitorOpenUniversalLink, object: ["url": url])
+
+        XCTAssertEqual(SocialLoginOpenURLHandler.parseUniversalLinkNotification(notification), url)
+    }
+
+    func testParseUniversalLinkNotificationReturnsNilWhenPayloadMissingURL() {
+        let notification = Notification(name: .capacitorOpenUniversalLink, object: [:] as [String: Any])
+
+        XCTAssertNil(SocialLoginOpenURLHandler.parseUniversalLinkNotification(notification))
+    }
     func testIsLikelyFacebookOpenURLAcceptsFacebookSchemesAndHosts() {
         XCTAssertTrue(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "fb123456789://authorize")!))
         XCTAssertTrue(SocialLoginOpenURLHandler.isLikelyFacebookOpenURL(URL(string: "https://www.facebook.com/connect/login_success.html")!))

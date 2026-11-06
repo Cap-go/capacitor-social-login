@@ -363,7 +363,7 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
 }
 ```
 
-This plugin calls the Facebook SDK URL handler when it receives Capacitor's `capacitorOpenURL` notification, so direct Facebook SDK calls in SceneDelegate are not needed. Forwarding every URL context to `SceneDelegateProxy` is still required: without it, `capacitorOpenURL` is never posted and the plugin never sees the callback.
+This plugin calls the Facebook SDK URL handler when it receives Capacitor's `capacitorOpenURL` notification (custom schemes) and `capacitorOpenUniversalLink` (HTTPS App Links from `scene(_:continue:)`), so direct Facebook SDK calls in SceneDelegate are not needed. Forwarding every URL context to `SceneDelegateProxy` is still required: without it, `capacitorOpenURL` is never posted and the plugin never sees the callback.
 
 #### Before Capacitor 8.5 (AppDelegate URL handler)
 
@@ -2047,7 +2047,7 @@ Add this file in your app at: `ios/App/PrivacyInfo.xcprivacy`
 
 Use **AppDelegate** handlers only when your app does **not** use the Capacitor 8.5 UIScene manifest. With UIScene, forward all contexts from `SceneDelegate.scene(_:openURLContexts:)` to `SceneDelegateProxy.shared.scene(scene, openURLContexts:)` and let the plugin observer call the SDK handlers (see [Google iOS setup](./docs/setup_google.md#url-opens-with-capacitor-85-uiscene) and the Facebook iOS section above).
 
-This plugin listens for Capacitor's `capacitorOpenURL` notification and calls the Facebook and Google URL handlers for you when those SDKs are linked, so custom native URL code is optional.
+This plugin listens for Capacitor's `capacitorOpenURL` notification and calls the Facebook and Google URL handlers for you when those SDKs are linked. It also listens for `capacitorOpenUniversalLink` and routes matching Facebook App Links into the Facebook SDK (Google still uses the open URL path). Custom native URL code is optional.
 
 ### AppDelegate.swift (pre-8.5 / no scene manifest)
 

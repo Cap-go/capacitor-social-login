@@ -49,6 +49,7 @@ enum SocialLoginOpenURLHandler {
 
     #if canImport(FBSDKCoreKit)
     private static var pendingFacebookOpenURLs: [(url: URL, options: [UIApplication.OpenURLOptionsKey: Any])] = []
+    private static var pendingFacebookUniversalLinkURLs: [URL] = []
 
     private static func deliverFacebookOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) {
         _ = ApplicationDelegate.shared.application(
@@ -57,6 +58,13 @@ enum SocialLoginOpenURLHandler {
             sourceApplication: options[.sourceApplication] as? String,
             annotation: options[.annotation]
         )
+    }
+
+    /// Facebook SDK `application(_:continue:)` expects an `NSUserActivity` with type browsing web.
+    private static func deliverFacebookUniversalLinkURL(_ url: URL) {
+        let activity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
+        activity.webpageURL = url
+        _ = ApplicationDelegate.shared.application(UIApplication.shared, continue: activity)
     }
 
     /// Delivers Facebook OAuth URLs that arrived before `initialize()` completed.
@@ -72,11 +80,24 @@ enum SocialLoginOpenURLHandler {
         }
     }
 
+    private static func flushPendingFacebookUniversalLinkURLsIfNeeded() {
+        assert(Thread.isMainThread)
+        guard isFacebookIntegrationConfigured, !pendingFacebookUniversalLinkURLs.isEmpty else {
+            return
+        }
+        let pending = pendingFacebookUniversalLinkURLs
+        pendingFacebookUniversalLinkURLs.removeAll()
+        for url in pending {
+            deliverFacebookUniversalLinkURL(url)
+        }
+    }
+
     /// Call after Facebook `initialize()` from the plugin. Runs on the main queue.
     static func markFacebookIntegrationConfiguredAndFlushPending() {
         let apply = {
             isFacebookIntegrationConfigured = true
             flushPendingFacebookOpenURLIfNeeded()
+            flushPendingFacebookUniversalLinkURLsIfNeeded()
         }
         if Thread.isMainThread {
             apply()
@@ -95,6 +116,15 @@ enum SocialLoginOpenURLHandler {
         return (url, options)
     }
 
+    /// Capacitor posts universal links with `["url": webpageURL]` (see `SceneDelegateProxy`).
+    static func parseUniversalLinkNotification(_ notification: Notification) -> URL? {
+        guard let data = notification.object as? [String: Any],
+              let url = data["url"] as? URL else {
+            return nil
+        }
+        return url
+    }
+
     static func handleOpenURL(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) {
         assert(Thread.isMainThread)
         #if canImport(FBSDKCoreKit)
@@ -110,6 +140,30 @@ enum SocialLoginOpenURLHandler {
         #if canImport(GoogleSignIn)
         _ = GIDSignIn.sharedInstance.handle(url)
         #endif
+    }
+
+    /// Universal links (`capacitorOpenUniversalLink`): Facebook App Links only. Google stays on `capacitorOpenURL`.
+    static func handleCapacitorOpenUniversalLinkNotification(_ notification: Notification) {
+        let work = {
+            guard let url = parseUniversalLinkNotification(notification) else {
+                return
+            }
+            #if canImport(FBSDKCoreKit)
+            guard shouldDeliverURLToFacebookSDK(url) else {
+                return
+            }
+            if isFacebookIntegrationConfigured {
+                deliverFacebookUniversalLinkURL(url)
+            } else {
+                pendingFacebookUniversalLinkURLs.append(url)
+            }
+            #endif
+        }
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
+        }
     }
 
     static func handleCapacitorOpenURLNotification(_ notification: Notification) {

@@ -141,17 +141,26 @@ public class SocialLoginPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private static var capacitorOpenURLObserver: NSObjectProtocol?
+    private static var capacitorOpenUniversalLinkObserver: NSObjectProtocol?
 
     public override func load() {
-        guard SocialLoginPlugin.capacitorOpenURLObserver == nil else {
-            return
+        if SocialLoginPlugin.capacitorOpenURLObserver == nil {
+            SocialLoginPlugin.capacitorOpenURLObserver = NotificationCenter.default.addObserver(
+                forName: .capacitorOpenURL,
+                object: nil,
+                queue: .main
+            ) { notification in
+                SocialLoginOpenURLHandler.handleCapacitorOpenURLNotification(notification)
+            }
         }
-        SocialLoginPlugin.capacitorOpenURLObserver = NotificationCenter.default.addObserver(
-            forName: .capacitorOpenURL,
-            object: nil,
-            queue: .main
-        ) { notification in
-            SocialLoginOpenURLHandler.handleCapacitorOpenURLNotification(notification)
+        if SocialLoginPlugin.capacitorOpenUniversalLinkObserver == nil {
+            SocialLoginPlugin.capacitorOpenUniversalLinkObserver = NotificationCenter.default.addObserver(
+                forName: .capacitorOpenUniversalLink,
+                object: nil,
+                queue: .main
+            ) { notification in
+                SocialLoginOpenURLHandler.handleCapacitorOpenUniversalLinkNotification(notification)
+            }
         }
     }
 
