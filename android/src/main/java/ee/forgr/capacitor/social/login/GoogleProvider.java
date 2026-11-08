@@ -504,15 +504,23 @@ public class GoogleProvider implements SocialProvider {
         // Build credential request
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
+        // Hosted-domain filter is only supported on GetSignInWithGoogleOption (standard UI).
+        boolean hasHostedDomain = this.hostedDomain != null && !this.hostedDomain.isEmpty();
+        if (hasHostedDomain && bottomUi) {
+            Log.i(LOG_TAG, "hostedDomain is set; forcing standard Google sign-in UI so the domain filter can apply");
+            bottomUi = false;
+        }
+
         Log.i(
             LOG_TAG,
             String.format(
-                "Google login request: ui=%s filterByAuthorizedAccounts=%s autoSelectEnabled=%s forcePrompt=%s nonceSet=%s",
+                "Google login request: ui=%s filterByAuthorizedAccounts=%s autoSelectEnabled=%s forcePrompt=%s nonceSet=%s hostedDomain=%s",
                 bottomUi ? "bottom" : "standard",
                 filterByAuthorizedAccounts,
                 autoSelectEnabled,
                 forcePrompt,
-                !nonce.isEmpty()
+                !nonce.isEmpty(),
+                hasHostedDomain
             )
         );
 
@@ -544,7 +552,7 @@ public class GoogleProvider implements SocialProvider {
             if (!nonce.isEmpty()) {
                 googleIdOptionBuilder.setNonce(nonce);
             }
-            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
+            if (hasHostedDomain) {
                 googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
             }
 
@@ -556,7 +564,7 @@ public class GoogleProvider implements SocialProvider {
         // Execute credential request
         Executor executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
-            context,
+            activity,
             filteredRequest,
             null,
             executor,
@@ -687,7 +695,7 @@ public class GoogleProvider implements SocialProvider {
 
             AuthorizationRequest authorizationRequest = authorizationRequestBuilder.build();
 
-            Identity.getAuthorizationClient(context)
+            Identity.getAuthorizationClient(activity)
                 .authorize(authorizationRequest)
                 .addOnSuccessListener((authorizationResult) -> {
                     if (waitContext.isFinished()) {
@@ -938,7 +946,13 @@ public class GoogleProvider implements SocialProvider {
     }
 
     private boolean isDeveloperConsoleMisconfiguration(String message) {
-        return message.contains("Developer console") || message.contains("28444") || message.contains("10:");
+        // 28404/28444 and "10:" are common Credential Manager / OAuth client mismatch codes.
+        return (
+            message.contains("Developer console") ||
+            message.contains("28404") ||
+            message.contains("28444") ||
+            message.contains("10:")
+        );
     }
 
     private boolean isAccountReauthFailed(String message) {
@@ -1491,7 +1505,7 @@ public class GoogleProvider implements SocialProvider {
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
-            context,
+            activity,
             request,
             null,
             executor,
