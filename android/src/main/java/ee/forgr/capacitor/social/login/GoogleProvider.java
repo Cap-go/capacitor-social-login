@@ -445,6 +445,11 @@ public class GoogleProvider implements SocialProvider {
         return null;
     }
 
+    /**
+     * Starts Google Credential Manager sign-in using the current Activity context.
+     * When {@code hostedDomain} is configured, forces standard UI so
+     * {@code GetSignInWithGoogleOption#setHostedDomainFilter} can apply (bottom UI cannot).
+     */
     @Override
     public void login(PluginCall call, JSONObject config) {
         if (this.clientId == null || this.clientId.isEmpty()) {
@@ -664,6 +669,10 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    /**
+     * Requests Google OAuth authorization (and optional offline access) via the
+     * Authorization Client bound to the current Activity.
+     */
     private ListenableFuture<AuthorizationResult> getAuthorizationResult(
         Boolean forceRefreshToken,
         String googleAccountId,
@@ -954,6 +963,10 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    /**
+     * Returns true when a Credential Manager / OAuth error indicates an Android client
+     * misconfiguration (SHA-1 / package mismatch), including codes 28404 and 28444.
+     */
     private boolean isDeveloperConsoleMisconfiguration(String message) {
         // 28404/28444 and "10:" are common Credential Manager / OAuth client mismatch codes.
         return (
@@ -1462,6 +1475,10 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    /**
+     * Refreshes Google ID/access tokens via Credential Manager using the current Activity,
+     * then re-authorizes scopes when needed.
+     */
     @Override
     public void refresh(PluginCall call) {
         if (this.mode == GoogleProviderLoginType.OFFLINE) {
