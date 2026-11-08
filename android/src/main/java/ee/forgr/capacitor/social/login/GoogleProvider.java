@@ -509,6 +509,15 @@ public class GoogleProvider implements SocialProvider {
         if (hasHostedDomain && bottomUi) {
             Log.i(LOG_TAG, "hostedDomain is set; forcing standard Google sign-in UI so the domain filter can apply");
             bottomUi = false;
+            // Keep PluginCall options in sync so handleSignInError uses the effective UI
+            // (otherwise NoCredentialException retries as if bottom UI failed).
+            try {
+                options.put("style", "standard");
+                call.getData().put("options", options);
+            } catch (JSONException e) {
+                call.reject("Error parsing options: " + e.getMessage());
+                return;
+            }
         }
 
         Log.i(
