@@ -16,6 +16,18 @@ Add Google, Apple, Facebook and other social sign-ins to your Capacitor app with
   <img src="https://raw.githubusercontent.com/Cap-go/capacitor-social-login/main/assets/github-social-preview.png" alt="@capgo/capacitor-social-login for Capacitor apps" width="300" />
 </p>
 
+## Built and maintained with AI
+
+We build, improve and fix our plugins with heavy use of AI, so issues usually get fixed in under a day and pull requests get feedback the same day. A human still reviews and merges 50+ pull requests daily.
+
+- Most plugin issues get a fix pull request the same day, often within a couple of hours, and are usually resolved in one to two days.
+- Every pull request goes through our AI review system, usually within minutes.
+- Our AI pre-checks tests, code review, conventions and security, then a human validates and merges.
+- A human, Martin, reviews and merges 50+ pull requests every day.
+- In the last 90 days, 95% of plugin issues were resolved.
+
+[Learn more about how we build with AI](https://capgo.app/docs/plugins/ai-engineering/)
+
 ## Key features
 
 - **Many providers**: Google, Apple, Facebook, Twitter (X), LinkedIn, TikTok, Telegram and generic OAuth2.
