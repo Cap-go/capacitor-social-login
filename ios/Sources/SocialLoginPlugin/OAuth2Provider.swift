@@ -425,7 +425,11 @@ class OAuth2Provider: NSObject {
         }
         let path = callbackPath(url)
         if !path.isEmpty {
-            origin += path.hasPrefix("/") ? path : "/\(path)"
+            if url.host != nil && !path.hasPrefix("/") {
+                origin += "/\(path)"
+            } else {
+                origin += path
+            }
         }
         return origin
     }
