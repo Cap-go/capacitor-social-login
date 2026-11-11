@@ -409,33 +409,29 @@ class OAuth2Provider: NSObject {
         if expectedHost.caseInsensitiveCompare(actualHost) != .orderedSame {
             return false
         }
-        return normalizeCallbackPath(expected.path) == normalizeCallbackPath(callbackURL.path)
+        return callbackPath(expected) == callbackPath(callbackURL)
     }
 
     private func callbackOrigin(_ url: URL) -> String {
         var origin = ""
         if let scheme = url.scheme {
-            origin += "\(scheme)://"
+            origin += "\(scheme):"
+            if url.host != nil {
+                origin += "//"
+            }
         }
         if let host = url.host {
             origin += host
         }
-        let path = normalizeCallbackPath(url.path)
+        let path = callbackPath(url)
         if !path.isEmpty {
-            origin += "/\(path)"
+            origin += path.hasPrefix("/") ? path : "/\(path)"
         }
         return origin
     }
 
-    private func normalizeCallbackPath(_ path: String) -> String {
-        var normalized = path
-        if normalized.hasPrefix("/") {
-            normalized.removeFirst()
-        }
-        while normalized.hasSuffix("/") && !normalized.isEmpty {
-            normalized.removeLast()
-        }
-        return normalized
+    private func callbackPath(_ url: URL) -> String {
+        URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedPath ?? url.path
     }
 
     func logout(providerId: String, completion: @escaping (Result<Void, Error>) -> Void) {
