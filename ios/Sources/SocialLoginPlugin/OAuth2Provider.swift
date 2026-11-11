@@ -383,7 +383,59 @@ class OAuth2Provider: NSObject {
             return
         }
 
-        completion(.failure(NSError(domain: "OAuth2Provider", code: -8, userInfo: [NSLocalizedDescriptionKey: "No authorization code or access token in callback."])))
+        let description = missingAuthorizationCodeDescription(callbackURL: callbackURL, redirectUri: redirectUri)
+        completion(.failure(NSError(domain: "OAuth2Provider", code: -8, userInfo: [NSLocalizedDescriptionKey: description])))
+    }
+
+    private func missingAuthorizationCodeDescription(callbackURL: URL, redirectUri: String) -> String {
+        let base = "No authorization code or access token in callback."
+        guard !callbackMatchesRedirect(callbackURL, redirectUri: redirectUri) else {
+            return base
+        }
+        return "\(base) Received \(callbackOrigin(callbackURL))."
+    }
+
+    private func callbackMatchesRedirect(_ callbackURL: URL, redirectUri: String) -> Bool {
+        guard let expected = URL(string: redirectUri),
+              let expectedScheme = expected.scheme,
+              let actualScheme = callbackURL.scheme else {
+            return true
+        }
+        if expectedScheme.caseInsensitiveCompare(actualScheme) != .orderedSame {
+            return false
+        }
+        let expectedHost = expected.host ?? ""
+        let actualHost = callbackURL.host ?? ""
+        if expectedHost.caseInsensitiveCompare(actualHost) != .orderedSame {
+            return false
+        }
+        return normalizeCallbackPath(expected.path) == normalizeCallbackPath(callbackURL.path)
+    }
+
+    private func callbackOrigin(_ url: URL) -> String {
+        var origin = ""
+        if let scheme = url.scheme {
+            origin += "\(scheme)://"
+        }
+        if let host = url.host {
+            origin += host
+        }
+        let path = normalizeCallbackPath(url.path)
+        if !path.isEmpty {
+            origin += "/\(path)"
+        }
+        return origin
+    }
+
+    private func normalizeCallbackPath(_ path: String) -> String {
+        var normalized = path
+        if normalized.hasPrefix("/") {
+            normalized.removeFirst()
+        }
+        while normalized.hasSuffix("/") && !normalized.isEmpty {
+            normalized.removeLast()
+        }
+        return normalized
     }
 
     func logout(providerId: String, completion: @escaping (Result<Void, Error>) -> Void) {
