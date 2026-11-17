@@ -69,9 +69,21 @@ export function isOAuthPopupContext(): boolean {
   return !!window.opener || POPUP_WINDOW_NAMES.has(window.name) || !!sessionStorage.getItem(OAUTH_POPUP_SESSION_KEY);
 }
 
+function isPendingRedirectFlow(stateRaw: string): boolean {
+  try {
+    return JSON.parse(stateRaw)?.flow === 'redirect';
+  } catch {
+    return false;
+  }
+}
+
 export function shouldAutoFinishOAuthRedirect(): boolean {
-  if (!localStorage.getItem(OAUTH_STATE_KEY)) return false;
-  // Popup only. Same-window redirect (flow: 'redirect') must call handleRedirectCallback().
+  const stateRaw = localStorage.getItem(OAUTH_STATE_KEY);
+  if (!stateRaw) return false;
+  // Same-window redirect (flow: 'redirect') must call handleRedirectCallback(), even when the
+  // tab has a window.opener (e.g. the app itself was opened by another site via window.open).
+  if (isPendingRedirectFlow(stateRaw)) return false;
+  // Popup only.
   return isOAuthPopupContext();
 }
 

@@ -317,7 +317,10 @@ export class OAuth2SocialLogin extends BaseSocialLogin {
       scope,
     });
 
-    localStorage.setItem(BaseSocialLogin.OAUTH_STATE_KEY, JSON.stringify({ provider: 'oauth2', providerId, state }));
+    localStorage.setItem(
+      BaseSocialLogin.OAUTH_STATE_KEY,
+      JSON.stringify({ provider: 'oauth2', providerId, state, flow: options.flow ?? 'popup' }),
+    );
 
     if (!config.authorizationBaseUrl) {
       throw new Error(`OAuth2 provider '${providerId}' is missing authorizationBaseUrl (discovery may have failed).`);
