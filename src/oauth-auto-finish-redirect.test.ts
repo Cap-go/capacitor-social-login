@@ -132,14 +132,26 @@ describe('OAuth2SocialLogin pending flow marker', () => {
 
   test('writes flow redirect into the pending state', async () => {
     const { oauth, localStorage, location } = await readyProvider();
+    let storedAtNavigation: string | null = null;
     const assigned = new Promise<void>((resolve) => {
       location.assign = () => {
+        storedAtNavigation = localStorage.getItem(OAUTH_STATE_KEY);
         resolve();
       };
     });
-    void oauth.login({ providerId: 'azure', state: 'redir-state', flow: 'redirect' });
-    await assigned;
-    expect(JSON.parse(localStorage.getItem(OAUTH_STATE_KEY) as string)).toEqual({
+    const loginPromise = oauth.login({ providerId: 'azure', state: 'redir-state', flow: 'redirect' });
+    await Promise.race([
+      assigned,
+      loginPromise.then(
+        () => {
+          throw new Error('login resolved before navigation');
+        },
+        (err: unknown) => {
+          throw err;
+        },
+      ),
+    ]);
+    expect(JSON.parse(storedAtNavigation as string)).toEqual({
       provider: 'oauth2',
       providerId: 'azure',
       state: 'redir-state',
