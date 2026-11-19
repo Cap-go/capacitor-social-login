@@ -12,26 +12,6 @@ import org.robolectric.RobolectricTestRunner;
 public class GoogleHostedDomainRulesTest {
 
     @Test
-    public void bottomStyleWithHostedDomainKeepsGoogleIdOptionPath() {
-        assertTrue(GoogleHostedDomainRules.shouldUseGoogleIdOptionForLogin(true, false, false));
-    }
-
-    @Test
-    public void standardStyleWithoutExtraOptionsUsesSignInWithGooglePath() {
-        assertFalse(GoogleHostedDomainRules.shouldUseGoogleIdOptionForLogin(false, false, false));
-    }
-
-    @Test
-    public void hostedDomainLoginPreservesAutoSelectViaGoogleIdOption() {
-        assertTrue(GoogleHostedDomainRules.shouldUseGoogleIdOptionForLogin(false, true, false));
-    }
-
-    @Test
-    public void hostedDomainLoginPreservesFilterByAuthorizedAccountsViaGoogleIdOption() {
-        assertTrue(GoogleHostedDomainRules.shouldUseGoogleIdOptionForLogin(false, false, true));
-    }
-
-    @Test
     public void idTokenMatchesHostedDomainFromHdClaim() {
         String token = jwtWithPayload("{\"hd\":\"example.com\",\"email\":\"user@example.com\"}");
         assertTrue(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(token, "example.com"));
@@ -44,9 +24,20 @@ public class GoogleHostedDomainRulesTest {
     }
 
     @Test
-    public void idTokenFallsBackToEmailDomainWhenHdMissing() {
+    public void idTokenRejectsMissingHdClaimEvenWhenEmailMatches() {
         String token = jwtWithPayload("{\"email\":\"user@example.com\"}");
-        assertTrue(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(token, "example.com"));
+        assertFalse(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(token, "example.com"));
+    }
+
+    @Test
+    public void idTokenRejectsNullWhenHostedDomainConfigured() {
+        assertFalse(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(null, "example.com"));
+    }
+
+    @Test
+    public void idTokenDecodesUrlSafeJwtPayload() {
+        String token = jwtWithPayload("{\"hd\":\"ex-ample.com\"}");
+        assertTrue(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(token, "ex-ample.com"));
     }
 
     private static String jwtWithPayload(String jsonPayload) {

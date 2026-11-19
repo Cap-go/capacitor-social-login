@@ -448,8 +448,8 @@ public class GoogleProvider implements SocialProvider {
 
     /**
      * Starts Google Credential Manager sign-in using the current Activity context.
-     * Applies {@code hostedDomain} on {@code GetGoogleIdOption} or {@code GetSignInWithGoogleOption}
-     * depending on the requested UI style and login options.
+     * Applies {@code hostedDomain} on {@code GetSignInWithGoogleOption} (standard UI). Hosted domain
+     * cannot be combined with {@code autoSelectEnabled} or {@code filterByAuthorizedAccounts}.
      */
     @Override
     public void login(PluginCall call, JSONObject config) {
@@ -511,17 +511,27 @@ public class GoogleProvider implements SocialProvider {
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
         boolean hasHostedDomain = GoogleHostedDomainRules.hasConfiguredHostedDomain(this.hostedDomain);
-        boolean useGoogleIdOption = GoogleHostedDomainRules.shouldUseGoogleIdOptionForLogin(
-            bottomUi,
-            autoSelectEnabled,
-            filterByAuthorizedAccounts
-        );
-        if (hasHostedDomain && bottomUi) {
-            Log.i(
-                LOG_TAG,
-                "hostedDomain is set; applying GetGoogleIdOption hosted-domain filter while preserving requested login options"
-            );
+        if (hasHostedDomain) {
+            if (autoSelectEnabled || filterByAuthorizedAccounts) {
+                call.reject(
+                    "Google Sign-In: hostedDomain uses the standard Sign in with Google button flow and cannot be combined with autoSelectEnabled or filterByAuthorizedAccounts."
+                );
+                return;
+            }
+            if (bottomUi) {
+                Log.i(LOG_TAG, "hostedDomain is set; forcing standard Google sign-in UI so the domain filter can apply");
+                bottomUi = false;
+                try {
+                    options.put("style", "standard");
+                    call.getData().put("options", options);
+                } catch (JSONException e) {
+                    call.reject("Error parsing options: " + e.getMessage());
+                    return;
+                }
+            }
         }
+
+        boolean useGoogleIdOption = bottomUi;
 
         Log.i(
             LOG_TAG,
@@ -553,9 +563,6 @@ public class GoogleProvider implements SocialProvider {
 
             if (autoSelectEnabled) {
                 googleIdOptionBuilder.setAutoSelectEnabled(true);
-            }
-            if (hasHostedDomain) {
-                googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
             }
 
             GetGoogleIdOption googleIdOptionFiltered = googleIdOptionBuilder.build();
@@ -1014,11 +1021,16 @@ public class GoogleProvider implements SocialProvider {
         );
     }
 
+    private void applyStandardSignInRetryOptions(JSONObject options, PluginCall call) throws JSONException {
+        options.put("style", "standard");
+        options.put("filterByAuthorizedAccounts", false);
+        options.put("autoSelectEnabled", false);
+        call.getData().put("options", options);
+    }
+
     private void retryLoginAfterReauthFailure(PluginCall call, JSONObject config, JSONObject options) {
         try {
-            options.put("style", "standard");
-            options.put("filterByAuthorizedAccounts", false);
-            call.getData().put("options", options);
+            applyStandardSignInRetryOptions(options, call);
         } catch (JSONException ex) {
             call.reject("Google Sign-In failed: " + ex.getMessage());
             return;
@@ -1132,8 +1144,7 @@ public class GoogleProvider implements SocialProvider {
                 // https://developer.android.com/reference/androidx/credentials/exceptions/NoCredentialException
                 // Note: Family Link supervised accounts may cause this error when filterByAuthorizedAccounts is true
                 try {
-                    options.put("style", "standard");
-                    call.getData().put("options", options);
+                    applyStandardSignInRetryOptions(options, call);
                 } catch (JSONException ex) {
                     call.reject("Google Sign-In failed: " + ex.getMessage());
                     return;
@@ -1508,6 +1519,17 @@ public class GoogleProvider implements SocialProvider {
                     accessOk = accessTokenIsValid(GoogleProvider.this.accessToken).get(7, TimeUnit.SECONDS);
                 }
                 if (isValidIdToken && accessOk) {
+                    if (
+                        GoogleHostedDomainRules.hasConfiguredHostedDomain(GoogleProvider.this.hostedDomain) &&
+                        !GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(GoogleProvider.this.idToken, GoogleProvider.this.hostedDomain)
+                    ) {
+                        call.reject(
+                            "Failed to refresh tokens: signed-in account is outside the configured hosted domain (" +
+                                GoogleProvider.this.hostedDomain +
+                                ")."
+                        );
+                        return;
+                    }
                     call.resolve();
                     return;
                 }
@@ -1524,14 +1546,15 @@ public class GoogleProvider implements SocialProvider {
 
         // 1) Retrieve a fresh ID token via Credential Manager (may be silent or may require user interaction).
         // 2) Retrieve a fresh access token via the Authorization API (may be null for auth-only sessions).
-        GetGoogleIdOption.Builder refreshOptionBuilder = new GetGoogleIdOption.Builder()
-            .setServerClientId(this.clientId)
-            .setFilterByAuthorizedAccounts(true)
-            .setAutoSelectEnabled(true);
-        if (GoogleHostedDomainRules.hasConfiguredHostedDomain(this.hostedDomain)) {
-            refreshOptionBuilder.setHostedDomainFilter(this.hostedDomain);
-        }
-        GetCredentialRequest request = new GetCredentialRequest.Builder().addCredentialOption(refreshOptionBuilder.build()).build();
+        GetCredentialRequest request = new GetCredentialRequest.Builder()
+            .addCredentialOption(
+                new GetGoogleIdOption.Builder()
+                    .setServerClientId(this.clientId)
+                    .setFilterByAuthorizedAccounts(true)
+                    .setAutoSelectEnabled(true)
+                    .build()
+            )
+            .build();
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
