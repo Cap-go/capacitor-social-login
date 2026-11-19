@@ -212,7 +212,9 @@ public class GoogleProvider implements SocialProvider {
         boolean skipAuthOnlyAuthorizationAfterSignIn
     ) {
         if (this.activity == null) {
-            throw new IllegalStateException("Google Sign-In requires an active Activity; initialize when the app has a foreground Activity.");
+            throw new IllegalStateException(
+                "Google Sign-In requires an active Activity; initialize when the app has a foreground Activity."
+            );
         }
         this.credentialManager = CredentialManager.create(activity);
         this.clientId = clientId;

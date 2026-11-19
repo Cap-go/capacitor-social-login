@@ -47,12 +47,7 @@ public class GoogleLoginHostedDomainUiRulesTest {
 
     @Test
     public void withoutHostedDomainKeepsBottomUiWhenRequested() {
-        GoogleLoginHostedDomainUiRules.LoginUiDecision decision = GoogleLoginHostedDomainUiRules.decideLoginUi(
-            true,
-            false,
-            false,
-            null
-        );
+        GoogleLoginHostedDomainUiRules.LoginUiDecision decision = GoogleLoginHostedDomainUiRules.decideLoginUi(true, false, false, null);
         assertFalse(decision.rejected);
         assertTrue(decision.useBottomUi);
         assertFalse(decision.usesGetSignInWithGoogleOption());
