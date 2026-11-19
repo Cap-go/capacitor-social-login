@@ -211,6 +211,9 @@ public class GoogleProvider implements SocialProvider {
         String hostedDomain,
         boolean skipAuthOnlyAuthorizationAfterSignIn
     ) {
+        if (this.activity == null) {
+            throw new IllegalStateException("Google Sign-In requires an active Activity; initialize when the app has a foreground Activity.");
+        }
         this.credentialManager = CredentialManager.create(activity);
         this.clientId = clientId;
         this.mode = mode;
@@ -453,6 +456,10 @@ public class GoogleProvider implements SocialProvider {
      */
     @Override
     public void login(PluginCall call, JSONObject config) {
+        if (this.activity == null) {
+            call.reject("Google Sign-In requires an active Activity; call login when the app is in the foreground.");
+            return;
+        }
         if (this.clientId == null || this.clientId.isEmpty()) {
             call.reject("Google Sign-In failed: Client ID is not set");
             return;
@@ -510,24 +517,26 @@ public class GoogleProvider implements SocialProvider {
         // Build credential request
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
+        GoogleLoginHostedDomainUiRules.LoginUiDecision loginUiDecision = GoogleLoginHostedDomainUiRules.decideLoginUi(
+            bottomUi,
+            filterByAuthorizedAccounts,
+            autoSelectEnabled,
+            this.hostedDomain
+        );
+        if (loginUiDecision.rejected) {
+            call.reject(loginUiDecision.rejectionMessage);
+            return;
+        }
         boolean hasHostedDomain = GoogleHostedDomainRules.hasConfiguredHostedDomain(this.hostedDomain);
-        if (hasHostedDomain) {
-            if (autoSelectEnabled || filterByAuthorizedAccounts) {
-                call.reject(
-                    "Google Sign-In: hostedDomain uses the standard Sign in with Google button flow and cannot be combined with autoSelectEnabled or filterByAuthorizedAccounts."
-                );
+        bottomUi = loginUiDecision.useBottomUi;
+        if (hasHostedDomain && options != null && options.has("style") && Objects.equals(options.optString("style"), "bottom")) {
+            Log.i(LOG_TAG, "hostedDomain is set; forcing standard Google sign-in UI so the domain filter can apply");
+            try {
+                options.put("style", "standard");
+                call.getData().put("options", options);
+            } catch (JSONException e) {
+                call.reject("Error parsing options: " + e.getMessage());
                 return;
-            }
-            if (bottomUi) {
-                Log.i(LOG_TAG, "hostedDomain is set; forcing standard Google sign-in UI so the domain filter can apply");
-                bottomUi = false;
-                try {
-                    options.put("style", "standard");
-                    call.getData().put("options", options);
-                } catch (JSONException e) {
-                    call.reject("Error parsing options: " + e.getMessage());
-                    return;
-                }
             }
         }
 
@@ -1497,6 +1506,10 @@ public class GoogleProvider implements SocialProvider {
      */
     @Override
     public void refresh(PluginCall call) {
+        if (this.activity == null) {
+            call.reject("Google Sign-In requires an active Activity; call refresh when the app is in the foreground.");
+            return;
+        }
         if (this.mode == GoogleProviderLoginType.OFFLINE) {
             Log.w(LOG_TAG, OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE);
             call.reject(OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE);

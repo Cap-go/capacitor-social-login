@@ -380,6 +380,14 @@ export interface InitializeOptions {
     locale?: string;
   };
 
+  /**
+   * Google Sign-In configuration.
+   *
+   * **Android `hostedDomain`:** When set, login uses the standard Sign in with Google UI
+   * (`options.style: 'bottom'` is overridden). Login rejects when `options.autoSelectEnabled` or
+   * `options.filterByAuthorizedAccounts` is `true` (Android only; see `hostedDomain` and
+   * `GoogleLoginOptions`).
+   */
   google?: {
     /**
      * The app's client ID, found and created in the Google Developers Console.
@@ -428,8 +436,18 @@ export interface InitializeOptions {
      */
     mode?: 'online' | 'offline';
     /**
-     * Filter visible accounts by hosted domain
-     * @description filter visible accounts by hosted domain
+     * Restrict sign-in to a Google Workspace hosted domain (for example `example.com`).
+     *
+     * **Android only (login behavior):** When set during `initialize`, login uses the standard
+     * Sign in with Google UI (`GetSignInWithGoogleOption`) so `setHostedDomainFilter` can apply.
+     * `options.style: 'bottom'` is overridden to standard (logged at info). Login rejects when
+     * `options.autoSelectEnabled` or `options.filterByAuthorizedAccounts` is `true`, because the
+     * bottom-sheet flow (`GetGoogleIdOption`) cannot combine with hosted-domain filtering in this
+     * plugin. Refresh re-checks the ID token `hd` claim against this value.
+     *
+     * iOS and Web keep their existing hosted-domain behavior; the rejection above is Android only.
+     *
+     * @example 'example.com'
      */
     hostedDomain?: string;
     /**
@@ -783,23 +801,38 @@ export interface GoogleLoginOptions {
    */
   forcePrompt?: boolean;
   /**
-   * Style
-   * @description style
+   * Google sign-in UI layout (Android only).
+   *
+   * When `initialize({ google: { hostedDomain } })` is set, Android forces `standard` for login
+   * (see `hostedDomain` on the Google provider config). `bottom` cannot apply the hosted-domain
+   * filter in this plugin.
+   *
    * @default 'standard'
    */
   style?: 'bottom' | 'standard';
   /**
    * Filter by authorized accounts (Android only)
-   * @description Only show accounts that have previously been used to sign in to the app.
-   * This option is only available for the 'bottom' style.
+   *
+   * Only show accounts that have previously been used to sign in to the app.
+   * This option is only available for the `bottom` style.
+   *
+   * When a hosted domain is configured in `initialize`, login rejects if this is `true`
+   * (Android only).
+   *
    * Note: For Family Link supervised accounts, this should be set to false.
+   *
    * @default false
    */
   filterByAuthorizedAccounts?: boolean;
   /**
    * Auto select enabled (Android only)
-   * @description Automatically select the account if only one Google account is available.
-   * This option is only available for the 'bottom' style.
+   *
+   * Automatically select the account if only one Google account is available.
+   * This option is only available for the `bottom` style.
+   *
+   * When a hosted domain is configured in `initialize`, login rejects if this is `true`
+   * (Android only).
+   *
    * @default false
    */
   autoSelectEnabled?: boolean;
