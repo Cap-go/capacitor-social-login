@@ -202,6 +202,10 @@ public class SocialLoginPlugin extends Plugin {
 
         JSObject google = call.getObject("google");
         if (google != null) {
+            if (getActivity() == null) {
+                call.reject("Google Sign-In requires an active Activity; call initialize when the app has a foreground Activity.");
+                return;
+            }
             GoogleProvider googleProvider = new GoogleProvider(this.getActivity(), this.getContext());
             String googleClientId = google.getString("webClientId");
             if (googleClientId == null || googleClientId.isEmpty()) {
@@ -383,6 +387,11 @@ public class SocialLoginPlugin extends Plugin {
             return;
         }
 
+        if ("google".equals(providerStr) && getActivity() == null) {
+            call.reject("Google Sign-In requires an active Activity; call login when the app is in the foreground.");
+            return;
+        }
+
         provider.login(call, options);
     }
 
@@ -488,6 +497,11 @@ public class SocialLoginPlugin extends Plugin {
             } else {
                 call.reject(String.format("Cannot find provider '%s'. Provider was not initialized.", providerStr));
             }
+            return;
+        }
+
+        if ("google".equals(providerStr) && getActivity() == null) {
+            call.reject("Google Sign-In requires an active Activity; call refresh when the app is in the foreground.");
             return;
         }
 

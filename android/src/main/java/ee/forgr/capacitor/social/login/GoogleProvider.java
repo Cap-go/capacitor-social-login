@@ -54,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -210,6 +211,11 @@ public class GoogleProvider implements SocialProvider {
         String hostedDomain,
         boolean skipAuthOnlyAuthorizationAfterSignIn
     ) {
+        if (this.activity == null) {
+            throw new IllegalStateException(
+                "Google Sign-In requires an active Activity; initialize when the app has a foreground Activity."
+            );
+        }
         this.credentialManager = CredentialManager.create(activity);
         this.clientId = clientId;
         this.mode = mode;
@@ -445,8 +451,17 @@ public class GoogleProvider implements SocialProvider {
         return null;
     }
 
+    /**
+     * Starts Google Credential Manager sign-in using the current Activity context.
+     * Applies {@code hostedDomain} on {@code GetSignInWithGoogleOption} (standard UI). Hosted domain
+     * cannot be combined with {@code autoSelectEnabled} or {@code filterByAuthorizedAccounts}.
+     */
     @Override
     public void login(PluginCall call, JSONObject config) {
+        if (this.activity == null) {
+            call.reject("Google Sign-In requires an active Activity; call login when the app is in the foreground.");
+            return;
+        }
         if (this.clientId == null || this.clientId.isEmpty()) {
             call.reject("Google Sign-In failed: Client ID is not set");
             return;
@@ -504,19 +519,45 @@ public class GoogleProvider implements SocialProvider {
         // Build credential request
         GetCredentialRequest.Builder requestBuilder = new GetCredentialRequest.Builder();
 
+        GoogleLoginHostedDomainUiRules.LoginUiDecision loginUiDecision = GoogleLoginHostedDomainUiRules.decideLoginUi(
+            bottomUi,
+            filterByAuthorizedAccounts,
+            autoSelectEnabled,
+            this.hostedDomain
+        );
+        if (loginUiDecision.rejected) {
+            call.reject(loginUiDecision.rejectionMessage);
+            return;
+        }
+        boolean hasHostedDomain = GoogleHostedDomainRules.hasConfiguredHostedDomain(this.hostedDomain);
+        bottomUi = loginUiDecision.useBottomUi;
+        if (hasHostedDomain && options != null && options.has("style") && Objects.equals(options.optString("style"), "bottom")) {
+            Log.i(LOG_TAG, "hostedDomain is set; forcing standard Google sign-in UI so the domain filter can apply");
+            try {
+                options.put("style", "standard");
+                call.getData().put("options", options);
+            } catch (JSONException e) {
+                call.reject("Error parsing options: " + e.getMessage());
+                return;
+            }
+        }
+
+        boolean useGoogleIdOption = bottomUi;
+
         Log.i(
             LOG_TAG,
             String.format(
-                "Google login request: ui=%s filterByAuthorizedAccounts=%s autoSelectEnabled=%s forcePrompt=%s nonceSet=%s",
+                "Google login request: ui=%s filterByAuthorizedAccounts=%s autoSelectEnabled=%s forcePrompt=%s nonceSet=%s hostedDomain=%s",
                 bottomUi ? "bottom" : "standard",
                 filterByAuthorizedAccounts,
                 autoSelectEnabled,
                 forcePrompt,
-                !nonce.isEmpty()
+                !nonce.isEmpty(),
+                hasHostedDomain
             )
         );
 
-        if (bottomUi) {
+        if (useGoogleIdOption) {
             GetGoogleIdOption.Builder googleIdOptionBuilder = new GetGoogleIdOption.Builder().setServerClientId(this.clientId);
             // Handle bottom UI specific options
             if (forcePrompt) {
@@ -544,7 +585,7 @@ public class GoogleProvider implements SocialProvider {
             if (!nonce.isEmpty()) {
                 googleIdOptionBuilder.setNonce(nonce);
             }
-            if (this.hostedDomain != null && !this.hostedDomain.isEmpty()) {
+            if (hasHostedDomain) {
                 googleIdOptionBuilder.setHostedDomainFilter(this.hostedDomain);
             }
 
@@ -556,7 +597,7 @@ public class GoogleProvider implements SocialProvider {
         // Execute credential request
         Executor executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
-            context,
+            activity,
             filteredRequest,
             null,
             executor,
@@ -647,6 +688,10 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    /**
+     * Requests Google OAuth authorization (and optional offline access) via the
+     * Authorization Client bound to the current Activity.
+     */
     private ListenableFuture<AuthorizationResult> getAuthorizationResult(
         Boolean forceRefreshToken,
         String googleAccountId,
@@ -687,7 +732,7 @@ public class GoogleProvider implements SocialProvider {
 
             AuthorizationRequest authorizationRequest = authorizationRequestBuilder.build();
 
-            Identity.getAuthorizationClient(context)
+            Identity.getAuthorizationClient(activity)
                 .authorize(authorizationRequest)
                 .addOnSuccessListener((authorizationResult) -> {
                     if (waitContext.isFinished()) {
@@ -937,8 +982,22 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    /**
+     * Returns true when a Credential Manager / OAuth error indicates an Android client
+     * misconfiguration (SHA-1 / package mismatch), including codes 28404 and 28444.
+     */
+    private static final Pattern CREDENTIAL_MANAGER_MISCONFIG_ERROR_CODE = Pattern.compile("(?:^|[^0-9])(28404|28444)(?:[^0-9]|$)");
+
     private boolean isDeveloperConsoleMisconfiguration(String message) {
-        return message.contains("Developer console") || message.contains("28444") || message.contains("10:");
+        if (message == null || message.isEmpty()) {
+            return false;
+        }
+        // 28404/28444 and "10:" are common Credential Manager / OAuth client mismatch codes.
+        return (
+            message.contains("Developer console") ||
+            CREDENTIAL_MANAGER_MISCONFIG_ERROR_CODE.matcher(message).find() ||
+            message.contains("10:")
+        );
     }
 
     private boolean isAccountReauthFailed(String message) {
@@ -973,11 +1032,16 @@ public class GoogleProvider implements SocialProvider {
         );
     }
 
+    private void applyStandardSignInRetryOptions(JSONObject options, PluginCall call) throws JSONException {
+        options.put("style", "standard");
+        options.put("filterByAuthorizedAccounts", false);
+        options.put("autoSelectEnabled", false);
+        call.getData().put("options", options);
+    }
+
     private void retryLoginAfterReauthFailure(PluginCall call, JSONObject config, JSONObject options) {
         try {
-            options.put("style", "standard");
-            options.put("filterByAuthorizedAccounts", false);
-            call.getData().put("options", options);
+            applyStandardSignInRetryOptions(options, call);
         } catch (JSONException ex) {
             call.reject("Google Sign-In failed: " + ex.getMessage());
             return;
@@ -1091,8 +1155,7 @@ public class GoogleProvider implements SocialProvider {
                 // https://developer.android.com/reference/androidx/credentials/exceptions/NoCredentialException
                 // Note: Family Link supervised accounts may cause this error when filterByAuthorizedAccounts is true
                 try {
-                    options.put("style", "standard");
-                    call.getData().put("options", options);
+                    applyStandardSignInRetryOptions(options, call);
                 } catch (JSONException ex) {
                     call.reject("Google Sign-In failed: " + ex.getMessage());
                     return;
@@ -1439,8 +1502,16 @@ public class GoogleProvider implements SocialProvider {
         }
     }
 
+    /**
+     * Refreshes Google ID/access tokens via Credential Manager using the current Activity,
+     * then re-authorizes scopes when needed.
+     */
     @Override
     public void refresh(PluginCall call) {
+        if (this.activity == null) {
+            call.reject("Google Sign-In requires an active Activity; call refresh when the app is in the foreground.");
+            return;
+        }
         if (this.mode == GoogleProviderLoginType.OFFLINE) {
             Log.w(LOG_TAG, OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE);
             call.reject(OFFLINE_REFRESH_NOT_SUPPORTED_MESSAGE);
@@ -1463,6 +1534,17 @@ public class GoogleProvider implements SocialProvider {
                     accessOk = accessTokenIsValid(GoogleProvider.this.accessToken).get(7, TimeUnit.SECONDS);
                 }
                 if (isValidIdToken && accessOk) {
+                    if (
+                        GoogleHostedDomainRules.hasConfiguredHostedDomain(GoogleProvider.this.hostedDomain) &&
+                        !GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(GoogleProvider.this.idToken, GoogleProvider.this.hostedDomain)
+                    ) {
+                        call.reject(
+                            "Failed to refresh tokens: signed-in account is outside the configured hosted domain (" +
+                                GoogleProvider.this.hostedDomain +
+                                ")."
+                        );
+                        return;
+                    }
                     call.resolve();
                     return;
                 }
@@ -1491,7 +1573,7 @@ public class GoogleProvider implements SocialProvider {
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
         credentialManager.getCredentialAsync(
-            context,
+            activity,
             request,
             null,
             executor,
@@ -1514,6 +1596,19 @@ public class GoogleProvider implements SocialProvider {
                             ((CustomCredential) credential).getData()
                         );
                         String newIdToken = googleIdTokenCredential.getIdToken();
+
+                        if (
+                            GoogleHostedDomainRules.hasConfiguredHostedDomain(GoogleProvider.this.hostedDomain) &&
+                            !GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(newIdToken, GoogleProvider.this.hostedDomain)
+                        ) {
+                            call.reject(
+                                "Failed to refresh tokens: signed-in account is outside the configured hosted domain (" +
+                                    GoogleProvider.this.hostedDomain +
+                                    ")."
+                            );
+                            executor.shutdown();
+                            return;
+                        }
 
                         if (
                             GoogleAuthorizationDecision.shouldSkipAuthorizationAfterCredentialSignIn(
