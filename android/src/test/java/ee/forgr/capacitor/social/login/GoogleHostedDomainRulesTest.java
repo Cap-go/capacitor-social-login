@@ -49,7 +49,10 @@ public class GoogleHostedDomainRulesTest {
 
     private static String jwtWithPayload(String jsonPayload) {
         String header = Base64.encodeToString("{\"alg\":\"none\"}".getBytes(), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-        String payload = Base64.encodeToString(jsonPayload.getBytes(StandardCharsets.UTF_8), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+        String payload = Base64.encodeToString(
+            jsonPayload.getBytes(StandardCharsets.UTF_8),
+            Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING
+        );
         return header + "." + payload + ".sig";
     }
 }
