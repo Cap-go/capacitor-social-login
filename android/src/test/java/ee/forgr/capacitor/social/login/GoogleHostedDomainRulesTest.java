@@ -36,8 +36,11 @@ public class GoogleHostedDomainRulesTest {
 
     @Test
     public void idTokenDecodesUrlSafeJwtPayload() {
-        String token = jwtWithPayload("{\"hd\":\"ex-ample.com\"}");
-        assertTrue(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(token, "ex-ample.com"));
+        String jsonPayload = "{\"hd\":\"ex_ample.com\",\"note\":\"ÿÿ\"}";
+        String payloadSegment = Base64.encodeToString(jsonPayload.getBytes(), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
+        assertTrue("fixture must require URL-safe Base64", payloadSegment.contains("_") || payloadSegment.contains("-"));
+        String token = "e30." + payloadSegment + ".sig";
+        assertTrue(GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(token, "ex_ample.com"));
     }
 
     private static String jwtWithPayload(String jsonPayload) {
