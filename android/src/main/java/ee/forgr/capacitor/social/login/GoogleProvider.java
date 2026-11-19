@@ -1127,6 +1127,9 @@ public class GoogleProvider implements SocialProvider {
                 // do nothing
             }
         }
+        if (GoogleHostedDomainRules.hasConfiguredHostedDomain(this.hostedDomain)) {
+            isBottomUi = false;
+        }
         if (isAccountReauthFailed(errorMessage)) {
             handleAccountReauthFailed(e, call, config, options);
             return;
@@ -1534,19 +1537,20 @@ public class GoogleProvider implements SocialProvider {
                     accessOk = accessTokenIsValid(GoogleProvider.this.accessToken).get(7, TimeUnit.SECONDS);
                 }
                 if (isValidIdToken && accessOk) {
-                    if (
-                        GoogleHostedDomainRules.hasConfiguredHostedDomain(GoogleProvider.this.hostedDomain) &&
-                        !GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(GoogleProvider.this.idToken, GoogleProvider.this.hostedDomain)
-                    ) {
-                        call.reject(
-                            "Failed to refresh tokens: signed-in account is outside the configured hosted domain (" +
-                                GoogleProvider.this.hostedDomain +
-                                ")."
+                    GoogleRefreshHostedDomainRules.RefreshEarlyPathDecision earlyPathDecision =
+                        GoogleRefreshHostedDomainRules.decideValidTokenEarlyPath(
+                            GoogleProvider.this.idToken,
+                            GoogleProvider.this.hostedDomain,
+                            true
                         );
+                    if (earlyPathDecision.rejectForHostedDomain) {
+                        call.reject(GoogleRefreshHostedDomainRules.refreshHostedDomainRejectionMessage(GoogleProvider.this.hostedDomain));
                         return;
                     }
-                    call.resolve();
-                    return;
+                    if (earlyPathDecision.resolveWithoutCredentialRefresh) {
+                        call.resolve();
+                        return;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -1597,14 +1601,9 @@ public class GoogleProvider implements SocialProvider {
                         );
                         String newIdToken = googleIdTokenCredential.getIdToken();
 
-                        if (
-                            GoogleHostedDomainRules.hasConfiguredHostedDomain(GoogleProvider.this.hostedDomain) &&
-                            !GoogleHostedDomainRules.idTokenSatisfiesHostedDomain(newIdToken, GoogleProvider.this.hostedDomain)
-                        ) {
+                        if (GoogleRefreshHostedDomainRules.shouldRejectRefreshedIdToken(newIdToken, GoogleProvider.this.hostedDomain)) {
                             call.reject(
-                                "Failed to refresh tokens: signed-in account is outside the configured hosted domain (" +
-                                    GoogleProvider.this.hostedDomain +
-                                    ")."
+                                GoogleRefreshHostedDomainRules.refreshHostedDomainRejectionMessage(GoogleProvider.this.hostedDomain)
                             );
                             executor.shutdown();
                             return;

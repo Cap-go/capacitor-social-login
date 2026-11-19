@@ -1204,6 +1204,12 @@ If validation fails or times out, `refresh()` continues even when a token remain
 `skipAuthOnlyAuthorizationAfterSignIn: true` and default OIDC scopes, a successful credential refresh
 then clears that access token without obtaining a new one.
 
+**Google Android `hostedDomain`:**
+When `initialize({ google: { hostedDomain } })` is set, `refresh()` rejects if the saved ID token's
+`hd` claim does not match the configured domain before the early-return path resolves, and rejects again
+if Credential Manager returns a new ID token whose `hd` claim does not match. Validation requires a
+non-empty matching `hd` claim (email domain alone is not accepted).
+
 **Google Offline Mode Limitation:**
 This method is NOT supported when Google is initialized with `mode: 'offline'`.
 Offline mode only returns `serverAuthCode` for backend token exchange, so token refresh must happen on your backend.
