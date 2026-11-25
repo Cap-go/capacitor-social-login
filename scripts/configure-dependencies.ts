@@ -350,11 +350,11 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
     },
     {
       old: new RegExp(
-        `${swiftCommentPrefix}\\.product\\(name:\\s*"GoogleSignIn",\\s*package:\\s*"GoogleSignIn-iOS"\\),${swiftTrailingComment}`,
+        `${swiftCommentPrefix}\\.product\\(name:\\s*"GoogleSignIn",\\s*package:\\s*"GoogleSignIn-iOS"\\),?${swiftTrailingComment}`,
       ),
       new:
         providerConfig.google === 'implementation'
-          ? `.product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),`
+          ? `.product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")`
           : `// .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS"),  // Disabled via config (compileOnly)`,
     },
   ];

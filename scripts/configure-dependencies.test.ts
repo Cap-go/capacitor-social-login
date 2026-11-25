@@ -31,12 +31,22 @@ describe('configure-dependencies iOS GoogleSignIn 10.x', () => {
   });
 
   test('Package.swift Google package line without trailing comma matches at 10.1.0', () => {
-    const sample = `// .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "10.1.0")),  // Disabled via config (compileOnly)
+    const sample = `// .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "10.1.0"))  // Disabled via config (compileOnly)
 `;
     const { content, modified } = applyDependencyReplacements(sample, getPackageSwiftReplacements(defaultProviders));
     expect(modified).toBe(true);
     expect(content).toContain('.upToNextMajor(from: "10.1.0"))');
     expect(content.trimEnd()).not.toMatch(/,\s*$/);
+  });
+
+  test('Package.swift Google product line without trailing comma can be disabled', () => {
+    const sample = `                .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")
+`;
+    const config = { ...defaultProviders, google: 'compileOnly' };
+    const { content, modified } = applyDependencyReplacements(sample, getPackageSwiftReplacements(config));
+    expect(modified).toBe(true);
+    expect(content).toContain('// .product(name: "GoogleSignIn", package: "GoogleSignIn-iOS")');
+    expect(content).toContain('Disabled via config (compileOnly)');
   });
 
   test('Package.swift can disable Google package when google is compileOnly', () => {
