@@ -14,7 +14,7 @@ let package = Package(
         // FBSDKCoreKit and FBSDKLoginKit
         .package(url: "https://github.com/facebook/facebook-ios-sdk.git", .upToNextMajor(from: "18.0.3")),
         // Add Google Sign-In dependency
-        .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0"))
+        .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "10.1.0"))
     ],
     targets: [
         .target(
