@@ -282,11 +282,11 @@ function getPodspecReplacements(providerConfig: ProviderConfig): DependencyRepla
   return [
     {
       // Google SignIn - handle both active and commented (including existing disabled comments)
-      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'GoogleSignIn',\\s*'~>\\s*9\\.0\\.0'${podspecTrailingComment}`),
+      old: new RegExp(`(#[ \\t]*)?s\\.dependency\\s+'GoogleSignIn',\\s*'~>\\s*10\\.1'${podspecTrailingComment}`),
       new:
         providerConfig.google === 'implementation'
-          ? `s.dependency 'GoogleSignIn', '~> 9.0.0'`
-          : `# s.dependency 'GoogleSignIn', '~> 9.0.0'  # Disabled via config (compileOnly)`,
+          ? `s.dependency 'GoogleSignIn', '~> 10.1'`
+          : `# s.dependency 'GoogleSignIn', '~> 10.1'  # Disabled via config (compileOnly)`,
     },
     {
       // Facebook Core - handle both active and commented (including existing disabled comments)
@@ -323,12 +323,12 @@ function getPackageSwiftReplacements(providerConfig: ProviderConfig): Dependency
     },
     {
       old: new RegExp(
-        `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/google\\/GoogleSignIn-iOS\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\),${swiftTrailingComment}`,
+        `${swiftCommentPrefix}\\.package\\(url:\\s*"https:\\/\\/github\\.com\\/google\\/GoogleSignIn-iOS\\.git",\\s*\\.upToNextMajor\\(from:\\s*"[^"]+"\\)\\),?${swiftTrailingComment}`,
       ),
       new:
         providerConfig.google === 'implementation'
-          ? `.package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0")),`
-          : `// .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "9.0.0")),  // Disabled via config (compileOnly)`,
+          ? `.package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "10.1.0"))`
+          : `// .package(url: "https://github.com/google/GoogleSignIn-iOS.git", .upToNextMajor(from: "10.1.0")),  // Disabled via config (compileOnly)`,
     },
     {
       old: new RegExp(
@@ -479,4 +479,12 @@ if (require.main === module) {
   main();
 }
 
-export { getProviderConfig, configureAndroid, configureIOS, configureWeb };
+export {
+  getProviderConfig,
+  configureAndroid,
+  configureIOS,
+  configureWeb,
+  getPodspecReplacements,
+  getPackageSwiftReplacements,
+  applyDependencyReplacements,
+};

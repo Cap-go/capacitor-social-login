@@ -18,6 +18,6 @@ Pod::Spec.new do |s|
   # Hook script modifies these lines based on capacitor.config.ts
   s.dependency 'FBSDKCoreKit', '~> 18.0'
   s.dependency 'FBSDKLoginKit', '~> 18.0'
-  s.dependency 'GoogleSignIn', '~> 9.0.0'
+  s.dependency 'GoogleSignIn', '~> 10.1'
   s.swift_version = '5.1'
 end
